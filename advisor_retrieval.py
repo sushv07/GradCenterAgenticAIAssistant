@@ -294,16 +294,17 @@ def handle_query(query: str) -> str:
     Primary entry point for all user queries.
 
     Routing order — fully deterministic, no intent classification, no LLM:
-      1. find_advisor()   → advisor card / suggestions, UNLESS query is process-related
-      2. get_next_steps() → next-steps list for apply / start / process queries
-      3. fallback_response() → catch-all
+      1. find_advisor()      → advisor card / suggestions (non-process queries only)
+      2. get_next_steps()    → next-steps list for apply / start / process queries
+      3. faq_rag_lookup()    → semantic FAQ match (catches anything next_steps missed)
+      4. fallback_response() → catch-all
 
     Process queries (apply, steps, start …) skip the advisor card so users
     asking "how do I apply?" always land on next-steps, not a program card.
     """
-    # Lazy import to avoid circular dependency (next_steps → admissions_rag / faq_rag
-    # are independent, but deferring keeps the module graph clean).
+    # Lazy imports to avoid circular dependency.
     from next_steps import get_next_steps, format_next_steps
+    from faq_rag_module import faq_rag_lookup
 
     # 1. Detect strong process intent — these queries bypass the advisor card
     q = query.lower()
@@ -324,7 +325,12 @@ def handle_query(query: str) -> str:
     if steps is not None:
         return format_next_steps(steps)
 
-    # 4. Fallback
+    # 4. Semantic FAQ lookup — catches questions not matched by intent keywords
+    faq = faq_rag_lookup(query)
+    if faq:
+        return faq["guidance"]
+
+    # 5. Fallback
     return fallback_response(query)
 
 

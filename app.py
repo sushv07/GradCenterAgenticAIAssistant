@@ -11,9 +11,24 @@ from pathlib import Path
 # Ensure the project root is on sys.path so local imports work
 sys.path.insert(0, str(Path(__file__).parent))
 
+import os
+
 import streamlit as st
 import tracker
 import orchestrator
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Lazy agent loader (only imported when OPENAI_API_KEY is present)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _load_agent():
+    """Import agent module lazily so missing openai package doesn't break startup."""
+    try:
+        import agent as _agent_mod
+        return _agent_mod
+    except ImportError:
+        return None
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Page config
@@ -148,9 +163,11 @@ st.markdown(
 
 def _init_state() -> None:
     defaults: dict = {
-        "session_id":   "default",
-        "messages":     [],        # [{role, content, response}]
+        "session_id":    "default",
+        "messages":      [],        # [{role, content, response}]
         "last_response": None,
+        "agent_mode":    False,     # True → route queries through OpenAI agent
+        "agent_messages": [],       # persisted OpenAI conversation history (no system prompt)
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -250,7 +267,47 @@ def _render_sidebar() -> None:
         if st.button("🗑 Clear session history", key=f"{sid}_clear_history", use_container_width=True):
             st.session_state["messages"] = []
             st.session_state["last_response"] = None
+            st.session_state["agent_messages"] = []
             st.rerun()
+
+        # ── Agent Mode toggle (always visible) ───────────────────────────────
+        st.markdown("---")
+        st.markdown("**🤖 Agent Mode**")
+
+        # Allow entering the key in the sidebar if not already in environment
+        if not os.environ.get("OPENAI_API_KEY"):
+            api_key_input = st.text_input(
+                "OpenAI API Key",
+                type="password",
+                placeholder="sk-…",
+                help="Required to enable Agent Mode",
+                key="openai_key_input",
+            )
+            if api_key_input:
+                os.environ["OPENAI_API_KEY"] = api_key_input
+
+        has_key = bool(os.environ.get("OPENAI_API_KEY"))
+
+        agent_on = st.toggle(
+            "Enable AI Agent",
+            value=st.session_state["agent_mode"] if has_key else False,
+            key="agent_mode_toggle",
+            disabled=not has_key,
+            help=(
+                "Uses OpenAI to look up advisors and draft emails."
+                if has_key
+                else "Enter your OpenAI API Key above to enable."
+            ),
+        )
+        if has_key and agent_on != st.session_state["agent_mode"]:
+            st.session_state["agent_mode"] = agent_on
+            # Clear conversation history when switching modes
+            st.session_state["messages"] = []
+            st.session_state["agent_messages"] = []
+            st.session_state["last_response"] = None
+            st.rerun()
+        if st.session_state["agent_mode"] and has_key:
+            st.caption("Agent can look up advisors and draft emails for you.")
 
         st.markdown("---")
         st.caption("CSULB Graduate Center AI Assistant")
@@ -636,6 +693,188 @@ def _render_tracking_panel(response: dict) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Agent response renderer
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _parse_advisor_from_history(history: list[dict]) -> dict | None:
+    """
+    Scan the OpenAI conversation history for a get_advisor tool result and
+    parse out the labelled fields (ADVISOR_NAME, ADVISOR_EMAIL, PROGRAM, PHONE, OFFICE).
+    Returns a dict of those fields, or None if not found.
+    """
+    import re as _re
+    for msg in history:
+        if msg.get("role") != "tool":
+            continue
+        content = msg.get("content", "")
+        if "ADVISOR_NAME:" not in content:
+            continue
+        fields: dict[str, str] = {}
+        for line in content.splitlines():
+            for key in ("ADVISOR_NAME", "ADVISOR_EMAIL", "PROGRAM", "PHONE", "OFFICE"):
+                if line.startswith(f"{key}:"):
+                    fields[key] = line[len(key) + 1:].strip()
+        if fields:
+            return fields
+    return None
+
+
+def _render_advisor_card(fields: dict) -> None:
+    """Render a compact advisor info card."""
+    name    = fields.get("ADVISOR_NAME", "—")
+    email   = fields.get("ADVISOR_EMAIL", "")
+    program = fields.get("PROGRAM", "—")
+    phone   = fields.get("PHONE", "")
+    office  = fields.get("OFFICE", "")
+
+    email_html = (
+        f'<a href="mailto:{email}" style="color:#60a5fa; text-decoration:none;">{email}</a>'
+        if email else "—"
+    )
+    extra = ""
+    if phone:
+        extra += f'<br><span style="color:#94a3b8;">Phone: </span><span style="color:#e2e8f0;">{phone}</span>'
+    if office:
+        extra += f'<br><span style="color:#94a3b8;">Office: </span><span style="color:#e2e8f0;">{office}</span>'
+
+    st.markdown(
+        f'<div style="background:#1e293b; border:1px solid #334155; border-left:4px solid #3b82f6; '
+        f'border-radius:8px; padding:14px 18px; margin-bottom:14px; font-size:.92rem; line-height:1.8;">'
+        f'<div style="font-size:.7rem; font-weight:700; color:#60a5fa; letter-spacing:.6px; '
+        f'text-transform:uppercase; margin-bottom:6px;">Advisor Contact</div>'
+        f'<span style="color:#94a3b8;">Name: </span><strong style="color:#f1f5f9;">{name}</strong><br>'
+        f'<span style="color:#94a3b8;">Program: </span><span style="color:#e2e8f0;">{program}</span><br>'
+        f'<span style="color:#94a3b8;">Email: </span>{email_html}'
+        f'{extra}'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+
+def _render_agent_response(response: dict) -> None:
+    """Render a response dict returned by agent.run_agent()."""
+
+    # ── Clarification request ─────────────────────────────────────────────────
+    if response.get("needs_clarification"):
+        question = response.get("clarification_question", "")
+        reason   = response.get("clarification_reason", "")
+        st.markdown(
+            f'<div class="summary-box">'
+            f'<strong>🤔 I need a bit more info</strong><br>{question}'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+        if reason:
+            st.caption(f"Reason: {reason}")
+        return
+
+    # ── Advisor card (always shown when get_advisor was called) ──────────────
+    tools_used = response.get("tools_used", [])
+    history    = response.get("conversation_history", [])
+    if "get_advisor" in tools_used:
+        advisor_fields = _parse_advisor_from_history(history)
+        if advisor_fields:
+            _render_advisor_card(advisor_fields)
+
+    # ── Main answer ───────────────────────────────────────────────────────────
+    answer = response.get("answer", "")
+    if answer:
+        import re as _re
+        import urllib.parse as _up
+
+        # Extract sentinel URLs written by the tool (most reliable source)
+        web_match   = _re.search(r'OUTLOOK_WEB_URL:\s*(\S+)', answer)
+        mail_match  = _re.search(r'MAILTO_URL:\s*(\S+)', answer)
+        outlook_web_url = web_match.group(1)  if web_match  else None
+        mailto_url      = mail_match.group(1) if mail_match else None
+
+        # Fallback: scan for a markdown mailto: link the LLM echoed
+        if not mailto_url:
+            md = _re.search(r'\[.*?\]\((mailto:[^)]+)\)', answer)
+            if md:
+                mailto_url = md.group(1)
+
+        has_draft = bool(outlook_web_url or mailto_url)
+
+        if has_draft:
+            # Strip sentinel lines + raw markdown links — keep LLM prose only
+            clean = _re.sub(r'OUTLOOK_WEB_URL:\s*\S+\n?', '', answer)
+            clean = _re.sub(r'MAILTO_URL:\s*\S+\n?', '', clean)
+            clean = _re.sub(r'\[.*?\]\((https://outlook[^)]+|mailto:[^)]+)\)', '', clean).strip()
+            if clean:
+                st.markdown(clean)
+
+            # ── Parse email fields from the web URL ──────────────────────────
+            _to, _subj, _body = "", "", ""
+            src_url = outlook_web_url or mailto_url or ""
+            try:
+                _parts  = src_url.split("?", 1)
+                _params = dict(_up.parse_qsl(_parts[1])) if len(_parts) > 1 else {}
+                _to     = _up.unquote(_params.get("to", ""))
+                if not _to and "mailto:" in _parts[0]:
+                    _to = _up.unquote(_parts[0].split("mailto:", 1)[1])
+                _subj = _params.get("subject", "")
+                _body = _params.get("body", "")
+            except Exception:
+                pass
+
+            # ── Email summary card ───────────────────────────────────────────
+            if _to or _subj:
+                st.markdown(
+                    f'<div style="background:#1e293b; border:1px solid #334155; '
+                    f'border-radius:8px; padding:14px 18px; margin:10px 0 14px 0; '
+                    f'font-size:.92rem; line-height:1.8;">'
+                    f'<span style="color:#94a3b8;">To: </span>'
+                    f'<strong style="color:#e2e8f0;">{_to}</strong><br>'
+                    f'<span style="color:#94a3b8;">Subject: </span>'
+                    f'<strong style="color:#e2e8f0;">{_subj}</strong>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+
+            # ── Buttons: webbrowser.open() from Python (most reliable for     ──
+            # local Streamlit apps — bypasses all HTML/JS popup restrictions)  ──
+            # ── Open in Outlook Web (HTTPS — works on any browser) ───────────
+            if outlook_web_url:
+                if st.button(
+                    "📧 Open Draft in Outlook Web",
+                    key=f"outlook_web_{hash(outlook_web_url)}",
+                    use_container_width=True,
+                    type="primary",
+                ):
+                    import sys, subprocess
+                    try:
+                        if sys.platform == "darwin":
+                            subprocess.Popen(["open", outlook_web_url])
+                        elif sys.platform == "win32":
+                            subprocess.Popen(["rundll32", "url.dll,FileProtocolHandler", outlook_web_url])
+                        else:
+                            subprocess.Popen(["xdg-open", outlook_web_url])
+                    except Exception as e:
+                        st.error(f"Could not open browser: {e}")
+
+            # ── Copy fields (always expanded — reliable fallback) ────────────
+            st.markdown("**Or copy and paste into Outlook:**")
+            col_to, col_sub = st.columns(2)
+            with col_to:
+                st.markdown("**To**")
+                st.code(_to or "—", language=None)
+            with col_sub:
+                st.markdown("**Subject**")
+                st.code(_subj or "—", language=None)
+            if _body:
+                st.markdown("**Body**")
+                st.code(_body, language=None)
+        else:
+            st.markdown(answer)
+
+    # ── Tools used (debug caption) ────────────────────────────────────────────
+    tools = response.get("tools_used", [])
+    if tools:
+        st.caption(f"🔧 Tools used: {', '.join(tools)}")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Render a complete response object
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -652,12 +891,23 @@ def _render_response(response: dict, msg_idx: int = 0) -> None:
             unsafe_allow_html=True,
         )
     if action:
-        st.markdown(
-            f'<div class="action-box">'
-            f'<span class="action-label">Next step</span>{action}'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+        if route == "next_steps":
+            # primary_action is a bullet-list markdown string with [text](url) links.
+            # Embedding it inside an HTML <div> suppresses Streamlit's markdown rendering,
+            # so links show as raw text.  Render the badge separately, then use
+            # st.markdown() for the content so links are clickable.
+            st.markdown(
+                '<div class="action-box"><span class="action-label">Next step</span></div>',
+                unsafe_allow_html=True,
+            )
+            st.markdown(action)
+        else:
+            st.markdown(
+                f'<div class="action-box">'
+                f'<span class="action-label">Next step</span>{action}'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
     # Live progress bar (always shown when a session has steps)
     p = _reload_progress()
@@ -709,7 +959,35 @@ def _render_response(response: dict, msg_idx: int = 0) -> None:
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _submit_query(query: str) -> None:
-    sid      = st.session_state["session_id"]
+    sid = st.session_state["session_id"]
+
+    # ── Agent mode ────────────────────────────────────────────────────────────
+    if st.session_state.get("agent_mode"):
+        agent_mod = _load_agent()
+        if agent_mod is None:
+            st.error("Could not import the agent module. Make sure `openai` is installed.")
+            return
+
+        history  = st.session_state.get("agent_messages", [])
+        result   = agent_mod.run_agent(query, session_id=sid, conversation_history=history)
+
+        # Persist updated conversation history for the next turn
+        st.session_state["agent_messages"] = result.get("conversation_history", history)
+
+        # Tag the response so the chat renderer knows which panel to use
+        result["_mode"] = "agent"
+
+        st.session_state["messages"].append({"role": "user", "content": query})
+        st.session_state["messages"].append({
+            "role":     "assistant",
+            "content":  result.get("answer") or result.get("clarification_question", ""),
+            "response": result,
+        })
+        st.session_state["last_response"] = result
+        st.rerun()
+        return
+
+    # ── Orchestrator mode (default) ───────────────────────────────────────────
     response = orchestrator.run(query, session_id=sid)
 
     st.session_state["messages"].append({
@@ -744,7 +1022,11 @@ def main() -> None:
         for i, msg in enumerate(st.session_state["messages"]):
             with st.chat_message(msg["role"]):
                 if msg["role"] == "assistant" and "response" in msg:
-                    _render_response(msg["response"], msg_idx=i)
+                    resp = msg["response"]
+                    if resp.get("_mode") == "agent":
+                        _render_agent_response(resp)
+                    else:
+                        _render_response(resp, msg_idx=i)
                 else:
                     st.markdown(msg["content"])
 

@@ -2,9 +2,10 @@
 next_steps.py
 Returns structured next-steps guidance for doctoral applicants.
 
-Combines fixed base steps with live RAG snippets from the FAQ and
-admissions pages — only when the query signals intent to apply or
-get started.  FAQ is always preferred over admissions when both match.
+Uses lightweight intent detection to select the right RAG source for
+extra_guidance — FAQ dominates for orientation queries, admissions for
+apply queries.  The enriched doctoral steps (steps 2, 5, 8 links etc.)
+live in guidance_agent.py and are not affected by this module.
 
 Usage:
     from next_steps import get_next_steps
@@ -16,18 +17,16 @@ from __future__ import annotations
 from typing import Optional
 
 from admissions_rag import admissions_rag_lookup
-from faq_rag import faq_rag_lookup
+from faq_rag_module import faq_rag_lookup
 
 
 # ---------------------------------------------------------------------------
-# Intent keywords — query must contain at least one to proceed
+# Intent buckets
 # ---------------------------------------------------------------------------
 
-_KEYWORDS = [
-    "apply", "application", "steps", "process",
-    "start", "phd", "doctorate",
-    "help", "confused", "begin",
-]
+_START_INTENT  = ["start", "confused", "help", "begin", "stuck", "don't know", "lost", "overwhelmed"]
+_CHOICE_INTENT = ["choose", "which program", "what should i study", "decide"]
+_APPLY_INTENT  = ["apply", "application", "steps", "process"]
 
 
 # ---------------------------------------------------------------------------
@@ -120,42 +119,70 @@ def format_next_steps(data: dict) -> str:
 
 def get_next_steps(query: str) -> Optional[dict]:
     """
-    Return structured next-steps guidance when the query is about applying
-    to a doctoral program or getting started with grad school.
+    Return structured next-steps guidance using lightweight intent detection.
 
-    FAQ is checked first — it naturally handles "I don't know where to start"
-    and similar orientation queries.  Admissions snippets are appended after.
+    Intent routing (checked in priority order):
+      START  → FAQ only. User is lost; orient them first.
+      CHOICE → FAQ + soft advisor hint. User is deciding between programs.
+      APPLY  → Admissions first, then FAQ. User is ready to act.
+
+    The enriched doctoral steps (steps 2, 5, 8 with embedded links) are
+    managed by guidance_agent.py and are unaffected by this function.
 
     Returns:
         {
             "type":           "next_steps",
-            "steps":          [ ... ],       # fixed ordered list
-            "extra_guidance": "..."          # RAG-enriched tip, or None
+            "steps":          [ ... ],       # fixed 5-item base list
+            "extra_guidance": "..."          # intent-routed RAG tip, or None
         }
-        or None if the query matches no intent keyword.
+        or None if the query matches no intent bucket.
     """
     if not query or not query.strip():
         return None
 
     q = query.lower()
-    if not any(k in q for k in _KEYWORDS):
+
+    is_start  = any(k in q for k in _START_INTENT)
+    is_choice = any(k in q for k in _CHOICE_INTENT)
+    is_apply  = any(k in q for k in _APPLY_INTENT)
+
+    if not (is_start or is_choice or is_apply):
         return None
 
     guidance_parts: list[str] = []
 
-    # FAQ FIRST — handles orientation queries ("I don't know where to start")
-    faq = faq_rag_lookup(query)
-    if faq:
-        tip = faq.get("guidance") or faq.get("snippet") or ""
-        if tip:
-            guidance_parts.append(_clean(tip))
+    if is_start:
+        # FAQ ONLY — do not let admissions override orientation messaging
+        faq = faq_rag_lookup(query)
+        if faq:
+            tip = faq.get("guidance") or ""
+            if tip:
+                guidance_parts.append(tip)
 
-    # Admissions SECOND — concrete process details
-    admissions = admissions_rag_lookup(query)
-    if admissions:
-        snippet = (admissions.get("snippets") or [""])[0]
-        if snippet:
-            guidance_parts.append(_clean(snippet))
+    elif is_choice:
+        # FAQ + soft advisor prompt
+        faq = faq_rag_lookup(query)
+        if faq:
+            tip = faq.get("guidance") or ""
+            if tip:
+                guidance_parts.append(tip)
+        guidance_parts.append(
+            "You can also ask me to find a program advisor to discuss your options."
+        )
+
+    elif is_apply:
+        # Admissions first, then FAQ
+        admissions = admissions_rag_lookup(query)
+        if admissions:
+            snippet = (admissions.get("snippets") or [""])[0]
+            if snippet:
+                guidance_parts.append(_clean(snippet))
+
+        faq = faq_rag_lookup(query)
+        if faq:
+            tip = faq.get("guidance") or ""
+            if tip:
+                guidance_parts.append(tip)
 
     return {
         "type":           "next_steps",

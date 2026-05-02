@@ -940,6 +940,62 @@ def run(query: str, session_id: str = "default") -> dict[str, Any]:
             ],
         }
 
+    # ── START-intent intercept ────────────────────────────────────────────────
+    # Queries like "I don't know where to start" / "I'm confused" / "help me begin"
+    # carry NO specific program or application keyword.  detect_route() maps them
+    # to GUIDANCE, which calls guide_from_file() → detect_intent() matches "start"
+    # to application_process and dumps the full general 7-step flow — wrong.
+    #
+    # Instead, detect START intent here (before detect_route) and route through
+    # get_next_steps(), which returns the FAQ-enriched orientation response.
+    # Token-based matching (not substring) so typos like "don;t" still match.
+    # Only triggers when NO apply/doctoral keyword is also present, so
+    # "I want to apply and don't know where to start" still goes to GUIDANCE.
+    _START_TOKENS   = {"confused", "stuck", "lost", "overwhelmed",
+                       "start", "begin", "beginning", "started"}
+    _APPLY_SPECIFIC = {"apply", "application", "steps", "process",
+                       "phd", "doctorate", "doctoral", "dnp", "dpt", "edd"}
+    raw_tokens      = set(re.findall(r"[a-z]+", query.lower()))
+
+    is_start_only = (
+        bool(raw_tokens & _START_TOKENS)
+        and not bool(raw_tokens & _APPLY_SPECIFIC)
+    )
+
+    if is_start_only:
+        from next_steps import get_next_steps
+        from faq_rag_module import faq_rag_lookup
+        next_steps_result = get_next_steps(query)
+        if next_steps_result:
+            extra     = next_steps_result.get("extra_guidance") or ""
+            faq_data  = faq_rag_lookup(query) or {}
+            # Links are embedded as [text](url) markdown inside guidance; no separate list needed
+            resources = faq_data.get("links", [])   # always [] — kept for schema consistency
+            summary   = (
+                "Not sure where to begin? Here are some ways to get started with graduate admissions at CSULB."
+            )
+            # guidance already has markdown [text](url) links embedded — render-ready
+            guidance_text = faq_data.get("guidance", "")
+            primary = guidance_text or extra or "Request a free appointment with a Graduate Center Coordinator."
+            return {
+                "query":          query,
+                "route":          "next_steps",
+                "session_id":     session_id,
+                "summary":        summary,
+                "primary_action": primary,
+                "steps":          [
+                    {"number": i + 1, "do": s}
+                    for i, s in enumerate(next_steps_result.get("steps", []))
+                ],
+                "resources":      resources,
+                "source":         {"file": "", "url": "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs"},
+                "next_actions": [
+                    "Show me the application steps",
+                    "Find my program advisor",
+                    "What are the GPA requirements?",
+                ],
+            }
+
     route = detect_route(query)
     raw   = _ROUTE_RUNNERS[route](query, session_id)
     response = _format_response(query, route, raw)

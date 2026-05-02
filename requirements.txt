@@ -1,0 +1,23 @@
+# CSULB Grad Center AI Assistant – Python dependencies
+
+# ── Web scraping ──────────────────────────────────────────────────────────────
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+
+# ── Fuzzy matching (advisor retrieval) ───────────────────────────────────────
+rapidfuzz>=3.0.0
+
+# ── Streamlit UI ──────────────────────────────────────────────────────────────
+streamlit>=1.35.0
+
+# ── Semantic FAQ RAG (faq_rag_module.py) ─────────────────────────────────────
+langchain>=1.0.0
+langchain-community>=0.4.0
+langchain-core>=1.0.0
+langchain-text-splitters>=1.0.0
+chromadb>=0.5.0
+sentence-transformers>=3.0.0
+
+# ── OpenAI agent ───────────────────────────────────────────────────────────────
+openai>=1.0.0
+
