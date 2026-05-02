@@ -1,0 +1,92 @@
+[
+  {
+    "program": "Educational Leadership - Community College Higher Ed Specialization (Ed.D.)",
+    "aliases": ["ed leadership community college", "edd community college", "educational leadership community college", "ed.d. community college", "higher ed leadership", "community college leadership", "edd community college higher ed"],
+    "advisor_name": "Kimberly Word",
+    "email": "eddinfo@csulb.edu",
+    "phone": "562-985-4998",
+    "office": null,
+    "source": "https://www.csulb.edu/college-of-education/educational-doctorate-educational-leadership"
+  },
+  {
+    "program": "Educational Leadership - P-12 Specialization (Ed.D.)",
+    "aliases": ["ed leadership p-12", "edd p-12", "educational leadership p12", "ed.d. p-12", "k-12 leadership", "p12 leadership", "educational leadership k12", "ed leadership", "edd", "p-12 ed leadership", "k12", "k12 leadership", "k12 education leadership", "k-12", "p12"],
+    "advisor_name": "Kimberly Word",
+    "email": "eddinfo@csulb.edu",
+    "phone": "562-985-4998",
+    "office": null,
+    "source": "https://www.csulb.edu/college-of-education/educational-doctorate-educational-leadership"
+  },
+  {
+    "program": "Engineering & Computational Mathematics (Ph.D.)",
+    "aliases": ["engineering phd", "phd engineering", "engineering math phd", "computational math phd", "engineering math doctorate", "comp math", "engineering computational mathematics", "computational mathematics phd"],
+    "advisor_name": "Kerop Janoyan",
+    "email": "kerop.janoyan@csulb.edu",
+    "phone": "562-985-8032",
+    "office": null,
+    "source": "https://www.csulb.edu/college-of-engineering/engineering-doctoral-studies"
+  },
+  {
+    "program": "Physical Therapy (DPT)",
+    "aliases": ["dpt", "physical therapy doctorate", "doctor of physical therapy", "pt program", "physical therapy grad"],
+    "advisor_name": "Jeff Rodrigues",
+    "email": "CHHS-PT@csulb.edu",
+    "phone": null,
+    "office": null,
+    "source": "https://www.csulb.edu/college-of-health-human-services/physical-therapy/applying-to-the-dpt-program"
+  },
+  {
+    "program": "Public Health (DR.P.H.)",
+    "aliases": ["drph", "public health doctorate", "doctor of public health", "dr.p.h.", "public health grad"],
+    "advisor_name": "Lucy Huckabay",
+    "email": "Lucy.Huckabay@csulb.edu",
+    "phone": "562-985-4057",
+    "office": null,
+    "source": "https://www.csulb.edu/college-of-health-human-services/school-of-nursing/bsn-dnp-program"
+  },
+  {
+    "program": "Nursing (D.N.P.)",
+    "aliases": ["dnp", "doctor of nursing practice", "d.n.p.", "nursing doctorate", "nursing grad", "bsn dnp"],
+    "advisor_name": "Cleddhy Arellano",
+    "email": "cleddhy.arellano@csulb.edu",
+    "phone": "562-985-2335",
+    "office": null,
+    "source": "https://www.csulb.edu/college-of-health-human-services/school-of-nursing/bsn-dnp-program"
+  },
+  {
+    "program": "Accountancy",
+    "aliases": ["accounting", "ms accountancy", "ms accounting", "accountancy ms", "graduate accounting"],
+    "advisor_name": null,
+    "email": null,
+    "phone": "562.985.4111",
+    "office": null,
+    "source": "https://www.csulb.edu/cob-graduate-programs/ms-programs/ms-accountancy"
+  },
+  {
+    "program": "Aerospace Engineering",
+    "aliases": ["aero", "aerospace", "ms aerospace", "aerospace eng", "aeronautical engineering"],
+    "advisor_name": "Clarice Ross",
+    "email": "clarice.ross@csulb.edu",
+    "phone": null,
+    "office": null,
+    "source": "https://www.csulb.edu/college-of-engineering/master-of-science-aerospace-engineering"
+  },
+  {
+    "program": "Anthropology",
+    "aliases": ["anthro", "ms anthropology", "anthropology ms", "graduate anthropology"],
+    "advisor_name": null,
+    "email": null,
+    "phone": "+1562-985-5171",
+    "office": null,
+    "source": "https://cla.csulb.edu/departments/anthropology/graduate-programs/"
+  },
+  {
+    "program": "Anthropology - Applied",
+    "aliases": ["applied anthro", "applied anthropology", "anthropology applied", "applied anth"],
+    "advisor_name": null,
+    "email": null,
+    "phone": "+1562-985-5171",
+    "office": null,
+    "source": "https://cla.csulb.edu/departments/anthropology/graduate-programs/"
+  }
+]

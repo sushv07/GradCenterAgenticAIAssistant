@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.csulb.edu)",
+      "Bash(python query_handler.py \"How do I apply for a scholarship or fellowship?\")",
+      "Bash(python query_handler.py \"What is the thesis submission deadline for Spring 2026?\")",
+      "Bash(python query_handler.py \"gibberish xyz zzz\")",
+      "Bash(python guidance_agent.py \"I am an international student, how do I apply?\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({'intent':d['intent'],'total_steps':d['total_steps'],'steps':[{'step':s['step'],'title':s['title']} for s in d['steps']],'source_url':d['source_url']},indent=2\\)\\)\")",
+      "Bash(python checklist_agent.py \"How do I apply to a graduate program?\")",
+      "Bash(python checklist_agent.py \"What GPA do I need to be eligible?\")",
+      "Bash(python checklist_agent.py \"I just got accepted, what do I do next?\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({'intent':d['intent'],'total_items':d['total_items'],'checklist':[{k:v for k,v in i.items\\(\\)} for i in d['checklist']]},indent=2\\)\\)\")"
+    ]
+  }
+}

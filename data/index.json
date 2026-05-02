@@ -1,0 +1,147 @@
+{
+  "version": "2.0",
+  "last_updated": "2026-04-28",
+  "description": "Retrieval index for the CSULB Grad Center Agentic AI Assistant. Schema v2: every data file uses {id, title, source_url, last_updated, content}.",
+  "schema": {
+    "envelope": ["id", "title", "source_url", "last_updated", "content"],
+    "entity_shape_hint": ["name", "description", "url", "contact", "eligibility", "deadlines", "amount"]
+  },
+  "data_files": [
+    {
+      "file": "data/grad_center.json",
+      "title": "CSULB Graduate Center",
+      "source_url": "https://www.csulb.edu/graduate-center",
+      "topics": [
+        "graduate center", "advising appointment", "statement of purpose",
+        "cv resume", "writing support", "gradmentor", "mentoring",
+        "grad slam", "workshops events", "writing retreat",
+        "mental health intern", "statistical consulting",
+        "hours location contact", "drop-in", "cal state apply portal"
+      ]
+    },
+    {
+      "file": "data/admissions.json",
+      "title": "CSULB Graduate Admissions",
+      "source_url": "https://www.csulb.edu/graduate-studies-csulb/csulb-graduate-admissions",
+      "topics": [
+        "how to apply", "application process", "application steps",
+        "admission eligibility", "gpa requirements", "transcripts",
+        "application fee", "deadlines", "newly admitted students",
+        "conditional admission", "provisional admission",
+        "international students", "orientation", "accept offer",
+        "enrollment deposit", "immunization", "activate account"
+      ]
+    },
+    {
+      "file": "data/programs.json",
+      "title": "CSULB Graduate Programs",
+      "source_url": "https://www.csulb.edu/graduate-studies-csulb/graduate-masters-programs-and-certificates",
+      "topics": [
+        "graduate programs", "masters programs", "doctoral programs",
+        "phd", "edd", "dnp", "dpt", "drph", "beach edge",
+        "concurrent dual masters", "credentials", "certificates",
+        "program advisors", "program deadlines",
+        "engineering programs", "business programs", "nursing programs",
+        "social work", "education programs", "arts programs",
+        "stem programs", "mba"
+      ]
+    },
+    {
+      "file": "data/funding.json",
+      "title": "CSULB Graduate Funding",
+      "source_url": "https://www.csulb.edu/navigating-grad-studies-at-the-beach/funding",
+      "topics": [
+        "funding", "scholarships", "fellowships", "grants",
+        "travel grant", "conference funding", "financial aid",
+        "teaching associate", "graduate assistant", "work study",
+        "sally casanova", "predoctoral scholars", "graduate equity fellowship",
+        "state university grant", "cdip",
+        "external scholarships", "undocumented daca funding",
+        "careerlink", "employment"
+      ]
+    },
+    {
+      "file": "data/milestones_thesis.json",
+      "title": "Graduate Milestones, Thesis & Dissertation",
+      "source_url": "https://www.csulb.edu/navigating-grad-studies-at-the-beach/important-milestones",
+      "topics": [
+        "thesis", "dissertation", "culminating activity",
+        "advancement to candidacy", "submission deadlines",
+        "thesis formatting", "format manual", "signature page",
+        "graduation", "apply to graduate", "degree clearing",
+        "commencement", "gs 700", "educational leave",
+        "gpa requirement", "academic warning",
+        "awards", "dean's list", "distinguished thesis", "milestones"
+      ]
+    },
+    {
+      "file": "data/student_resources.json",
+      "title": "Graduate Student Resources & Campus Life",
+      "source_url": "https://www.csulb.edu/graduate-studies/graduate-student-resources",
+      "topics": [
+        "student resources", "tutoring", "writing center", "learning center",
+        "campus life", "housing", "parking", "bus pass", "student id",
+        "mental health", "caps counseling", "crisis resources",
+        "disability accommodations", "bob murphy access center",
+        "basic needs", "food pantry", "health insurance",
+        "career development", "internships",
+        "student research competition", "rsca",
+        "computer labs", "ai guidelines",
+        "cultural resource centers", "veterans services", "dream success center",
+        "safety escort", "recreation athletics", "study space"
+      ]
+    },
+    {
+      "file": "data/faqs.json",
+      "title": "CSULB Graduate Center FAQs",
+      "source_url": "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs",
+      "topics": [
+        "faq", "frequently asked questions",
+        "admissions faq", "application faq", "fee waiver", "transcript submission",
+        "gpa", "international student faq",
+        "graduate center services faq", "tutoring faq", "research faq",
+        "thesis faq", "graduation faq", "registration faq",
+        "financial aid faq", "health wellness faq", "campus resources faq"
+      ]
+    },
+    {
+      "file": "data/why_csulb.json",
+      "title": "Why Earn Your Graduate Degree at CSULB",
+      "source_url": "https://www.csulb.edu/graduate-studies/why-earn-your-graduate-degree-at-csulb",
+      "topics": [
+        "why csulb", "rankings", "return on investment",
+        "affordability", "social mobility", "faculty research",
+        "economic impact", "alumni", "mid career salary",
+        "carnegie classification", "mission vision"
+      ]
+    }
+  ],
+  "keyword_to_file_map": {
+    "apply":         ["admissions.json"],
+    "application":   ["admissions.json", "faqs.json"],
+    "appointment":   ["grad_center.json"],
+    "writing":       ["grad_center.json", "student_resources.json"],
+    "thesis":        ["milestones_thesis.json", "faqs.json"],
+    "dissertation":  ["milestones_thesis.json", "faqs.json"],
+    "deadline":      ["milestones_thesis.json", "admissions.json", "programs.json"],
+    "funding":       ["funding.json", "grad_center.json"],
+    "scholarship":   ["funding.json", "faqs.json"],
+    "fellowship":    ["funding.json"],
+    "doctoral":      ["programs.json", "funding.json"],
+    "masters":       ["programs.json", "admissions.json"],
+    "programs":      ["programs.json"],
+    "gpa":           ["admissions.json", "faqs.json", "milestones_thesis.json"],
+    "mentor":        ["grad_center.json"],
+    "orientation":   ["admissions.json"],
+    "graduation":    ["milestones_thesis.json", "faqs.json"],
+    "financial aid": ["funding.json", "faqs.json"],
+    "housing":       ["student_resources.json", "faqs.json"],
+    "mental health": ["student_resources.json", "faqs.json"],
+    "research":      ["student_resources.json", "grad_center.json"],
+    "international": ["admissions.json", "faqs.json"],
+    "ranking":       ["why_csulb.json", "programs.json"],
+    "campus":        ["student_resources.json"],
+    "career":        ["student_resources.json"],
+    "beach edge":    ["programs.json"]
+  }
+}

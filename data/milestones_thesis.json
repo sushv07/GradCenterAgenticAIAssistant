@@ -1,0 +1,108 @@
+{
+  "id": "milestones_thesis",
+  "title": "Graduate Milestones, Thesis & Dissertation",
+  "source_url": "https://www.csulb.edu/navigating-grad-studies-at-the-beach/important-milestones",
+  "last_updated": "2026-04-28",
+  "content": {
+    "academic_requirements": {
+      "minimum_gpa": "3.0 GPA required; falling below triggers academic warning.",
+      "continuous_enrollment": "Must register for coursework each semester OR enroll in GS 700 (thesis/project completion) OR obtain Educational Leave approval.",
+      "grade_forgiveness": "NOT permitted for advanced degree students.",
+      "academic_integrity": "Cheating and plagiarism strictly prohibited."
+    },
+
+    "milestones": [
+      {
+        "milestone": "Class Enrollment / Registration",
+        "details": "Use Degree Planner in MyCSULB to map your academic path. Register via MyCSULB Student Center."
+      },
+      {
+        "milestone": "Advancement to Candidacy",
+        "details": "Departmental and college approval of your planned course of study. Required before culminating activity."
+      },
+      {
+        "milestone": "Culminating Activity",
+        "details": {
+          "doctoral": "Dissertation required",
+          "masters": "Thesis, project, and/or comprehensive exam (varies by program)",
+          "support": "Thesis and Dissertation Office provides formatting guidelines and pre-submission consultations"
+        }
+      },
+      {
+        "milestone": "Apply to Graduate",
+        "details": "Submit graduation application through MyCSULB Student Records. Degree clearing takes 4–8 weeks post-semester."
+      }
+    ],
+
+    "thesis_dissertation_office": {
+      "name": "Thesis and Dissertation Office",
+      "url": "https://www.csulb.edu/university-library/thesis-and-dissertation-office",
+      "location": "University Library 202C (2nd floor)",
+      "contact": {"email": "thesis@csulb.edu", "phone": "(562) 985-4013"},
+      "hours": {
+        "monday_wednesday": "9am–5pm",
+        "tuesday_thursday": "10am–6pm",
+        "friday": "9am–5pm"
+      },
+      "services": [
+        "Format Manual compliance review",
+        "Citation format guidance",
+        "Formatting resources and templates",
+        "Workshops",
+        "Pre-submission consultations",
+        "Electronic signature page assistance"
+      ],
+      "resources": {
+        "format_manual": "https://www.csulb.edu/thesis-and-dissertation-office/csulb-format-manual",
+        "formatting_resources": "https://www.csulb.edu/thesis-and-dissertation-office/formatting-resources",
+        "mini_manuscript": "https://www.csulb.edu/thesis-and-dissertation-office/mini-manuscript",
+        "templates": "https://www.csulb.edu/thesis-and-dissertation-office/templates",
+        "submission_process": "https://www.csulb.edu/thesis-and-dissertation-office/submission-process"
+      }
+    },
+
+    "submission_deadlines": {
+      "source_url": "https://www.csulb.edu/university-library/thesis-and-dissertation-office/submission-deadlines",
+      "important_note": "Departmental deadlines may be earlier than these university-level cutoffs. Verify with your department.",
+      "masters_thesis_or_project": [
+        {"semester": "Fall 2025",   "submission_window": "October 6 – November 3, 2025",       "paper_date": "December 2025"},
+        {"semester": "Winter 2026", "submission_window": "December 1, 2025 – January 9, 2026", "paper_date": "January 2026"},
+        {"semester": "Spring 2026", "submission_window": "February 23 – April 7, 2026",        "paper_date": "May 2026"},
+        {"semester": "Summer 2026", "submission_window": "June 22 – July 13, 2026",            "paper_date": "August 2026"}
+      ],
+      "doctoral_dissertation": [
+        {"semester": "Fall 2025",   "submission_deadline": "December 8, 2025", "paper_date": "December 2025"},
+        {"semester": "Spring 2026", "submission_deadline": "May 11, 2026",     "paper_date": "May 2026"},
+        {"semester": "Summer 2026", "submission_deadline": "August 3, 2026",   "paper_date": "August 2026"}
+      ]
+    },
+
+    "graduation": {
+      "apply_to_graduate_url": "https://www.csulb.edu/student-records/apply-to-graduate-graduate-students",
+      "graduation_checklist_url": "https://www.csulb.edu/registration-and-records/graduation-checklist-masters-students",
+      "degree_clearing_time": "4–8 weeks post-semester",
+      "commencement_faq_url": "https://www.csulb.edu/commencement/frequently-asked-questions"
+    },
+
+    "awards": {
+      "source_url": "https://www.csulb.edu/graduate-studies/graduate-studies-awards",
+      "process": "Nominations come from Graduate Advisors and Program Directors only (not self-nominated). Awards distributed each spring.",
+      "award_types": [
+        {
+          "name": "Graduate Dean's List of University Scholars and Artists",
+          "criteria": "Top 1% of enrollment; minimum 3.75 GPA; campus involvement, scholarly activities, or professional leadership"
+        },
+        {
+          "name": "Graduate Student Honors",
+          "criteria": "Up to 3 students or 5% of department graduates; overall achievement and program contributions"
+        },
+        {
+          "name": "Distinguished Thesis, Dissertation, and Project Awards",
+          "prize": "$100 plus certificate and commencement recognition",
+          "criteria": "Clarity, rigor, originality, creativity, significance, and impact",
+          "process": "College nominates one candidate per category by March 15 via Canvas. Requires 250–300 word abstract, complete work, and advisor letter."
+        }
+      ]
+    }
+  }
+}

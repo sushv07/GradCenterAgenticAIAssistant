@@ -1,0 +1,38 @@
+[
+  {
+    "program": "Computer Science (M.S.)",
+    "department": "Computer Engineering & Computer Science",
+    "college": "Hung Family College of Engineering",
+    "advisors": [
+      {
+        "role": "Graduate Program Advisor (Faculty)",
+        "advisor_name": "Dr. Shabnam Sodagari",
+        "email": "shabnam.sodagari@csulb.edu",
+        "phone": "562-985-5103",
+        "office": "ECS-525",
+        "notes": "Department-level academic advisor for MS Computer Science. Contact for program requirements, course planning, and thesis/project guidance.",
+        "source_url": "https://www.csulb.edu/hung-family-college-of-engineering/graduate-advisors"
+      },
+      {
+        "role": "GSSC Graduate Advisor (General)",
+        "advisor_name": "Tu Ngo, MPA",
+        "email": "tu.ngo@csulb.edu",
+        "phone": null,
+        "office": "VEC-523 (Graduate Student Success Center)",
+        "notes": "General graduate advising for admissions, enrollment, deadlines, and university policy. Drop-in hours: Tuesdays 10AM–12PM via Zoom.",
+        "source_url": "https://www.csulb.edu/hung-family-college-of-engineering/graduate-advisors"
+      },
+      {
+        "role": "Associate Director, Graduate Student Success Center",
+        "advisor_name": "Helen Yohannes Abeye, MPA",
+        "email": "helen.yohannes@csulb.edu",
+        "phone": null,
+        "office": "VEC-523 (Graduate Student Success Center)",
+        "notes": "Oversees the GSSC; escalation contact for complex graduate student issues.",
+        "source_url": "https://www.csulb.edu/hung-family-college-of-engineering/graduate-advisors"
+      }
+    ],
+    "source_url": "https://www.csulb.edu/hung-family-college-of-engineering/graduate-advisors",
+    "last_verified": "2026-04-30"
+  }
+]

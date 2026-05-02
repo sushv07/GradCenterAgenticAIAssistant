@@ -1,0 +1,207 @@
+{
+  "id": "grad_center",
+  "title": "CSULB Graduate Center",
+  "source_url": "https://www.csulb.edu/graduate-center",
+  "last_updated": "2026-04-28",
+  "content": {
+    "overview": {
+      "description": "Centralized resource hub for current and prospective CSULB graduate students.",
+      "location": "University Library 214 (2nd floor)",
+      "contact": {
+        "email": "GraduateCenter@csulb.edu",
+        "phone": "(562) 985-5771",
+        "zoom": "https://csulb.zoom.us/my/graduatecenter"
+      },
+      "hours": {
+        "monday_thursday": "11am–6pm in-person",
+        "friday": "Virtual appointments only",
+        "spring_2026_friday_dropin": "11am–2pm in-person and Zoom"
+      },
+      "audiences": [
+        "Current CSULB graduate students",
+        "Prospective applicants (including non-CSULB applicants)",
+        "CSULB undergraduates and alumni considering graduate school"
+      ]
+    },
+
+    "advising": {
+      "name": "Graduate School Advising",
+      "description": "Application guidance, statement of purpose review, CV/resume review, program selection support.",
+      "url": "https://www.csulb.edu/graduate-center/graduate-school-support",
+      "scope_note": "Does NOT cover course registration, scheduling, or graduation requirements — contact your department's graduate advisor for those.",
+      "booking": {
+        "current_students": "BeachConnect student portal",
+        "prospective_students": "YouCanBookMe calendar"
+      },
+      "policies": {
+        "cancellation": "Cancel at least 24 hours in advance",
+        "late_arrival": "15+ minutes late may result in cancellation",
+        "no_shows": "May restrict future booking ability"
+      },
+      "materials_feedback": "Submit via Program Materials Feedback form; allow 2–3 weeks for response"
+    },
+
+    "writing_support": {
+      "name": "Graduate Writing Support",
+      "description": "Free 1:1 writing appointments for enrolled CSULB graduate students.",
+      "url": "https://www.csulb.edu/graduate-center/request-writing-appointment"
+    },
+
+    "statement_of_purpose_help": {
+      "name": "Statement of Purpose Guidance",
+      "url": "https://www.csulb.edu/graduate-center/writing-a-statement-of-purpose",
+      "topics_to_address": [
+        "Academic and professional background",
+        "Specific research or professional interests",
+        "Motivation for pursuing graduate studies",
+        "Alignment with the program's strengths",
+        "Future career objectives",
+        "Experience with diverse populations (when applicable)"
+      ],
+      "resources": [
+        "Sample PhD political science statement with expert commentary",
+        "Interdisciplinary sample statements from CSU Channel Islands",
+        "Structural skeleton template",
+        "Tips and handouts from graduate writing specialists"
+      ]
+    },
+
+    "cv_resume_help": {
+      "name": "Grad School CV / Résumé Guidance",
+      "url": "https://www.csulb.edu/graduate-center/writing-a-cv-or-resume-for-graduate-school",
+      "document_types": {
+        "traditional_cv": "20+ pages, used by established scholars; not typically used for grad applications",
+        "resume": "1–2 pages, for non-academic positions",
+        "grad_school_cv": "Preferred 2–3 page CV-résumé hybrid with bullet points per position"
+      },
+      "recommended_sections": [
+        "Education",
+        "Research Interests",
+        "Publications",
+        "Conference Presentations",
+        "Research Experiences",
+        "Teaching Experiences",
+        "Skills/Trainings",
+        "Professional Organizations",
+        "Honors & Awards"
+      ]
+    },
+
+    "gradmentor": {
+      "name": "GradMentor",
+      "description": "Peer mentoring program connecting incoming graduate students with experienced peers.",
+      "url": "https://www.csulb.edu/graduate-center/gradmentor",
+      "meeting_frequency": "1–2 times per month during the academic year",
+      "meeting_formats": ["In-person", "Text", "Video chat", "Phone", "Email", "Social media"],
+      "eligibility": {
+        "mentees": "All incoming CSULB graduate students (master's, credential, certificate, doctoral)",
+        "mentors": "Continuing graduate students in any program type"
+      },
+      "fall_2025_timeline": {
+        "mentor_applications": "July 9 – August 7, 2025",
+        "mentee_applications": "Closed (program at capacity for 2025–2026)",
+        "match_assignments": "August 12, 2025",
+        "mentor_training": "August 13, 2025, 9am–2pm",
+        "kickoff_meeting": "August 29, 2025, 2–4pm"
+      }
+    },
+
+    "grad_slam": {
+      "name": "Grad Slam",
+      "description": "3-minute research presentation competition for CSULB graduate students.",
+      "url": "https://www.csulb.edu/graduate-center/grad-slam",
+      "prizes": {
+        "first_place": "$500",
+        "second_place": "$300",
+        "third_place": "$200"
+      },
+      "eligibility": [
+        "Currently enrolled CSULB master's or doctoral student",
+        "Original, independent research or graduate project",
+        "Individual presentations only (no groups)",
+        "Any discipline"
+      ],
+      "format": {
+        "video_length": "3 minutes maximum",
+        "visual": "Single slide only (no transitions or animations)",
+        "submission": "Public-facing URL from Zoom, YouTube, or Vimeo"
+      },
+      "judging_criteria": ["Comprehension", "Content", "Engagement", "Oration"],
+      "spring_2026_dates": {
+        "submission_deadline": "March 18, 2026, 11:59pm",
+        "csu_wide_competition": "May 1, 2026 (virtual, hosted by CSU Fullerton)"
+      },
+      "winners_2026": {
+        "non_stem": [
+          {"place": "First", "name": "Lauren Muñoz", "program": "Doctorate in Educational Leadership"},
+          {"place": "Second", "name": "Emily Linstead", "program": "M.A. in Anthropology"},
+          {"place": "Third", "name": "Annthonet Hunt", "program": "Master of Social Work"}
+        ],
+        "stem": [
+          {"place": "First", "name": "Amber Peek", "program": "M.S. in Biochemistry"},
+          {"place": "Second", "name": "Sarvenaz Dirakvand", "program": "M.S. in Information Systems"},
+          {"place": "Third", "name": "Bethanie Ceja", "program": "M.S. in Mathematics for Educators"}
+        ]
+      }
+    },
+
+    "writing_retreat": {
+      "name": "Graduate Writing Retreat",
+      "description": "Full-day writing retreat held in April–May.",
+      "url": "https://www.csulb.edu/graduate-center/graduate-writing-retreat"
+    },
+
+    "workshops_events": {
+      "name": "Workshops & Events",
+      "url": "https://www.csulb.edu/graduate-center/workshops-events",
+      "open_to": "Entire campus community including undergraduates, graduates, and the public",
+      "spring_2026_highlights": [
+        {"event": "Graduate Center Open House", "date": "January 27, 2026", "time": "3–5pm"},
+        {"event": "Writing a Statement of Purpose", "date": "January 28, 2026", "time": "3–4:30pm"}
+      ],
+      "spring_2026_topics": [
+        "Academic conference preparation",
+        "Graduate advisor relationship navigation",
+        "Thesis formatting",
+        "APA citation basics",
+        "Burnout prevention",
+        "Graduate admissions interview preparation",
+        "IRB process",
+        "STEM graduate program success"
+      ],
+      "summer_2026": [
+        {"event": "LSAT Prep", "month": "June 2026", "cost": "Free"},
+        {"event": "GRE Prep (6 sessions)", "month": "July 2026", "cost": "Free"},
+        {"event": "New Graduate Student Orientation", "month": "August 2026"}
+      ],
+      "registration": "Most workshops require Zoom or Qualtrics registration; drop-in sessions need no registration."
+    },
+
+    "mental_health_intern": {
+      "name": "Mental Health Intern Consultations",
+      "description": "Mental health intern consultations available for graduate students.",
+      "url": "https://www.csulb.edu/graduate-center/mental-health-intern"
+    },
+
+    "statistical_consulting": {
+      "name": "Statistical Consulting Program",
+      "description": "Statistical consulting for graduate-level research projects.",
+      "url": "https://www.csulb.edu/graduate-center/statistical-consulting-program"
+    },
+
+    "professional_schools_fair": {
+      "name": "Graduate & Professional Schools Fair",
+      "url": "https://www.csulb.edu/graduate-center/graduate-professional-schools-fair"
+    },
+
+    "cal_state_apply_guide": {
+      "name": "Navigating the Cal State Apply Portal",
+      "url": "https://www.csulb.edu/graduate-center/navigating-the-cal-state-apply-portal"
+    },
+
+    "related_resources": {
+      "funding": "See funding.json for travel grants, fellowships, and external scholarships",
+      "milestones_and_thesis": "See milestones_thesis.json for thesis/dissertation submission deadlines"
+    }
+  }
+}

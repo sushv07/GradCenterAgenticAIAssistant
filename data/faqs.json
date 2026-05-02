@@ -1,0 +1,179 @@
+{
+  "id": "faqs",
+  "title": "CSULB Graduate Center FAQs",
+  "source_url": "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs",
+  "last_updated": "2026-04-28",
+  "content": {
+    "categories": {
+      "graduate_admissions": [
+        {
+          "q": "How do I apply to a graduate program at CSULB?",
+          "a": "Submit your application through Cal State Apply (calstate.edu/apply). Pay the $70 nonrefundable fee. Then complete any program-specific supplemental applications.",
+          "see_also": "admissions.json → application_steps"
+        },
+        {
+          "q": "Are application fee waivers available?",
+          "a": "No. CSULB does not offer application fee waivers for graduate applicants. The fee is $70.",
+          "see_also": "admissions.json → overview"
+        },
+        {
+          "q": "How do I submit transcripts?",
+          "a": "Submit official transcripts electronically or by mail to Enrollment Services. Master's applicants need transcripts from their bachelor's institution and most recent school. Doctoral applicants also need master's transcripts. Email: ES-IDPTrans@csulb.edu",
+          "see_also": "admissions.json → application_steps"
+        },
+        {
+          "q": "What GPA do I need for graduate admission?",
+          "a": "Minimum 2.5 cumulative GPA OR minimum 2.5 in last 60 semester (90 quarter) units. Programs may require higher. GPA is NOT rounded.",
+          "see_also": "admissions.json → eligibility"
+        },
+        {
+          "q": "How do I check my application status?",
+          "a": "Log into MyCSULB. Admissions reviews for minimum eligibility, then forwards qualified candidates to academic departments."
+        },
+        {
+          "q": "Can I appeal an admission decision?",
+          "a": "Appeals are rarely successful. Must include new, serious, and compelling information submitted within 15 days of the admission decision."
+        }
+      ],
+
+      "international_students": [
+        {
+          "q": "Can international students apply to CSULB graduate programs?",
+          "a": "Yes. International students should contact the Center for International Education (CIE) for transcript standards, English requirements, and visa guidance.",
+          "see_also": "admissions.json → international_students"
+        },
+        {
+          "q": "How do international students submit transcripts?",
+          "a": "See the CIE website: https://www.csulb.edu/international/future-students/upload-your-admissions-documents"
+        },
+        {
+          "q": "Can international students transfer credit units?",
+          "a": "Up to 30% of required units may be transferred from international institutions."
+        }
+      ],
+
+      "graduate_center_services": [
+        {
+          "q": "How do I book an appointment with the Graduate Center?",
+          "a": "Current CSULB students: BeachConnect student portal. Prospective students (including alumni and community members): YouCanBookMe calendar.",
+          "see_also": "grad_center.json → advising"
+        },
+        {
+          "q": "What services does the Graduate Center offer?",
+          "a": "Application advising, statement of purpose review, CV/resume review, writing support, workshops, GradMentor, Grad Slam, mental health intern consultations, statistical consulting.",
+          "see_also": "grad_center.json"
+        },
+        {
+          "q": "Does the Graduate Center provide program advising?",
+          "a": "No. Contact your department's graduate advisor for course registration, scheduling, and graduation requirements."
+        }
+      ],
+
+      "academic_support": [
+        {
+          "q": "Where can I get tutoring as a graduate student?",
+          "a": "The Learning Center, University Writing Center, Lindgren Math Tutoring Center, college-specific tutoring (Business, Engineering), and the Graduate Center for writing.",
+          "see_also": "student_resources.json → academic_support"
+        },
+        {
+          "q": "What are CSULB's AI guidelines for graduate students?",
+          "a": "Students: https://www.csulb.edu/information-technology/ai-technology/student-guidelines-generative-ai. Thesis/dissertation: https://www.csulb.edu/thesis-and-dissertation-office/article/graduate-studies-generative-ai-guidelines"
+        }
+      ],
+
+      "research_and_scholarly": [
+        {
+          "q": "How can I present my research?",
+          "a": "Student Research Competition (Feb 27, 2026), Week of RSCA, Grad Slam (3-minute video, cash prizes), and CSU-Wide Grad Slam.",
+          "see_also": "grad_center.json → grad_slam, student_resources.json → academic_support"
+        },
+        {
+          "q": "How do I find funding to attend a conference?",
+          "a": "Apply for the Graduate Travel Fellowship (up to $1,000), ASI Student Travel Fund, or SLD Travel Grant (up to $400).",
+          "see_also": "funding.json → travel_grants"
+        }
+      ],
+
+      "culminating_activities": [
+        {
+          "q": "What is advancement to candidacy?",
+          "a": "Departmental and college approval of your planned course of study. Required before your culminating activity (thesis/dissertation/exam).",
+          "see_also": "milestones_thesis.json → milestones"
+        },
+        {
+          "q": "What is the culminating activity for a master's degree?",
+          "a": "Varies by program: thesis, project, and/or comprehensive exam. Check with your graduate advisor and the University Catalog."
+        },
+        {
+          "q": "When is the thesis/dissertation submission deadline for Spring 2026?",
+          "a": "Master's thesis/project signature page: February 23 – April 7, 2026 (paper date: May 2026). Doctoral dissertation: May 11, 2026. Departmental deadlines may be earlier.",
+          "see_also": "milestones_thesis.json → submission_deadlines"
+        }
+      ],
+
+      "graduation": [
+        {
+          "q": "How do I apply to graduate?",
+          "a": "Submit your graduation application through MyCSULB Student Records: https://www.csulb.edu/student-records/apply-to-graduate-graduate-students"
+        },
+        {
+          "q": "How long does degree clearing take?",
+          "a": "Approximately 4–8 weeks after the semester ends."
+        }
+      ],
+
+      "campus_resources": [
+        {
+          "q": "How do I register for classes?",
+          "a": "Register through MyCSULB Student Center after consulting your advisor and the Schedule of Classes. Watch for your registration appointment email each term."
+        },
+        {
+          "q": "How do I get a student ID?",
+          "a": "Obtain your Beach ID from ID Card Services at the Beach Shops / University Bookstore."
+        },
+        {
+          "q": "Is on-campus housing available for graduate students?",
+          "a": "Three residential colleges exist (Beachside, Hillside, Parkside) but housing is not guaranteed. Most graduate students live off-campus. Contact housing@csulb.edu or (562) 985-4187.",
+          "see_also": "student_resources.json → campus_life"
+        },
+        {
+          "q": "How do I get a bus pass?",
+          "a": "Long Beach Transit U-PASS TAP Card is available via Parking and Transportation Services."
+        },
+        {
+          "q": "What computer labs are available?",
+          "a": "See: https://www.csulb.edu/academic-technology-services/csulb-computer-labs"
+        }
+      ],
+
+      "financial_aid": [
+        {
+          "q": "How do I apply for financial aid as a graduate student?",
+          "a": "Complete the FAFSA or California Dream Act (CADA) application, then check the Financial Aid portal: https://www.csulb.edu/financial-aid-and-scholarships/how-to-apply-for-aid-graduate-students"
+        },
+        {
+          "q": "What scholarships are available for graduate students?",
+          "a": "State University Grant (need-based), Graduate Equity Fellowship (faculty-nominated), Sally Casanova Pre-Doctoral Scholars ($5,000 stipend), and external scholarships via the Financial Aid Office.",
+          "see_also": "funding.json"
+        },
+        {
+          "q": "Is there emergency financial assistance?",
+          "a": "Yes, through the Basic Needs Program: https://www.csulb.edu/student-affairs/basic-needs/financial"
+        }
+      ],
+
+      "health_and_wellbeing": [
+        {
+          "q": "How do I access mental health counseling at CSULB?",
+          "a": "Contact CAPS for an initial consultation: https://www.csulb.edu/student-affairs/counseling-and-psychological-services/initial-consultation. Crisis intervention: https://www.csulb.edu/student-affairs/counseling-and-psychological-services/crisis-intervention",
+          "see_also": "student_resources.json → mental_health_and_wellness"
+        },
+        {
+          "q": "How do I request disability accommodations?",
+          "a": "Contact the Bob Murphy Access Center (BMAC): bmac@csulb.edu | (562) 985-5401 | SSSC building, Suite 110.",
+          "see_also": "student_resources.json → health_services"
+        }
+      ]
+    }
+  }
+}

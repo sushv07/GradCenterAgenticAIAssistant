@@ -1,0 +1,174 @@
+{
+  "id": "programs",
+  "title": "CSULB Graduate Programs",
+  "source_url": "https://www.csulb.edu/graduate-studies-csulb/graduate-masters-programs-and-certificates",
+  "last_updated": "2026-04-28",
+  "content": {
+    "overview": {
+      "total_graduate_students": 5500,
+      "program_counts": {
+        "masters_degrees": 103,
+        "credential_programs": 44,
+        "post_baccalaureate_certificates": 17,
+        "doctoral_programs": 6,
+        "edge_programs": 21
+      },
+      "advisors_directory_url": "https://www.csulb.edu/graduate-studies/graduate-programs-and-academic-advisors"
+    },
+
+    "doctoral_programs": {
+      "source_url": "https://www.csulb.edu/graduate-studies/article/program-advisor-doctoral-programs",
+      "programs": [
+        {
+          "name": "Educational Leadership – Community College Higher Ed Specialization",
+          "degree": "Ed.D.",
+          "advisor": {"name": "Kimberly Word", "email": "eddinfo@csulb.edu", "phone": "(562) 985-4998"},
+          "deadlines": {"fall": "January 15", "spring": "Not Accepting", "accept_decline": "April 20"}
+        },
+        {
+          "name": "Educational Leadership – P-12 Specialization",
+          "degree": "Ed.D.",
+          "advisor": {"name": "Kimberly Word", "email": "eddinfo@csulb.edu", "phone": "(562) 985-4998"},
+          "deadlines": {"fall": "February 15", "spring": "Not Accepting", "accept_decline": "April 20"}
+        },
+        {
+          "name": "Engineering & Computational Mathematics",
+          "degree": "Ph.D.",
+          "advisor": {"name": "Dr. Kerop Janoyan", "email": "kerop.janoyan@csulb.edu", "phone": "(562) 985-8032"},
+          "deadlines": {"spring": "October 1 (respond by December 13)", "fall": "April 1 (respond by July 15)"}
+        },
+        {
+          "name": "Physical Therapy",
+          "degree": "DPT",
+          "advisor": {"name": "Dr. Jeff Rodrigues", "email": "CHHS-PT@csulb.edu"},
+          "deadlines": {"fall": "January 15", "spring": "Not Accepting", "accept_decline": "April 30"}
+        },
+        {
+          "name": "Public Health",
+          "degree": "Dr.P.H.",
+          "advisor": {"name": "Dr. Lucy Huckabay", "email": "Lucy.Huckabay@csulb.edu", "phone": "(562) 985-4057"},
+          "deadlines": {"fall": "February 15", "spring": "Not Accepting", "accept_decline": "March 1"}
+        },
+        {
+          "name": "Nursing",
+          "degree": "D.N.P.",
+          "advisor": {"name": "Dr. Cleddhy Arellano", "email": "cleddhy.arellano@csulb.edu", "phone": "(562) 985-2335"},
+          "deadlines": {"fall": "January 15", "spring": "Not Accepting", "accept_decline": "April 20"}
+        }
+      ]
+    },
+
+    "masters_programs": {
+      "source_url": "https://www.csulb.edu/graduate-studies/article/program-advisor-masters-programs",
+      "note": "100+ programs across 8 colleges. See advisors_directory_url for the full advisor list.",
+      "by_college": {
+        "business": {
+          "contact": {"email": "cob-gradprograms@csulb.edu", "phone": "(562) 985-5565"},
+          "sample_programs": [
+            "Accountancy (MS)",
+            "MBA – Daytime Accelerated",
+            "MBA – Evening",
+            "MBA – Online",
+            "MBA – Saturday (Tier One; ranked 29th in Global Executive MBA)",
+            "Financial Analytics (MS)",
+            "Information Systems (MS)",
+            "Marketing Analytics (MS)"
+          ]
+        },
+        "engineering": {
+          "default_deadlines": {"fall": "April 1", "accept_decline": "July 15"},
+          "sample_programs": [
+            "Aerospace Engineering (MS)",
+            "Chemical Engineering (MS)",
+            "Civil Engineering (MS)",
+            "Electrical Engineering (MS)",
+            "Mechanical Engineering (MS)",
+            "Construction Management (MS)"
+          ]
+        },
+        "natural_sciences_and_math": {
+          "designation": "STEM-designated",
+          "sample_programs": [
+            "Biology (MS)",
+            "Chemistry (MS)",
+            "Physics (MS)",
+            "Biochemistry (MS)",
+            "Geology (MS)",
+            "Microbiology (MS)"
+          ]
+        },
+        "education": {
+          "sample_programs": [
+            "Counseling (multiple specializations)",
+            "Curriculum and Instruction",
+            "Mathematics Education",
+            "Special Education",
+            "Educational Technology"
+          ]
+        },
+        "arts": {
+          "sample_programs": [
+            "Creative Writing (MFA)",
+            "Art (MFA)",
+            "Art History (MA)",
+            "Dance (MA/MFA)",
+            "Music (MM)",
+            "Theatre Management (MBA/MFA)"
+          ]
+        },
+        "health_and_human_services": {
+          "sample_programs": [
+            "Athletic Training (MS)",
+            "Exercise Science (MS)",
+            "Gerontology (MS)",
+            "Public Health (MPH)",
+            "Speech-Language Pathology (MS)",
+            "Social Work (MSW)"
+          ]
+        }
+      },
+      "application_timeline": {
+        "spring_deadlines": "October–November (varies by program)",
+        "fall_deadlines": "April–June (varies by program)",
+        "international_applicants_note": "International applicants follow Center for International Education deadlines."
+      },
+      "transfer_credit_rules": {
+        "credential_to_masters": "Up to 12 post-baccalaureate credential units may apply to education master's programs",
+        "certificate_to_masters": "Up to 15 academic certificate units may apply"
+      }
+    },
+
+    "beach_edge": {
+      "source_url": "https://www.csulb.edu/graduate-studies/beach-edge",
+      "name": "Beach EDGE (Expedited Degrees in Graduate Education)",
+      "description": "Allows CSULB undergraduates to start their master's while completing their bachelor's.",
+      "key_features": [
+        "Up to 12 units double-count toward both degrees",
+        "Pay undergraduate tuition for graduate courses (until 120 units completed)",
+        "No separate Cal State Apply application or fees",
+        "Combines baccalaureate and master's in similar disciplines"
+      ],
+      "eligibility": [
+        "CSULB matriculated undergraduate",
+        "Completed 60 units",
+        "Finished or enrolled in 12 discipline-specific upper-division units",
+        "Met major-specific requirements",
+        "Completed all lower-division general education",
+        "Minimum 2.50 GPA (programs may require higher)",
+        "Not a double-major student"
+      ],
+      "available_programs_count": "30+",
+      "tuition_transition": "Graduate tuition rates begin the semester after completing 120 bachelor's-applicable units"
+    },
+
+    "concurrent_dual_masters": {
+      "source_url": "https://www.csulb.edu/graduate-studies/article/concurrentdual-masters-degrees",
+      "description": "Earn two master's degrees concurrently"
+    },
+
+    "credentials": {"description": "Teaching and professional credential programs", "count": 44},
+    "certificates": {"description": "Post-baccalaureate certificate programs", "count": 17},
+
+    "rankings_reference": "See why_csulb.json for institutional rankings and recognition."
+  }
+}

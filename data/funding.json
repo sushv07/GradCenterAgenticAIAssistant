@@ -1,0 +1,146 @@
+{
+  "id": "funding",
+  "title": "CSULB Graduate Funding",
+  "source_url": "https://www.csulb.edu/navigating-grad-studies-at-the-beach/funding",
+  "last_updated": "2026-04-28",
+  "content": {
+    "travel_grants": [
+      {
+        "name": "Graduate Travel Fellowship",
+        "amount": "Up to $1,000",
+        "url": "https://www.csulb.edu/graduate-center/campus-funding",
+        "eligibility": "Post-baccalaureate students in CSULB master's, doctoral, credential, or graduate certificate program presenting at a conference",
+        "frequency": "Once per student annually; priority to first-time applicants; first-come basis",
+        "open_to": "All students including international, undocumented, and DACA students"
+      },
+      {
+        "name": "ASI Student Travel Fund",
+        "url": "https://www.csulb.edu/graduate-center/campus-funding",
+        "eligibility": "Graduate students presenting research at conferences",
+        "process": "Apply minimum 3 weeks before departure",
+        "reimbursement": {
+          "presenting_research": "Transportation and registration fees",
+          "attending_for_enrichment": "Registration costs only"
+        }
+      },
+      {
+        "name": "Student Life and Development (SLD) Travel Grant",
+        "amount": {"presenting_or_co_presenting": "Up to $400", "poster_presenters": "Up to $300"},
+        "covers": ["Registration", "Transportation", "Lodging", "Required memberships"]
+      }
+    ],
+
+    "fellowships_and_scholarships": [
+      {
+        "name": "Sally Casanova Pre-Doctoral Scholars Program",
+        "amount": "$5,000 stipend",
+        "url": "https://www.csulb.edu/graduate-studies/sally-casanova-pre-doctoral-scholars-program",
+        "purpose": "Help CSU students explore and prepare for doctoral programs; enhance faculty diversity.",
+        "eligible_expenses": [
+          "Visiting doctoral institutions",
+          "Attending professional conferences",
+          "Joining academic organizations",
+          "Journal subscriptions",
+          "Application fees",
+          "GRE preparation"
+        ],
+        "additional_benefit": "Fully-funded summer research experience at UC campuses or major research universities (for those not yet in PhD program).",
+        "eligibility": [
+          "Upper-division undergraduate or master's student at a CSU campus",
+          "Assigned a faculty mentor (tenured or tenure-track)",
+          "U.S. citizen, permanent resident, or DACA recipient"
+        ],
+        "deadlines_2026": {
+          "application_opens": "December 8, 2025",
+          "feedback_deadline": "January 30, 2026",
+          "final_submission": "February 13, 2026, 5:00pm",
+          "announcements": "June 2026"
+        },
+        "campus_coordinator": {"name": "Omar Hussein", "email": "Omar.Hussein@csulb.edu"}
+      },
+      {
+        "name": "Graduate Equity Fellowship (GEF)",
+        "purpose": "Support master's and doctoral students who contribute to diversity or equity.",
+        "process": "Must be nominated by a faculty member; contact your graduate advisor for procedures and deadlines."
+      },
+      {
+        "name": "State University Grant (SUG)",
+        "type": "Need-based",
+        "eligibility": "California residents or AB 540-eligible students demonstrating financial need",
+        "how_to_apply": "Automatically considered when submitting FAFSA or California Dream Act (CADA) application"
+      },
+      {
+        "name": "Chancellor's Doctoral Incentive Program (CDIP)",
+        "type": "Loan and mentoring",
+        "purpose": "For doctoral students who aspire to become CSU instructional faculty.",
+        "components": [
+          "Mentorship opportunities",
+          "Mini-grants up to $2,500",
+          "Travel grants up to $1,500",
+          "Dissertation fellowships up to $5,000"
+        ]
+      },
+      {
+        "name": "ASI Student Research Fund",
+        "covers": ["Research materials", "Professional development", "Publication costs"]
+      }
+    ],
+
+    "employment": [
+      {
+        "name": "Teaching Associate (TA) and Graduate Assistant (GA) Positions",
+        "url": "https://www.csulb.edu/graduate-studies/graduate-assistant-and-teaching-associate-positions",
+        "description": "Available through academic departments across all 7 colleges.",
+        "how_to_find": "Check individual college listings; contact your department.",
+        "colleges": [
+          "College of the Arts",
+          "College of Business",
+          "College of Education",
+          "College of Engineering",
+          "College of Health & Human Services",
+          "College of Liberal Arts",
+          "College of Natural Sciences & Mathematics"
+        ]
+      },
+      {
+        "name": "Federal Work Study",
+        "description": "Federally funded employment for students with greatest financial need.",
+        "how_to_apply": "Through Financial Aid and Scholarships Office"
+      },
+      {
+        "name": "CareerLink",
+        "description": "CSULB online resource listing full-time, part-time, federal work study, and internship positions.",
+        "access": "Through Single Sign-On portal (free for all students)"
+      }
+    ],
+
+    "external_funding": {
+      "url": "https://www.csulb.edu/graduate-center/external-funding",
+      "general_databases": [
+        "FASTWEB",
+        "College Board Scholarship Search",
+        "Peterson's",
+        "Scholarships.com"
+      ],
+      "by_audience": {
+        "international_students": ["eduPASS"],
+        "undocumented_students": ["EDUMED"],
+        "lgbtq": ["LGBTQ+ specialized resources"]
+      },
+      "by_discipline": {
+        "business": ["Abbott and Fenner", "AICP", "California Association of Realtors", "HubShout", "Wiley CPAexcel"],
+        "humanities": ["ACLS Fellowships", "Boren Fellowships", "Jacob K. Javits Fellowships", "Phi Beta Kappa Society"],
+        "multidisciplinary": ["Ford Foundation Pre-doctoral", "Fulbright Scholar Program", "Marshall Scholarships", "Radcliffe Institute"],
+        "social_sciences": ["APA resources", "DOE Science Graduate Fellowship", "Fulbright Public Policy Fellowship", "SSRC Abe Fellowship"],
+        "science_engineering": ["NASA", "NSF Graduate Research Fellowships", "NDSEG Fellowships", "NIH research awards", "EPA STAR Fellowships"]
+      }
+    },
+
+    "financial_aid_office": {
+      "description": "Official hub for scholarship information; administers external and university scholarships.",
+      "url": "https://www.csulb.edu/financial-aid-and-scholarships",
+      "graduate_cost_of_attendance_url": "https://www.csulb.edu/financial-aid-and-scholarships/graduate-student-cost-of-attendance",
+      "how_to_apply_url": "https://www.csulb.edu/financial-aid-and-scholarships/how-to-apply-for-aid-graduate-students"
+    }
+  }
+}

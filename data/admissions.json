@@ -1,0 +1,217 @@
+{
+  "id": "admissions",
+  "title": "CSULB Graduate Admissions",
+  "source_url": "https://www.csulb.edu/graduate-studies-csulb/csulb-graduate-admissions",
+  "last_updated": "2026-04-28",
+  "content": {
+    "overview": {
+      "programs_available": "65+ master's and doctoral fields of study",
+      "application_portal": "Cal State Apply",
+      "application_portal_url": "https://www.calstate.edu/apply",
+      "application_fee": "$70 nonrefundable",
+      "fee_waiver_available": false,
+      "fee_waiver_note": "CSULB does not offer application fee waivers for graduate applicants."
+    },
+    "eligibility": {
+      "source_url": "https://www.csulb.edu/admissions/graduate-programs-admission-eligibility",
+      "minimum_requirements": [
+        "Four-year college course of study",
+        "Acceptable baccalaureate degree from a regionally accredited institution",
+        "Good academic standing"
+      ],
+      "gpa_requirements": {
+        "standard": "Minimum 2.5 cumulative GPA",
+        "alternative_1": "Minimum 2.5 GPA in last 60 semester (or 90 quarter) units",
+        "alternative_2": "An advanced degree already earned",
+        "provisional": "Degree-in-progress: 2.7 cumulative or 2.5 in final 60/90 units",
+        "note": "GPA calculations are NOT rounded."
+      },
+      "additional": "Programs may require a higher GPA than the university minimum."
+    },
+    "application_steps": {
+      "source_url": "https://www.csulb.edu/admissions/graduate-programs-application-process",
+      "steps": [
+        {
+          "step": 1,
+          "title": "Verify Deadlines",
+          "details": "Application periods open July 1 (spring) and August 1 (fall, submissions start October 1). Not all programs admit each term."
+        },
+        {
+          "step": 2,
+          "title": "Submit University Application",
+          "details": "Complete Cal State Apply Graduate application. $70 nonrefundable fee. No fee waivers available."
+        },
+        {
+          "step": 3,
+          "title": "Submit Official Transcripts",
+          "details": "Master's: bachelor's institution and most recent school. Doctoral: also need master's transcripts. Email: ES-IDPTrans@csulb.edu"
+        },
+        {
+          "step": 4,
+          "title": "Complete Program-Specific Requirements",
+          "details": "Most programs require supplemental applications beyond the university application."
+        },
+        {
+          "step": 5,
+          "title": "Check Application Status",
+          "details": "Admissions reviews for minimum eligibility, then forwards to academic departments."
+        },
+        {
+          "step": 6,
+          "title": "Accept Admission Offer",
+          "details": "Log into MyCSULB Student Center to accept or decline. Pay enrollment deposit (may be waived for financial need)."
+        },
+        {
+          "step": 7,
+          "title": "Satisfy Admission Terms",
+          "details": "Provisional admits: submit final transcripts by August 15 (fall) or January 15 (spring). Conditionally Classified: complete prerequisites."
+        },
+        {
+          "step": 8,
+          "title": "Appeal Process",
+          "details": "Appeals rarely successful. Must include new, serious, and compelling information submitted within 15 days of decision."
+        }
+      ]
+    },
+    "newly_admitted_steps": {
+      "source_url": "https://www.csulb.edu/admissions/steps-for-newly-admitted-graduate-students",
+      "steps": [
+        {
+          "step": 1,
+          "title": "Activate Account",
+          "details": "Activate CSULB email and student account via the CSULB Password Utility using your admission email credentials."
+        },
+        {
+          "step": 2,
+          "title": "Accept/Decline Admission",
+          "details": "Log into MyCSULB Student Center. Pay enrollment deposit to reserve program space."
+        },
+        {
+          "step": 3,
+          "title": "Address Conditional Requirements",
+          "details": "Conditionally Classified students must complete prerequisites. Failure may result in dismissal."
+        },
+        {
+          "step": 4,
+          "title": "Review Financial Aid",
+          "details": "Explore grants, scholarships, fellowships, and loans through the Financial Aid portal."
+        },
+        {
+          "step": 5,
+          "title": "Connect with Graduate Advisor",
+          "details": "Advisors guide degree navigation, enrollment planning, and post-graduation guidance."
+        },
+        {
+          "step": 6,
+          "title": "Register for Classes",
+          "details": "Register through MyCSULB Student Center after consulting your advisor and the Schedule of Classes."
+        },
+        {
+          "step": 7,
+          "title": "Attend University-Wide Orientation",
+          "details": "Virtual Graduate Student Orientation each fall. Spring recordings distributed via email."
+        },
+        {
+          "step": 8,
+          "title": "Attend Program-Specific Orientation",
+          "details": "Check with your graduate program for their orientation schedule."
+        },
+        {
+          "step": 9,
+          "title": "Submit Final Transcripts",
+          "details": "Provisional admits: deadline August 15 (fall) or January 15 (spring). Must come directly from institutions."
+        },
+        {
+          "step": 10,
+          "title": "Immunization Compliance",
+          "details": "Comply with CSU Immunization Policy by June 1 (fall) or December 1 (spring)."
+        },
+        {
+          "step": 11,
+          "title": "Utilize Online Tools",
+          "details": "MyCSULB (registration/account), Canvas (coursework), Beach Connect app (scheduling/deadlines)."
+        },
+        {
+          "step": 12,
+          "title": "Visit Graduate Center",
+          "details": "Located on University Library 2nd floor. Offers writing support, study space, laptop loans, funding info, and GradMentor."
+        }
+      ]
+    },
+    "international_students": {
+      "source_url": "https://www.csulb.edu/international",
+      "key_resources": "Center for International Education (CIE)",
+      "transcript_requirements": "International transcripts must meet specific standards; up to 30% of required units may be transferred.",
+      "english_requirements": "English language requirements apply; see CIE website.",
+      "visa": "F-1 visa requirements apply; see CIE for maintenance requirements.",
+      "tuition_url": "https://www.csulb.edu/international/future-students/tuition-fees"
+    },
+    "orientation": {
+      "source_url": "https://www.csulb.edu/graduate-studies/article/graduate-student-orientation",
+      "fall_2026": {
+        "date": "August 13, 2026",
+        "day_of_week": "Thursday",
+        "time": "1:00pm \u2013 3:30pm PST",
+        "format": "Virtual (Zoom)"
+      },
+      "spring": "Recordings distributed via email",
+      "topics_covered": [
+        "Campus acclimation",
+        "University requirements",
+        "Student rights",
+        "Title IX",
+        "Graduate milestones",
+        "Research opportunities",
+        "Funding",
+        "Professional development",
+        "Available support systems"
+      ],
+      "note": "Attend BOTH the university-wide AND your program's specific orientation."
+    },
+    "doctoral_application_steps": {
+      "source_url": "https://www.csulb.edu/admissions/doctoral-programs-application-process",
+      "steps": [
+        {
+          "step": 1,
+          "title": "Confirm Doctoral Eligibility",
+          "details": "You must hold a regionally accredited bachelor's degree and be in good academic standing. Most doctoral programs also require a master's degree. Minimum cumulative GPA of 3.0 (or 3.0 in last 60 semester / 90 quarter units). GPA is NOT rounded."
+        },
+        {
+          "step": 2,
+          "title": "Verify Doctoral Application Deadlines",
+          "details": "Spring admission: application period begins July 1. Fall admission: available August 1; submissions open October 1. Deadlines vary by program \u2014 not all doctoral programs admit every term. Check the Graduate Studies website for your program's specific deadline."
+        },
+        {
+          "step": 3,
+          "title": "Submit University Application",
+          "details": "Submit your application via Cal State Apply. The application fee is $70 (nonrefundable \u2014 no waivers available for doctoral applicants). CSULB graduates or candidates must reapply to the university. You may submit only one application per academic term. An email confirmation is sent upon receipt."
+        },
+        {
+          "step": 4,
+          "title": "Submit Official Transcripts",
+          "details": "Submit one set of official transcripts from the institutions where your bachelor\u2019s and master\u2019s degrees were earned. Send electronically to ES-IDPTrans@csulb.edu or by mail to: Enrollment Services/Admissions, CSULB, 1250 Bellflower Blvd., Long Beach, CA 90840. CSULB degree holders do not need to resubmit CSULB transcripts."
+        },
+        {
+          "step": 5,
+          "title": "Complete Program-Specific Requirements",
+          "details": "Most doctoral programs require a supplemental application with additional materials. Contact your specific program directly to confirm all required supplemental materials before applying."
+        },
+        {
+          "step": 6,
+          "title": "Check Application Status",
+          "details": "The Admissions Office will review your application and transcripts for minimum eligibility. Use the Applicant Self-Service webpage to monitor your application status. The department makes the final admission decision."
+        },
+        {
+          "step": 7,
+          "title": "Satisfy Admission Terms",
+          "details": "Provisional Admission: submit final official transcripts showing degree conferral by August 15 (Fall) or January 15 (Spring). You may enroll before the deadline, but classes will be dropped if the deadline is missed. Conditionally Classified Standing: complete any prerequisite deficiencies as monitored by your department; standing is changed to \u2018Classified\u2019 upon completion."
+        },
+        {
+          "step": 8,
+          "title": "Appeal Process",
+          "details": "If your application is denied, submit an appeal via the Admissions Appeal Process form (https://es-forms.es.csulb.edu/forms/ADAPPL.php) within 15 days of your decision. Hard copy, email, and fax appeals are not accepted. Your submission must include new, serious, and compelling information plus supporting documentation. You cannot appeal being waitlisted. Maximum one appeal per academic term; response by email within 4\u20136 weeks. Residency decision appeals: es-residency@csulb.edu. Applied through Bob Murphy Access Center? Contact https://www.csulb.edu/node/527261 or call (562) 985.4430."
+        }
+      ]
+    }
+  }
+}

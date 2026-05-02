@@ -1,0 +1,163 @@
+{
+  "id": "student_resources",
+  "title": "CSULB Graduate Student Resources & Campus Life",
+  "source_url": "https://www.csulb.edu/graduate-studies/graduate-student-resources",
+  "last_updated": "2026-04-28",
+  "content": {
+    "academic_support": {
+      "graduate_center": {
+        "description": "Writing support, study space, laptop loans, funding info, GradMentor program. See grad_center.json for details.",
+        "url": "https://www.csulb.edu/graduate-center"
+      },
+      "university_writing_center": {
+        "description": "One-on-one writing instruction.",
+        "url": "https://www.csulb.edu/university-writing-center"
+      },
+      "learning_center": {
+        "description": "Tutoring including ESL support.",
+        "url": "https://www.csulb.edu/academic-advising-at-csulb/the-learning-center"
+      },
+      "thesis_dissertation_office": {
+        "description": "Formatting and submission support. See milestones_thesis.json for details.",
+        "url": "https://www.csulb.edu/university-library/thesis-and-dissertation-office"
+      },
+      "rsca_week": {
+        "description": "Week of Research, Scholarly and Creative Activity – campus-wide research showcase.",
+        "url": "https://www.csulb.edu/rsca"
+      },
+      "student_research_competition": {
+        "name": "Student Research Competition",
+        "url": "https://www.csulb.edu/student-research-competition",
+        "spring_2026": {
+          "date": "February 27, 2026",
+          "time": "9am–4pm",
+          "location": "Liberal Arts 2 (LA-2)",
+          "submission_deadline": "January 30, 2026, 11:59pm"
+        },
+        "eligibility": "Currently enrolled CSULB undergraduates and graduates (also Fall 2025 degree recipients)",
+        "awards": "$100 per category; top 10 advance to CSU Statewide (April 23–25, 2026)",
+        "categories": [
+          "Behavioral and Social Sciences",
+          "Biological and Agricultural Sciences",
+          "Business / Economics / Public Administration",
+          "Creative Arts and Design",
+          "Education",
+          "Engineering and Computer Science",
+          "Health / Nutrition / Clinical Sciences",
+          "Humanities and Letters",
+          "Interdisciplinary",
+          "Physical and Mathematical Sciences"
+        ],
+        "contact": {"email": "SRC@csulb.edu"}
+      }
+    },
+
+    "mental_health_and_wellness": {
+      "caps": {
+        "name": "Counseling and Psychological Services (CAPS)",
+        "description": "Mental health counseling; initial consultation available.",
+        "url": "https://www.csulb.edu/student-affairs/counseling-and-psychological-services"
+      },
+      "crisis_resources": {
+        "988_lifeline": "988 Suicide & Crisis Lifeline",
+        "caps_crisis_url": "https://www.csulb.edu/student-affairs/counseling-and-psychological-services/crisis-intervention",
+        "beach_wellness_url": "https://www.csulb.edu/student-affairs/beach-wellness/crisis-and-mental-health-resources",
+        "university_police_url": "https://www.csulb.edu/university-police/contact-us"
+      },
+      "succeeding_at_the_beach": {
+        "url": "https://www.csulb.edu/navigating-grad-studies-at-the-beach/succeeding-at-the-beach",
+        "topics": [
+          "Succeeding in Grad School 3-Part Series (Learning Remotely, Mental Health, Cognitive Strategies)",
+          "Writing for Success",
+          "Time and stress management",
+          "Imposter syndrome resources",
+          "Financial management",
+          "Finding campus mentors"
+        ]
+      }
+    },
+
+    "basic_needs": {
+      "url": "https://www.csulb.edu/student-affairs/basic-needs",
+      "covers": ["Housing", "Food", "Financial emergencies"],
+      "beach_pantry": "Food pantry available for students",
+      "emergency_housing": "Available through Basic Needs Program"
+    },
+
+    "health_services": {
+      "student_health_services": {
+        "after_hours_url": "https://www.csulb.edu/student-affairs/student-health-services/after-hours-and-emergency-care",
+        "health_insurance_url": "https://www.csulb.edu/student-affairs/student-health-services/health-insurance",
+        "reproductive_health_url": "https://www.csulb.edu/student-affairs/student-health-services/reproductive-health"
+      },
+      "bob_murphy_access_center": {
+        "name": "Bob Murphy Access Center (BMAC)",
+        "description": "Disability accommodations.",
+        "contact": {"email": "bmac@csulb.edu", "phone": "(562) 985-5401", "location": "SSSC building, Suite 110"},
+        "url": "https://www.csulb.edu/student-affairs/bob-murphy-access-center"
+      },
+      "pregnant_parenting_url": "https://www.csulb.edu/student-affairs/pregnant-and-parenting-students"
+    },
+
+    "career_and_professional": {
+      "career_development_center": {
+        "description": "Job/internship search, CareerLink access, post-graduation support.",
+        "url": "https://www.csulb.edu/career-development-center"
+      },
+      "ta_ga_positions_url": "https://www.csulb.edu/graduate-studies/graduate-assistant-and-teaching-associate-positions",
+      "internships_url": "https://www.csulb.edu/academic-internships-office"
+    },
+
+    "diversity_and_inclusion": {
+      "resource_centers_url": "https://www.csulb.edu/student-affairs/office-of-belonging-and-inclusion/resource-centers",
+      "centers": {
+        "womens_gender_equity_url": "https://www.csulb.edu/student-affairs/womens-gender-equity-center",
+        "mens_success_initiative_url": "https://www.csulb.edu/student-affairs/mens-success-initiative",
+        "veterans_services_url": "https://www.csulb.edu/student-affairs/veterans-services",
+        "dream_success_center_url": "https://www.csulb.edu/student-affairs/dream-success-center",
+        "guardian_scholars_url": "https://www.csulb.edu/student-affairs/guardian-scholars-program",
+        "project_rebound_url": "https://www.csulb.edu/student-affairs/project-rebound",
+        "american_indian_url": "https://www.csulb.edu/student-affairs/student-life-development/american-indian-student-services"
+      }
+    },
+
+    "campus_life": {
+      "url": "https://www.csulb.edu/navigating-grad-studies-at-the-beach/campus-life",
+      "housing": {
+        "on_campus": "Three residential colleges: Beachside, Hillside, Parkside. Not guaranteed; most graduate students live off-campus.",
+        "contact": {"phone": "(562) 985-4187", "email": "housing@csulb.edu"},
+        "off_campus_resources": [
+          "Craigslist / Zillow",
+          "Facebook Groups: CSULB Roommate Finder and Boom | Long Beach Housing",
+          "Rent College Pads"
+        ]
+      },
+      "transportation": {
+        "parking": "Purchase virtual permits via Parking and Transportation Services. After 5pm weeknights and weekends, permit holders may park in yellow lots.",
+        "bus_pass": "Long Beach Transit U-PASS TAP Card available for eligible students"
+      },
+      "recreation": {
+        "club_sports": "Ski & Snowboard, Surfing, Sailing, and more through ASI Recreation",
+        "intramurals": "Basketball, volleyball, softball, soccer, and more",
+        "url": "https://asirecreation.org/"
+      },
+      "safety": {
+        "night_escort": "Free escort service by Community Service Officers. Call (562) 985-4101.",
+        "emergency_phones": "Blue Light telephones across campus"
+      },
+      "study_space": {
+        "graduate_center": "University Library 2nd floor — reserved space for graduate students",
+        "lib_201_reservation_url": "https://www.csulb.edu/navigating-grad-studies-at-the-beach/article/lib-201-reservation"
+      }
+    },
+
+    "technology": {
+      "beachboard_canvas": "Learning management system via SSO",
+      "computer_labs_url": "https://www.csulb.edu/academic-technology-services/csulb-computer-labs",
+      "ai_guidelines": {
+        "students_url": "https://www.csulb.edu/information-technology/ai-technology/student-guidelines-generative-ai",
+        "thesis_dissertation_url": "https://www.csulb.edu/thesis-and-dissertation-office/article/graduate-studies-generative-ai-guidelines"
+      }
+    }
+  }
+}
