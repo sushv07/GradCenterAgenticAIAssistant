@@ -1,0 +1,376 @@
+"""
+rag/store.py
+Manages the persistent ChromaDB vector store for the CSULB RAG pipeline.
+
+Why persistent ChromaDB instead of in-memory Chroma (like faq_rag_module.py):
+
+    faq_rag_module.py calls Chroma.from_documents() WITHOUT a persist_directory.
+    Every time the Streamlit app restarts — or every hour when the TTL fires —
+    it re-downloads the FAQ page, re-splits all chunks, and re-embeds them.
+    With one FAQ page (~50 chunks) this takes ~5–10 seconds.
+
+    With 4 pages (~150+ chunks), the same pattern would cost 30–60 seconds on
+    every cold start, making the app feel broken on first load.
+
+    This module writes embeddings to ./chroma_db/ after the first build.
+    ChromaDB reads pre-computed vectors from disk on subsequent starts:
+    typically under 1 second regardless of corpus size.
+
+    Rebuild is triggered only when:
+      a) The ./chroma_db/ directory doesn't exist yet  (first run)
+      b) The TTL file (.last_built) is older than STORE_TTL seconds (default 24h)
+      c) force_rebuild=True is passed explicitly
+
+TTL design:
+    A plain timestamp file (.last_built) is written after each successful build.
+    We compare its mtime (OS file modification time, wall-clock) against the
+    current wall-clock time.  This is robust across process restarts, unlike
+    time.monotonic() which resets when the process exits.
+
+Collection design:
+    One collection ("csulb_grad_center") stores all chunks from all 4 sources.
+    page_type metadata enables filtered retrieval per source when needed.
+    cosine distance (hnsw:space=cosine) ensures similarity scores in [0, 1].
+
+Embedding model:
+    all-MiniLM-L6-v2 — same as faq_rag_module.py.  384-dimensional embeddings,
+    fast on CPU, good semantic quality for English academic text.
+    Loaded once as a process-level singleton to avoid repeated model downloads.
+"""
+
+from __future__ import annotations
+
+import shutil
+import time
+from pathlib import Path
+from typing import Optional
+
+from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_community.vectorstores import Chroma
+
+# ---------------------------------------------------------------------------
+# Paths and configuration
+# ---------------------------------------------------------------------------
+
+# Persistent ChromaDB directory — relative to the project root.
+# Created automatically on first build; add to .gitignore (can be large).
+CHROMA_DIR = Path(__file__).parent.parent / "chroma_db"
+
+# Timestamp file written after each successful build.
+# Its mtime (OS modification time) is used for TTL checks.
+_TIMESTAMP_FILE = CHROMA_DIR / ".last_built"
+
+# ChromaDB collection name.  All 4 source pages land in one collection.
+# page_type metadata enables per-source filtered queries.
+COLLECTION_NAME = "csulb_grad_center"
+
+# Embedding model — must match the model used during build when loading.
+# Changing this value requires a forced rebuild (invalidate_store()).
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+
+# How long (seconds) before the store is considered stale and rebuilt.
+# 24 hours: CSULB pages change infrequently; daily rebuilds are sufficient.
+# Compare: faq_rag_module.py uses 3600s (1h) for its in-memory store.
+STORE_TTL = 86_400  # 24 hours
+
+# ---------------------------------------------------------------------------
+# Module-level singletons
+# ---------------------------------------------------------------------------
+# These are held in memory for the lifetime of the Python process.
+# Streamlit re-runs the script on each interaction but doesn't restart the
+# Python process, so these survive across user queries within a session.
+
+_STORE:      Optional[Chroma]               = None
+_EMBEDDINGS: Optional[HuggingFaceEmbeddings] = None
+
+
+# ---------------------------------------------------------------------------
+# Embeddings
+# ---------------------------------------------------------------------------
+
+def _get_embeddings() -> HuggingFaceEmbeddings:
+    """
+    Return the shared HuggingFace embeddings model, loading it once per process.
+
+    Loading the model is the slow step (~2–5 seconds on first call).
+    Subsequent calls return the cached instance immediately.
+    normalize_embeddings=True produces unit vectors, which is required for
+    cosine similarity to return correct scores in [0, 1].
+    """
+    global _EMBEDDINGS
+    if _EMBEDDINGS is None:
+        print(f"[store] Loading embedding model: {EMBEDDING_MODEL}  (one-time ~2–5s)")
+        _EMBEDDINGS = HuggingFaceEmbeddings(
+            model_name=EMBEDDING_MODEL,
+            model_kwargs={"device": "cpu"},
+            encode_kwargs={"normalize_embeddings": True},
+        )
+    return _EMBEDDINGS
+
+
+# ---------------------------------------------------------------------------
+# TTL helpers
+# ---------------------------------------------------------------------------
+
+def _store_is_fresh() -> bool:
+    """
+    Return True if the on-disk store was built within STORE_TTL seconds.
+
+    Uses the OS mtime of the .last_built timestamp file (wall-clock time),
+    which persists across process restarts — unlike time.monotonic().
+    Returns False if the timestamp file is missing or unreadable.
+    """
+    if not _TIMESTAMP_FILE.exists():
+        return False
+    try:
+        mtime = _TIMESTAMP_FILE.stat().st_mtime
+        age   = time.time() - mtime
+        return age < STORE_TTL
+    except OSError:
+        return False
+
+
+def _write_timestamp() -> None:
+    """
+    Write a timestamp file after a successful build so TTL checks work.
+    The file mtime is what we read in _store_is_fresh().
+    """
+    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+    _TIMESTAMP_FILE.write_text(str(time.time()))
+
+
+def _chroma_has_data() -> bool:
+    """
+    Return True if ChromaDB appears to have been populated on disk.
+    ChromaDB writes chroma.sqlite3 on its first persist call.
+    """
+    return (CHROMA_DIR / "chroma.sqlite3").exists()
+
+
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
+
+def build_vector_store(documents: list) -> Chroma:
+    """
+    Embed documents and persist them in ChromaDB on disk.
+
+    This is the write path — it fully replaces the existing collection.
+    To prevent duplicate embeddings on repeated builds, the existing
+    chroma_db/ directory is deleted before writing new data.
+
+    Args:
+        documents: List of LangChain Document objects from chunking.chunk_documents().
+
+    Returns:
+        The loaded Chroma instance (backed by the newly written on-disk store).
+
+    Raises:
+        RuntimeError: if documents is empty or embedding fails.
+    """
+    global _STORE
+
+    if not documents:
+        raise RuntimeError("[store] Cannot build vector store: document list is empty")
+
+    # Remove existing data to prevent duplicate embeddings on rebuild.
+    # This is safe because we always rebuild from fresh page ingestion.
+    if CHROMA_DIR.exists():
+        print(f"[store] Removing existing store at {CHROMA_DIR} before rebuild")
+        shutil.rmtree(CHROMA_DIR)
+
+    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+    embeddings = _get_embeddings()
+
+    print(f"[store] Embedding {len(documents)} chunks → {CHROMA_DIR}  (this may take ~30–60s)")
+
+    store = Chroma.from_documents(
+        documents=documents,
+        embedding=embeddings,
+        persist_directory=str(CHROMA_DIR),
+        collection_name=COLLECTION_NAME,
+        # cosine distance: similarity scores are in [0, 1] (1 = identical).
+        # Without this, ChromaDB defaults to L2 distance, producing scores
+        # outside [0, 1] that can't be reliably thresholded.
+        collection_metadata={"hnsw:space": "cosine"},
+    )
+
+    _write_timestamp()
+    _STORE = store
+
+    print(f"[store] ✓ Vector store built and persisted  ({len(documents)} chunks)")
+    return store
+
+
+# ---------------------------------------------------------------------------
+# Load
+# ---------------------------------------------------------------------------
+
+def load_vector_store() -> Optional[Chroma]:
+    """
+    Load an existing ChromaDB collection from disk.
+
+    Returns None if the store does not exist (not yet built).
+
+    Loading from disk is fast (<1s) because embeddings are pre-computed.
+    The embedding model must be the same as when the store was built.
+    If EMBEDDING_MODEL was changed since the last build, call invalidate_store()
+    first to force a full rebuild with the new model.
+    """
+    if not _chroma_has_data():
+        return None
+
+    try:
+        embeddings = _get_embeddings()
+        store = Chroma(
+            persist_directory=str(CHROMA_DIR),
+            collection_name=COLLECTION_NAME,
+            # NOTE: the constructor uses `embedding_function`, not `embedding`
+            # (different from Chroma.from_documents which uses `embedding`).
+            # This is a LangChain API inconsistency — use the correct name here.
+            embedding_function=embeddings,
+        )
+        print(f"[store] Loaded existing vector store from {CHROMA_DIR}")
+        return store
+    except Exception as exc:
+        print(f"[store] Failed to load vector store: {exc}")
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Get or build (main entry point)
+# ---------------------------------------------------------------------------
+
+def get_or_build_store(
+    pages: Optional[list] = None,
+    force_rebuild: bool = False,
+) -> Optional[Chroma]:
+    """
+    Return the active vector store — loading from disk if fresh, rebuilding if stale.
+
+    This is the primary entry point.  Callers (retriever.py, app.py) always
+    call this rather than build_vector_store() or load_vector_store() directly.
+
+    Decision logic:
+        1. If _STORE is already in memory AND not force_rebuild → return it.
+        2. If force_rebuild=True → skip to step 4 (full rebuild).
+        3. If on-disk store is fresh (within TTL) → load from disk.
+        4. Otherwise (stale or missing) → ingest → chunk → embed → persist.
+
+    Args:
+        pages:         Pre-ingested page dicts (list[dict] from ingest_pages()).
+                       If None and a rebuild is needed, ingest_pages() is called
+                       automatically.  Pass pre-ingested pages to avoid re-fetching
+                       URLs when you've already fetched them (e.g. in tests).
+        force_rebuild: If True, always rebuild from fresh data regardless of TTL.
+                       Useful for: manual refresh, content updates, model change.
+
+    Returns:
+        Chroma instance or None if ingestion or building fails.
+    """
+    global _STORE
+
+    # 1. Return the in-process cached instance (fastest path)
+    if _STORE is not None and not force_rebuild:
+        return _STORE
+
+    # 2. Try loading from disk if the store is within its TTL
+    if not force_rebuild and _store_is_fresh():
+        store = load_vector_store()
+        if store is not None:
+            _STORE = store
+            return store
+        # Load failed (e.g. corrupt file) — fall through to rebuild
+
+    # 3. Rebuild from scratch
+    print("[store] Rebuilding vector store from source pages ...")
+
+    try:
+        # Lazy import to avoid circular dependencies:
+        # store.py ← retriever.py ← (app.py at runtime)
+        # ingestion and chunking are only imported when a build is needed.
+        from rag.ingestion import ingest_pages
+        from rag.chunking import chunk_documents
+
+        if pages is None:
+            pages = ingest_pages()
+
+        if not pages:
+            print("[store] No pages ingested — cannot build vector store")
+            return None
+
+        documents = chunk_documents(pages)
+
+        if not documents:
+            print("[store] No chunks produced — cannot build vector store")
+            return None
+
+        store = build_vector_store(documents)
+        _STORE = store
+        return store
+
+    except Exception as exc:
+        print(f"[store] Error during build: {exc}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
+# ---------------------------------------------------------------------------
+# Cache invalidation
+# ---------------------------------------------------------------------------
+
+def invalidate_store() -> None:
+    """
+    Clear the in-process cache and remove the TTL timestamp.
+
+    The next call to get_or_build_store() will trigger a full rebuild.
+
+    Use this when:
+      - CSULB pages are known to have updated (e.g. new deadlines published)
+      - EMBEDDING_MODEL is changed (requires re-embedding with new model)
+      - The chroma_db/ directory is manually deleted
+    """
+    global _STORE
+    _STORE = None
+    if _TIMESTAMP_FILE.exists():
+        try:
+            _TIMESTAMP_FILE.unlink()
+        except OSError:
+            pass
+    print("[store] Store cache invalidated — next query will trigger a full rebuild")
+
+
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    """Build (or verify) the vector store from the command line."""
+    import sys
+
+    print("=" * 60)
+    print("CSULB RAG Store — build / verify")
+    print("=" * 60)
+
+    rebuild = "--rebuild" in sys.argv
+
+    if rebuild:
+        print("\nForce-rebuild requested (--rebuild flag).")
+        invalidate_store()
+
+    store = get_or_build_store(force_rebuild=rebuild)
+
+    if store is None:
+        print("\n✗ Failed to build or load the vector store.")
+        sys.exit(1)
+
+    # Quick stats via the underlying ChromaDB client
+    try:
+        collection = store._collection
+        count = collection.count()
+        print(f"\n✓ Vector store ready: {count} chunks in collection '{COLLECTION_NAME}'")
+        print(f"  Location: {CHROMA_DIR}")
+        print(f"  Fresh:    {_store_is_fresh()}")
+    except Exception as exc:
+        print(f"\n✓ Vector store loaded (could not read stats: {exc})")

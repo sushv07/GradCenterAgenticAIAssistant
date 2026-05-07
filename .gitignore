@@ -5,3 +5,9 @@ __pycache__/
 venv/
 .env.local
 .DS_Store
+
+# ChromaDB persistent vector store (can be large; rebuilt automatically)
+chroma_db/
+
+# RAG build logs
+logs/
