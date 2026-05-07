@@ -1,8 +1,8 @@
 {
   "session_id": "default",
-  "created_at": "2026-05-04T20:31:34Z",
-  "updated_at": "2026-05-04T20:31:34Z",
-  "query": "Turn this into a checklist I can track",
+  "created_at": "2026-05-07T05:36:51Z",
+  "updated_at": "2026-05-07T05:36:51Z",
+  "query": "Give me a checklist for applying",
   "intent": "application_process",
   "source_file": "admissions.json",
   "source_url": "https://www.csulb.edu/admissions/graduate-programs-application-process",
@@ -15,7 +15,7 @@
       "primary_action": "Open the program advisors page and note your program's deadline for your target term.",
       "details": "Application periods open July 1 (spring) and August 1 (fall, submissions start October 1). Not all programs admit each term.",
       "priority": "high",
-      "status": "pending",
+      "status": "completed",
       "depends_on": [],
       "prep": [
         "Your target program name",

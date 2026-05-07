@@ -71,6 +71,46 @@ _STOP_WORDS = {
 _CHECKLIST_SIGNALS = next(s for route, s in _ROUTE_SIGNALS if route == Route.CHECKLIST)
 
 
+# ---------------------------------------------------------------------------
+# Intent-priority routing signals
+# ---------------------------------------------------------------------------
+# Used in run() BEFORE find_advisor() so program aliases ("dnp", "nursing")
+# cannot hijack deadline / eligibility / application-steps queries.
+#
+# Priority order inside run():
+#   1. Advisor signals   → always show advisor card first
+#   2. Checklist signals → always route to CHECKLIST
+#   3. Tracking commands → always route to TRACKING
+#   4. Deadline signals  → deadlines_tool
+#   5. Eligibility signals → eligibility_tool
+#   6. Process + steps signals (when also an is_process_query) → application_steps_tool
+#   7. Everything else   → existing advisor → detect_route() flow
+
+# Words that definitively mean "I want advisor/contact info"
+_ADVISOR_SIGNALS = frozenset({
+    "advisor", "advisors", "adviser", "advisers",
+    "contact", "who", "advising",
+})
+
+# Words that signal a deadline query
+_DEADLINE_SIGNALS = frozenset({
+    "deadline", "deadlines", "due", "cutoff",
+})
+
+# Words that signal an eligibility query
+_ELIGIBILITY_SIGNALS = frozenset({
+    "eligibility", "eligible", "gpa", "requirement", "requirements",
+    "qualify", "qualification", "minimum", "qualified",
+})
+
+# Words that (combined with is_process_query) route to application_steps_tool
+# "apply" / "application" alone stay on the GUIDANCE path for generic queries;
+# "steps" / "process" / "procedure" signals the user wants an ordered list.
+_PROCESS_STEP_SIGNALS = frozenset({
+    "steps", "process", "procedure",
+})
+
+
 def _tokenize(text: str) -> set[str]:
     return set(re.findall(r"[a-z0-9]+", text.lower())) - _STOP_WORDS
 
@@ -822,6 +862,97 @@ def _format_response(query: str, route: Route, raw: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Topic-tool response builder
+# ---------------------------------------------------------------------------
+
+def _build_topic_response(topic: str, query: str, session_id: str) -> dict:
+    """
+    Call the appropriate Phase-2 tool and return a formatted orchestrator response.
+
+    Used when topic-priority routing fires (deadline / eligibility / application)
+    BEFORE find_advisor() so program aliases cannot hijack the route.
+
+    Args:
+        topic:      "deadlines" | "eligibility" | "application"
+        query:      Original user query (passed to the tool for RAG retrieval)
+        session_id: Current session identifier
+
+    Returns:
+        Full orchestrator response dict, consistent with the schema returned by
+        _format_response() so the UI can render it without special casing.
+    """
+    if topic == "deadlines":
+        from tools.deadlines_tool import get_deadlines
+        result = get_deadlines(query)
+        heading     = "Deadlines"
+        source_base = (
+            "https://www.csulb.edu/graduate-studies-csulb/article/"
+            "programs-advisors-and-deadlines-doctoral"
+        )
+        next_actions = [
+            "Who is the advisor for my program?",
+            "What are the application steps?",
+            "What are the eligibility requirements?",
+        ]
+
+    elif topic == "eligibility":
+        from tools.eligibility_tool import get_eligibility
+        result = get_eligibility(query)
+        heading     = "Eligibility Requirements"
+        source_base = "https://www.csulb.edu/admissions/doctoral-programs-admission-eligibility"
+        next_actions = [
+            "Who is the advisor for my program?",
+            "What are the application steps?",
+            "When is the application deadline?",
+        ]
+
+    else:  # "application"
+        from tools.application_steps_tool import get_application_steps
+        result = get_application_steps(query)
+        heading     = "Application Steps"
+        source_base = "https://www.csulb.edu/admissions/doctoral-programs-application-process"
+        next_actions = [
+            "Who is the advisor for my program?",
+            "What are the eligibility requirements?",
+            "When is the application deadline?",
+        ]
+
+    sources    = result.get("sources", [])
+    source_url = sources[0] if sources else source_base
+    results    = result.get("results", [])
+    disclaimer = result.get("disclaimer", "")
+
+    # Build a readable summary from the top RAG chunk or a generic fallback
+    if results:
+        raw = results[0].get("text", "").strip()
+        # Avoid starting mid-word at the cutoff
+        summary = (raw[:280].rsplit(" ", 1)[0] + "…") if len(raw) > 280 else raw
+    elif result.get("fallback_data"):
+        summary = f"Here is the {heading.lower()} information I found for CSULB doctoral programs."
+    else:
+        summary = (
+            f"I couldn't find specific {heading.lower()} information for that query. "
+            "Please check the official CSULB page."
+        )
+
+    primary_action = (
+        disclaimer
+        or f"Verify this information at the official CSULB page: {source_url}"
+    )
+
+    return {
+        "query":          query,
+        "route":          topic,           # "deadlines" | "eligibility" | "application"
+        "session_id":     session_id,
+        "summary":        summary,
+        "primary_action": primary_action,
+        "tool_result":    result,          # full tool output — used by _render_topic_panel()
+        "source":         {"file": "", "url": source_url},
+        "next_actions":   next_actions,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -854,7 +985,32 @@ def run(query: str, session_id: str = "default") -> dict[str, Any]:
     }
     is_process_query = any(k in _q for k in _PROCESS_KEYWORDS)
 
-    # ── Advisor retrieval runs FIRST — before intent routing ─────────────────
+    # ── Topic-priority routing (BEFORE find_advisor) ──────────────────────────
+    # Program aliases like "dnp" / "nursing" fuzzy-match advisors at high
+    # confidence, so without this check, "deadlines for dnp" would silently
+    # return an advisor card instead of deadline information.
+    #
+    # Rule: if a topic-specific keyword is present AND no advisor-intent word
+    # ("who", "advisor", "contact", …) is present, route straight to the tool.
+    # Advisor signals, checklist signals, and tracking commands are exempt and
+    # fall through to the existing flow below.
+    _raw_toks = set(re.findall(r"[a-z]+", query.lower()))
+
+    _has_advisor_signal = bool(_raw_toks & _ADVISOR_SIGNALS)
+    _has_checklist      = bool(_CHECKLIST_SIGNALS & _raw_toks)
+    _has_tracking       = bool(_parse_tracking_command(query))
+
+    if not _has_advisor_signal and not _has_checklist and not _has_tracking:
+        if _raw_toks & _DEADLINE_SIGNALS:
+            return _build_topic_response("deadlines", query, session_id)
+        if _raw_toks & _ELIGIBILITY_SIGNALS:
+            return _build_topic_response("eligibility", query, session_id)
+        # Application-steps: only when "steps"/"process"/"procedure" is explicit.
+        # Generic "how do I apply?" queries keep the existing GUIDANCE path.
+        if is_process_query and (_raw_toks & _PROCESS_STEP_SIGNALS):
+            return _build_topic_response("application", query, session_id)
+
+    # ── Advisor retrieval ──────────────────────────────────────────────────────
     # find_advisor() uses fuzzy matching + stop-word normalisation so it handles
     # abbreviations ("dnp"), aliases ("applied anthro"), and conversational
     # phrasing ("who do I contact for nursing") reliably.  Returning early here
@@ -868,20 +1024,57 @@ def run(query: str, session_id: str = "default") -> dict[str, Any]:
             if match and match.get("email")
             else "Contact GraduateCenter@csulb.edu for advisor information."
         )
-        return {
+
+        advisor_response = {
             "query":          query,
             "route":          "advisor",
             "session_id":     session_id,
-            "summary":        f"I found a {'Strong' if advisor_result['confidence'] >= 90 else 'Good'} match for your query." if match else "I couldn't find an exact match.",
+            "summary":        (
+                f"I found a {'Strong' if advisor_result['confidence'] >= 90 else 'Good'} "
+                "match for your query."
+            ) if match else "I couldn't find an exact match.",
             "primary_action": primary,
-            "advisor_data":   advisor_result,   # raw result for the UI to render
+            "advisor_data":   advisor_result,
             "source":         {"file": "", "url": source_url},
             "next_actions": [
                 "Show me the application steps",
                 "What are the GPA requirements?",
-                "Who is the contact for my program?",
+                "When is the application deadline?",
             ],
         }
+
+        # Auto-generate email draft when a specific advisor was matched.
+        # The draft is included in the payload; the UI renders a preview and
+        # an "Open in Outlook" button — Outlook is NEVER opened automatically.
+        if match and match.get("advisor_name") and match.get("email"):
+            from tools.email_tool import (
+                draft_email      as _draft_email,
+                build_outlook_url as _build_outlook_url,
+            )
+            _draft = _draft_email(
+                advisor_name  = match["advisor_name"],
+                advisor_email = match["email"],
+                program       = match.get("program", ""),
+                context       = "",   # user fills in "[Your Name]" placeholders
+            )
+            _outlook = (
+                _build_outlook_url(
+                    to_email = _draft.get("to", ""),
+                    subject  = _draft.get("subject", ""),
+                    body     = _draft.get("body", ""),
+                )
+                if _draft["found"]
+                else {"found": False, "outlook_url": ""}
+            )
+            advisor_response["email_draft"] = {
+                "found":       _draft["found"] and _outlook["found"],
+                "subject":     _draft.get("subject", ""),
+                "body":        _draft.get("body", ""),
+                "to":          _draft.get("to", ""),
+                "outlook_url": _outlook.get("outlook_url", ""),
+            }
+
+        return advisor_response
 
     # ── PhD / doctoral query with no match → list available doctoral programs ─
     # e.g. "business phd csulb" — the user is looking for a doctoral program that

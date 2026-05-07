@@ -600,6 +600,112 @@ st.markdown("""
 .email-key { color: var(--muted); font-weight: 500; }
 .email-val { color: var(--text);  font-weight: 600; }
 
+/* ── Deadline card ──────────────────────────────────────────────────────── */
+.deadline-card {
+    background:    var(--surface);
+    border:        1px solid var(--border-soft);
+    border-top:    3px solid var(--navy);
+    border-radius: var(--radius);
+    padding:       20px 24px 18px;
+    margin-bottom: 16px;
+    box-shadow:    var(--shadow-sm);
+}
+.deadline-card-header {
+    font-size:      0.62rem;
+    font-weight:    800;
+    color:          var(--navy);
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    margin-bottom:  4px;
+    padding-bottom: 10px;
+    border-bottom:  1px solid var(--border-soft);
+}
+.deadline-program-name {
+    font-size:   1.05rem;
+    font-weight: 700;
+    color:       var(--text);
+    margin:      0 0 14px 0;
+    line-height: 1.3;
+}
+.deadline-cols {
+    display:   flex;
+    gap:       24px;
+    flex-wrap: wrap;
+}
+.deadline-col {
+    flex:       1;
+    min-width:  180px;
+}
+.deadline-col-label {
+    font-size:      0.68rem;
+    font-weight:    800;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color:          var(--navy);
+    margin-bottom:  8px;
+    opacity:        0.8;
+}
+.deadline-row {
+    display:       flex;
+    align-items:   center;
+    gap:           10px;
+    padding:       6px 0;
+    border-bottom: 1px solid var(--border-soft);
+    font-size:     0.9rem;
+}
+.deadline-row:last-child { border-bottom: none; }
+.deadline-season {
+    min-width:  46px;
+    color:      var(--muted);
+    font-weight: 500;
+    font-size:   0.82rem;
+}
+.deadline-val {
+    font-weight: 600;
+    color:       var(--text);
+}
+.deadline-val.closed {
+    color:      #9ca3af;
+    font-style: italic;
+    font-weight: 400;
+}
+.deadline-contact {
+    margin-top:    14px;
+    padding-top:   12px;
+    border-top:    1px solid var(--border-soft);
+    font-size:     0.85rem;
+    color:         var(--text-sub);
+    display:       flex;
+    flex-wrap:     wrap;
+    gap:           16px;
+}
+.deadline-contact a {
+    color:           #1a56db;
+    text-decoration: none;
+}
+.deadline-contact a:hover { text-decoration: underline; }
+
+/* Mini disambiguation card */
+.deadline-mini-card {
+    background:    var(--surface);
+    border:        1px solid var(--border-soft);
+    border-left:   3px solid var(--navy);
+    border-radius: var(--radius);
+    padding:       12px 16px;
+    margin-bottom: 8px;
+    font-size:     0.88rem;
+}
+.deadline-mini-program {
+    font-weight:  700;
+    color:        var(--text);
+    margin-bottom: 4px;
+}
+.deadline-mini-row {
+    color:       var(--text-sub);
+    font-size:   0.82rem;
+    line-height: 1.5;
+}
+
 /* Clarification box */
 .clarification-box {
     background:    #fffef0;
@@ -1055,7 +1161,264 @@ def _render_guidance_panel(steps: list[dict]) -> None:
             if link and link.startswith("http"): st.markdown(f"[🔗 Resource]({link})")
 
 
+def _deadline_val_html(val: str) -> str:
+    """Apply .closed styling to 'Not Accepting / Not Applicable / N/A' values."""
+    closed_phrases = {"not accepting", "not applicable", "n/a", ""}
+    css = "deadline-val closed" if val.lower() in closed_phrases else "deadline-val"
+    return f'<span class="{css}">{val}</span>'
+
+
+def _render_deadline_card(card: dict) -> None:
+    """Render one program's deadline data as a structured two-column card."""
+    program    = card.get("program", "Unknown Program")
+    app        = card.get("application", {})
+    acc        = card.get("accept_decline", {})
+    contact    = card.get("advisor_contact", {})
+    source_url = card.get("source_url", "")
+
+    app_spring  = app.get("spring",  "N/A")
+    app_fall    = app.get("fall",    "N/A")
+    acc_spring  = acc.get("spring",  "N/A")
+    acc_fall    = acc.get("fall",    "N/A")
+    email       = contact.get("email",  "")
+    phone       = contact.get("phone",  "")
+    adv_name    = contact.get("name",   "")
+
+    # Build contact row
+    contact_parts: list[str] = []
+    if adv_name:
+        contact_parts.append(f"<strong>Advisor:</strong> {adv_name}")
+    if email:
+        contact_parts.append(
+            f'<strong>Email:</strong> <a href="mailto:{email}">{email}</a>'
+        )
+    if phone:
+        contact_parts.append(f"<strong>Phone:</strong> {phone}")
+    contact_html = (
+        '<div class="deadline-contact">' +
+        "".join(f"<span>{p}</span>" for p in contact_parts) +
+        "</div>"
+        if contact_parts else ""
+    )
+
+    source_html = (
+        f'<a href="{source_url}" target="_blank" style="font-size:.78rem;'
+        f'color:var(--navy);">🔗 Official deadlines page</a>'
+        if source_url else ""
+    )
+
+    st.markdown(f"""
+    <div class="deadline-card">
+      <div class="deadline-card-header">📅 Application Deadlines</div>
+      <div class="deadline-program-name">{program}</div>
+      <div class="deadline-cols">
+        <div class="deadline-col">
+          <div class="deadline-col-label">Application</div>
+          <div class="deadline-row">
+            <span class="deadline-season">Spring</span>
+            {_deadline_val_html(app_spring)}
+          </div>
+          <div class="deadline-row">
+            <span class="deadline-season">Fall</span>
+            {_deadline_val_html(app_fall)}
+          </div>
+        </div>
+        <div class="deadline-col">
+          <div class="deadline-col-label">Accept / Decline</div>
+          <div class="deadline-row">
+            <span class="deadline-season">Spring</span>
+            {_deadline_val_html(acc_spring)}
+          </div>
+          <div class="deadline-row">
+            <span class="deadline-season">Fall</span>
+            {_deadline_val_html(acc_fall)}
+          </div>
+        </div>
+      </div>
+      {contact_html}
+      {source_html}
+    </div>
+    """, unsafe_allow_html=True)
+
+
+def _render_deadline_disambiguation(cards: list[dict], hint: str) -> None:
+    """Render a clarification prompt + mini-cards when the query is vague."""
+    st.markdown(
+        f'<div class="clarification-box">'
+        f'<strong>🗓️ Which program are you asking about?</strong><br>'
+        f'<span style="font-size:.9rem;color:#374151;">'
+        f'Here are the deadlines for all doctoral programs:</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
+    if not cards:
+        st.info("No program deadline data found above the relevance threshold.")
+        return
+
+    # Show mini-cards in 2-column pairs
+    for row_start in range(0, len(cards), 2):
+        row_cards = cards[row_start: row_start + 2]
+        cols = st.columns(len(row_cards))
+        for col, card in zip(cols, row_cards):
+            prog  = card.get("program", "Unknown")
+            app   = card.get("application", {})
+            acc   = card.get("accept_decline", {})
+            fall  = app.get("fall",  "N/A")
+            afall = acc.get("fall",  "N/A")
+
+            with col:
+                st.markdown(f"""
+                <div class="deadline-mini-card">
+                  <div class="deadline-mini-program">{prog}</div>
+                  <div class="deadline-mini-row">
+                    <strong>App Fall:</strong> {fall}
+                  </div>
+                  <div class="deadline-mini-row">
+                    <strong>A/D Fall:</strong> {afall}
+                  </div>
+                </div>
+                """, unsafe_allow_html=True)
+
+
+def _render_topic_panel(response: dict) -> None:
+    """
+    Render deadline, eligibility, or application-steps tool results.
+    Called when route is "deadlines", "eligibility", or "application".
+    """
+    import sys as _sys, subprocess as _sp
+
+    tool_result   = response.get("tool_result", {})
+    route         = response.get("route", "")
+    results       = tool_result.get("results", [])
+    fallback_data = tool_result.get("fallback_data")
+    disclaimer    = tool_result.get("disclaimer", "")
+
+    # ── Deadline route: structured card rendering ────────────────────────────
+    if route == "deadlines":
+        deadline_card   = tool_result.get("deadline_card")
+        deadline_cards  = tool_result.get("deadline_cards", [])
+        needs_clarify   = tool_result.get("needs_clarification", False)
+        clarify_hint    = tool_result.get("clarification_hint", "")
+
+        if deadline_card:
+            # ── Primary deadline card ──────────────────────────────────────
+            _render_deadline_card(deadline_card)
+
+            # Show other closely-scored programs as mini hint if any exist
+            other_cards = [c for c in deadline_cards if c is not deadline_card]
+            if other_cards:
+                with st.expander(
+                    f"📋 See deadlines for {len(other_cards)} other program(s)",
+                    expanded=False,
+                ):
+                    for card in other_cards:
+                        _render_deadline_card(card)
+
+        elif needs_clarify:
+            # ── Disambiguation ─────────────────────────────────────────────
+            _render_deadline_disambiguation(deadline_cards, clarify_hint)
+
+        else:
+            # No cards parsed — fall through to raw results below
+            pass
+
+        # Sources / Evidence (always collapsed for deadline route)
+        if results:
+            with st.expander("📂 Sources / Evidence", expanded=False):
+                for i, r in enumerate(results[:6], 1):
+                    score_pct = int(r["score"] * 100)
+                    title     = r.get("title") or "CSULB"
+                    st.markdown(
+                        f"**[{i}] {title}** &nbsp; `{score_pct}% match`",
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown(
+                        f'<pre style="font-size:.80rem;white-space:pre-wrap;'
+                        f'background:#f8f9fa;padding:8px;border-radius:4px;'
+                        f'margin:4px 0 10px;">{r["text"]}</pre>',
+                        unsafe_allow_html=True,
+                    )
+                    url = r.get("url", "")
+                    if url:
+                        st.caption(f"[🔗 {url}]({url})")
+
+        if disclaimer:
+            st.info(disclaimer)
+        return
+    # ── End deadline route ───────────────────────────────────────────────────
+
+    # ── Eligibility / Application routes: existing behaviour ────────────────
+    if results:
+        for i, r in enumerate(results[:4], 1):
+            score_pct = int(r["score"] * 100)
+            title     = r.get("title") or "CSULB"
+            with st.expander(
+                f"Source {i} — {title}  ·  {score_pct}% match",
+                expanded=(i == 1),
+            ):
+                st.markdown(r["text"])
+                url = r.get("url", "")
+                if url:
+                    st.caption(f"[🔗 {url}]({url})")
+
+    elif fallback_data:
+        if isinstance(fallback_data, list):
+            # Application steps list of {step, title, details} dicts
+            for step in fallback_data:
+                st.markdown(
+                    f"**Step {step.get('step', '')}: {step.get('title', '')}**"
+                )
+                details = step.get("details", "")
+                if details:
+                    st.markdown(
+                        f'<p style="color:#374151;font-size:.9rem;margin:0 0 10px 0;">{details}</p>',
+                        unsafe_allow_html=True,
+                    )
+        elif isinstance(fallback_data, dict):
+            # Eligibility dict from admissions.json
+            min_reqs = fallback_data.get("minimum_requirements", [])
+            if min_reqs:
+                st.markdown("**Minimum Requirements:**")
+                for req in min_reqs:
+                    st.markdown(f"- {req}")
+            gpa = fallback_data.get("gpa_requirements", {})
+            if gpa:
+                st.markdown("**GPA Requirements:**")
+                for key, val in gpa.items():
+                    if key != "note":
+                        st.markdown(f"- {val}")
+                if gpa.get("note"):
+                    st.caption(gpa["note"])
+            additional = fallback_data.get("additional", "")
+            if additional:
+                st.caption(additional)
+    else:
+        st.info("No specific information found. Please check the source link below.")
+
+    # Supplemental application note (application route only)
+    if route == "application" and tool_result.get("has_supplemental"):
+        supp = tool_result.get("supplemental_results", [])
+        if supp:
+            st.warning(
+                "⚠️ **Supplemental Application Required** — Most doctoral programs "
+                "require an additional supplemental application beyond Cal State Apply. "
+                "Contact your program directly to confirm all required materials."
+            )
+            with st.expander("Supplemental application details", expanded=False):
+                for r in supp[:2]:
+                    st.markdown(r["text"])
+                    url = r.get("url", "")
+                    if url:
+                        st.caption(f"[🔗 {url}]({url})")
+
+    if disclaimer:
+        st.info(disclaimer)
+
+
 def _render_advisor_panel(response: dict) -> None:
+    import sys as _sys, subprocess as _sp
+
     advisor_data = response.get("advisor_data", {})
     match        = advisor_data.get("match")
     suggestions  = advisor_data.get("suggestions", [])
@@ -1073,6 +1436,66 @@ def _render_advisor_panel(response: dict) -> None:
             st.markdown(match.get("phone") or "Not available")
         if match.get("office"):
             st.markdown(f"**Office:** {match['office']}")
+
+        # ── Auto-generated email draft preview ───────────────────────────────
+        email_draft = response.get("email_draft", {})
+        if email_draft.get("found"):
+            st.markdown("---")
+            st.markdown("### 📧 Email Draft Preview")
+            st.markdown(
+                '<p style="color:#6b7280;font-size:.85rem;margin:-8px 0 10px 0;">'
+                "A draft has been prepared for you. Review it before sending."
+                "</p>",
+                unsafe_allow_html=True,
+            )
+
+            to_addr = email_draft.get("to", "")
+            subject = email_draft.get("subject", "")
+            body    = email_draft.get("body", "")
+
+            # Draft summary card
+            st.markdown(
+                f'<div class="email-card">'
+                f'<span class="email-key">To: </span>'
+                f'<strong class="email-val">{to_addr}</strong><br>'
+                f'<span class="email-key">Subject: </span>'
+                f'<strong class="email-val">{subject}</strong>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+            with st.expander("📄 View full draft", expanded=False):
+                st.text(body)
+
+            # Outlook button — user must click; never auto-opened
+            outlook_url = email_draft.get("outlook_url", "")
+            st.markdown(
+                '<p style="color:#374151;font-size:.9rem;font-weight:500;margin-bottom:8px;">'
+                "Would you like to open this draft in Outlook?"
+                "</p>",
+                unsafe_allow_html=True,
+            )
+            col_btn, col_copy, _ = st.columns([2.2, 2, 2.8])
+            with col_btn:
+                if outlook_url and st.button(
+                    "📧 Open in Outlook",
+                    key=f"adv_outlook_{hash(outlook_url)}",
+                    type="primary",
+                    use_container_width=True,
+                ):
+                    try:
+                        if _sys.platform == "darwin":
+                            _sp.Popen(["open", outlook_url])
+                        elif _sys.platform == "win32":
+                            _sp.Popen(["rundll32", "url.dll,FileProtocolHandler", outlook_url])
+                        else:
+                            _sp.Popen(["xdg-open", outlook_url])
+                    except Exception as e:
+                        st.error(f"Could not open browser: {e}")
+            with col_copy:
+                if to_addr:
+                    st.markdown("**Copy address:**")
+                    st.code(to_addr, language=None)
+
     elif suggestions:
         st.markdown("**Did you mean one of these programs?**")
         for i, name in enumerate(suggestions, 1):
@@ -1299,6 +1722,8 @@ def _render_response(response: dict, msg_idx: int = 0) -> None:
         _render_progress_widget(p); st.markdown("")
 
     if   route == "advisor":   _render_advisor_panel(response)
+    elif route in ("deadlines", "eligibility", "application"):
+        _render_topic_panel(response)
     elif route == "checklist":
         st.markdown("### Your Checklist")
         _render_checklist_panel(response.get("steps", []))
