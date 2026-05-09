@@ -80,8 +80,12 @@ STORE_TTL = 86_400  # 24 hours
 # Streamlit re-runs the script on each interaction but doesn't restart the
 # Python process, so these survive across user queries within a session.
 
-_STORE:      Optional[Chroma]               = None
-_EMBEDDINGS: Optional[HuggingFaceEmbeddings] = None
+_STORE:           Optional[Chroma]               = None
+_EMBEDDINGS:      Optional[HuggingFaceEmbeddings] = None
+# Set to True once the in-memory _STORE has been confirmed to contain
+# program_application chunks.  Prevents the check from running on every query
+# while still catching a stale store loaded before discovery was implemented.
+_STORE_VALIDATED: bool                           = False
 
 
 # ---------------------------------------------------------------------------
@@ -147,6 +151,28 @@ def _chroma_has_data() -> bool:
     return (CHROMA_DIR / "chroma.sqlite3").exists()
 
 
+def _store_has_program_pages(store: "Chroma") -> bool:
+    """
+    Return True if the store contains at least one program_application chunk.
+
+    A store built before program discovery was implemented will have 0 such
+    chunks (only faq / deadlines / eligibility / application_process).  We use
+    this check to self-heal stale stores that are still within TTL but lack the
+    program_application content that discovery now provides.
+
+    Uses a limit=1 get() to avoid loading the whole collection — O(1).
+    """
+    try:
+        result = store._collection.get(
+            where={"page_type": {"$eq": "program_application"}},
+            limit=1,
+            include=[],
+        )
+        return len(result.get("ids", [])) > 0
+    except Exception:
+        return False
+
+
 # ---------------------------------------------------------------------------
 # Build
 # ---------------------------------------------------------------------------
@@ -168,7 +194,7 @@ def build_vector_store(documents: list) -> Chroma:
     Raises:
         RuntimeError: if documents is empty or embedding fails.
     """
-    global _STORE
+    global _STORE, _STORE_VALIDATED
 
     if not documents:
         raise RuntimeError("[store] Cannot build vector store: document list is empty")
@@ -197,6 +223,7 @@ def build_vector_store(documents: list) -> Chroma:
 
     _write_timestamp()
     _STORE = store
+    _STORE_VALIDATED = True   # a freshly built store always has program pages
 
     print(f"[store] ✓ Vector store built and persisted  ({len(documents)} chunks)")
     return store
@@ -268,18 +295,47 @@ def get_or_build_store(
     Returns:
         Chroma instance or None if ingestion or building fails.
     """
-    global _STORE
+    global _STORE, _STORE_VALIDATED
 
-    # 1. Return the in-process cached instance (fastest path)
+    # 1. Return the in-process cached instance (fastest path).
+    # Before trusting the cached store, validate it contains program_application
+    # chunks exactly once per process.  This catches the case where the app is
+    # running with a stale _STORE that was built before discovery was implemented
+    # (only has faq/deadlines/eligibility/application_process, 0 program pages).
+    # _STORE_VALIDATED is set to True after the first successful check so
+    # subsequent queries skip it — O(1) on every call after the first.
     if _STORE is not None and not force_rebuild:
-        return _STORE
+        if not _STORE_VALIDATED:
+            if _store_has_program_pages(_STORE):
+                _STORE_VALIDATED = True
+                return _STORE
+            # Stale in-memory store — clear it and fall through to rebuild
+            print(
+                "[store] In-memory store has no program_application chunks "
+                "(built before discovery) — clearing and rebuilding"
+            )
+            _STORE = None
+        else:
+            return _STORE
 
     # 2. Try loading from disk if the store is within its TTL
     if not force_rebuild and _store_is_fresh():
         store = load_vector_store()
         if store is not None:
-            _STORE = store
-            return store
+            # Validate the store includes program_application chunks.
+            # A store built before discovery was implemented only has the 4
+            # base page types and will never return program-specific results.
+            # Detect this case and fall through to a rebuild even within TTL.
+            if not _store_has_program_pages(store):
+                print(
+                    "[store] Loaded store has no program_application chunks "
+                    "(built before discovery) — triggering rebuild"
+                )
+                # Don't cache the incomplete store; let rebuild run below.
+            else:
+                _STORE = store
+                _STORE_VALIDATED = True  # disk store confirmed to have program pages
+                return store
         # Load failed (e.g. corrupt file) — fall through to rebuild
 
     # 3. Rebuild from scratch
@@ -293,7 +349,10 @@ def get_or_build_store(
         from rag.chunking import chunk_documents
 
         if pages is None:
-            pages = ingest_pages()
+            # use_discovery=True: program pages are discovered and classified
+            # automatically from the index page instead of using the static
+            # PROGRAM_SOURCES list with hardcoded content_category values.
+            pages = ingest_pages(use_discovery=True)
 
         if not pages:
             print("[store] No pages ingested — cannot build vector store")
@@ -331,8 +390,9 @@ def invalidate_store() -> None:
       - EMBEDDING_MODEL is changed (requires re-embedding with new model)
       - The chroma_db/ directory is manually deleted
     """
-    global _STORE
+    global _STORE, _STORE_VALIDATED
     _STORE = None
+    _STORE_VALIDATED = False
     if _TIMESTAMP_FILE.exists():
         try:
             _TIMESTAMP_FILE.unlink()

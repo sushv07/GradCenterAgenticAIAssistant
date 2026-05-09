@@ -92,8 +92,93 @@ PAGE_SOURCES: list[dict] = [
         "url":       "https://www.csulb.edu/admissions/doctoral-programs-application-process",
         "page_type": "application_process",
         "title":     "Doctoral Programs Application Process",
+        "content_category": "generic_application",
     },
 ]
+
+# Program-specific application / department pages — SEED ENTRIES ONLY.
+#
+# These are used as fallback seeds when the index page does not directly link
+# to a program's department page.  content_category is intentionally absent:
+# it is computed automatically by rag.discovery.classify_page() at ingest time
+# so that no individual program is special-cased.
+#
+# Fields:
+#   url          — seed URL to start discovery from for this program
+#   page_type    — "program_application" (required by retriever filter)
+#   title        — human-readable title (may be overridden by <title> tag at fetch)
+#   program_name — canonical program name; must match the deadlines page entries
+#
+# content_category and workflow_priority are NOT listed here — they are derived
+# by rag.discovery at build time via content-signal classification.
+PROGRAM_SOURCES: list[dict] = [
+    {
+        "url": (
+            "https://www.csulb.edu/college-of-education/"
+            "educational-doctorate-educational-leadership"
+        ),
+        "page_type":    "program_application",
+        "title":        "Educational Doctorate in Educational Leadership",
+        "program_name": "Educational Leadership (Ed.D.)",
+    },
+    {
+        "url": "https://www.csulb.edu/college-of-engineering/engineering-doctoral-studies",
+        "page_type":    "program_application",
+        "title":        "Engineering Doctoral Studies",
+        "program_name": "Engineering & Computational Mathematics (Ph.D.)",
+    },
+    {
+        "url": (
+            "https://www.csulb.edu/college-of-health-human-services/"
+            "physical-therapy/applying-to-the-dpt-program"
+        ),
+        "page_type":    "program_application",
+        "title":        "Applying to the DPT Program",
+        "program_name": "Physical Therapy (DPT)",
+    },
+    {
+        "url": (
+            "https://www.csulb.edu/college-of-health-human-services/"
+            "health-science/doctor-of-public-health-drph/doctor-of-public-3"
+        ),
+        "page_type":    "program_application",
+        "title":        "Doctor of Public Health (DR.P.H.)",
+        "program_name": "Public Health (DR.P.H.)",
+    },
+    {
+        "url": (
+            "https://www.csulb.edu/college-of-health-human-services/"
+            "school-of-nursing/bsn-dnp-program"
+        ),
+        "page_type":    "program_application",
+        "title":        "BSN-DNP Program",
+        "program_name": "Nursing (D.N.P.)",
+    },
+]
+
+# Combined source list — static fallback used when use_discovery=False.
+# When use_discovery=True (default), get_or_build_store() calls
+# ingest_pages() without this list and builds program sources via discovery.
+ALL_SOURCES: list[dict] = PAGE_SOURCES + PROGRAM_SOURCES
+
+# Workflow priority by content_category (used for metadata on non-discovered pages).
+# Must stay in sync with rag.discovery.WORKFLOW_PRIORITY.
+_WORKFLOW_PRIORITY: dict[str, int] = {
+    "department_application":    1,
+    "supplemental_application":  2,
+    "program_requirements":      3,
+    "program_eligibility":       3,
+    "transcript_instructions":   4,
+    "international_instructions":4,
+    "generic_application":       5,
+    "overview_only":             6,
+    "":                          6,
+}
+
+
+def _workflow_priority_from_category(category: str) -> int:
+    """Return the workflow_priority integer for a given content_category string."""
+    return _WORKFLOW_PRIORITY.get(category, 5)
 
 _BASE_URL      = "https://www.csulb.edu"
 _FETCH_TIMEOUT = 12        # seconds before giving up on a single fetch
@@ -629,34 +714,102 @@ def _parse_deadlines_page(html: str, url: str, title: str) -> list[dict]:
 # ---------------------------------------------------------------------------
 
 def ingest_pages(
-    sources: list[dict] = PAGE_SOURCES,
-    skip_failed: bool = True,
+    sources:         list[dict] | None = None,
+    skip_failed:     bool = True,
+    use_discovery:   bool = True,
+    discovery_depth: int  = 1,
 ) -> list[dict]:
     """
     Fetch and parse all source pages into structured page dicts.
 
+    When sources is None and use_discovery=True (the default for store rebuilds):
+        - Processes PAGE_SOURCES normally.
+        - Calls rag.discovery.discover_all_programs() to build program sources
+          dynamically, using PROGRAM_SOURCES as seed URL fallbacks.
+        - content_category and workflow_priority are computed from page content
+          signals — no values are hardcoded per program.
+
+    When sources is None and use_discovery=False:
+        - Falls back to ALL_SOURCES (PAGE_SOURCES + static PROGRAM_SOURCES).
+        - content_category comes from the PROGRAM_SOURCES entries (empty strings).
+        - workflow_priority is computed from content_category.
+
+    When sources is provided explicitly:
+        - Processes the given list as-is.
+        - Supports source dicts from discovery (with discovered_from + workflow_priority)
+          and static dicts (without, for backward compat).
+
     Args:
-        sources:      List of {url, page_type, title} dicts.
-                      Defaults to PAGE_SOURCES (the 4 primary CSULB pages).
-        skip_failed:  If True, failed fetches are logged and skipped.
-                      If False, the first failure raises RuntimeError.
+        sources:         Explicit source list.  Each must have url, page_type, title.
+                         Optional fields: program_name, content_category,
+                         discovered_from, workflow_priority.
+        skip_failed:     Skip failed/empty pages instead of raising (default True).
+        use_discovery:   When sources is None, run automatic discovery to build
+                         program sources (default True).
+        discovery_depth: Nested-link crawl depth for discovery (default 1).
+                         depth=0 = classify seed pages only (faster, no crawling).
 
     Returns:
-        List of parsed page dicts.  Each dict has keys:
-            url, page_type, title, text, links, char_count
+        List of parsed page dicts, each with keys:
+            url, page_type, title, text, links, char_count,
+            program_name        (str, "" for non-program pages),
+            content_category    (str, from discovery or "" when not set),
+            discovered_from     (str, "" for manually specified / static sources),
+            parent_program_url  (str, "" for seed pages; seed URL for nested subpages),
+            workflow_priority   (int, 1–6; computed from content_category).
 
     Error handling:
         - Failed HTTP fetches  → logged; skipped (if skip_failed=True)
         - Pages with < 150 chars after cleaning → skipped
-        - Duplicate URLs (same URL appearing twice in sources) → deduplicated
+        - Duplicate URLs → deduplicated
     """
-    pages: list[dict] = []
-    seen_urls: set[str] = set()
+    # ── Build sources list ─────────────────────────────────────────────────────
+    if sources is None:
+        if use_discovery:
+            try:
+                from rag.discovery import discover_all_programs
+                index_url = PAGE_SOURCES[1]["url"]  # deadlines / index page
+                seeds = [
+                    {"program_name": s.get("program_name", ""), "url": s["url"]}
+                    for s in PROGRAM_SOURCES
+                    if s.get("program_name")
+                ]
+                program_sources = discover_all_programs(
+                    index_url=index_url,
+                    seed_overrides=seeds,
+                    depth=discovery_depth,
+                )
+                sources = list(PAGE_SOURCES) + program_sources
+                print(
+                    f"[ingestion] Discovery built {len(program_sources)} program "
+                    f"source(s) across {len({s.get('program_name') for s in program_sources})} "
+                    f"program(s)"
+                )
+            except Exception as exc:
+                print(
+                    f"[ingestion] Discovery failed ({exc}); falling back to ALL_SOURCES"
+                )
+                sources = ALL_SOURCES
+        else:
+            sources = ALL_SOURCES
+
+    pages:     list[dict] = []
+    seen_urls: set[str]   = set()
 
     for source in sources:
-        url       = source["url"]
-        page_type = source["page_type"]
-        title     = source["title"]
+        url              = source["url"]
+        page_type        = source["page_type"]
+        title            = source["title"]
+        # Extended metadata — populated by discovery; empty for static/generic pages
+        prog_name           = source.get("program_name", "")
+        content_category    = source.get("content_category", "")
+        discovered_from     = source.get("discovered_from", "")
+        parent_program_url  = source.get("parent_program_url", "")
+        # workflow_priority: from discovery dict, or computed from content_category
+        workflow_priority = source.get(
+            "workflow_priority",
+            _workflow_priority_from_category(content_category),
+        )
 
         # ── Deduplication ───────────────────────────────────────────────────
         if url in seen_urls:
@@ -665,7 +818,8 @@ def ingest_pages(
         seen_urls.add(url)
 
         # ── Fetch ────────────────────────────────────────────────────────────
-        print(f"[ingestion] Fetching [{page_type}] {url}")
+        prog_label = f" [{prog_name}]" if prog_name else ""
+        print(f"[ingestion] Fetching [{page_type}]{prog_label} {url}")
         html = fetch_page(url)
 
         if html is None:
@@ -703,9 +857,18 @@ def ingest_pages(
                 continue
             raise RuntimeError(msg)
 
+        # Inject extended metadata from the source definition.
+        # These propagate into ChromaDB chunk metadata via chunk_documents().
+        page["program_name"]        = prog_name
+        page["content_category"]    = content_category
+        page["discovered_from"]     = discovered_from
+        page["parent_program_url"]  = parent_program_url
+        page["workflow_priority"]   = workflow_priority
+
         print(
-            f"[ingestion] ✓ [{page_type}] {page['char_count']:,} chars, "
-            f"{len(page['links'])} links"
+            f"[ingestion] ✓ [{page_type}]{prog_label} "
+            f"[{content_category or 'no-category'} p={workflow_priority}] "
+            f"{page['char_count']:,} chars, {len(page['links'])} links"
         )
         pages.append(page)
 

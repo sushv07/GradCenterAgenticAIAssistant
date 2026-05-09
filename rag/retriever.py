@@ -53,8 +53,10 @@ from rag.store import get_or_build_store
 # Queries with no chunks meeting this threshold are considered out-of-scope.
 MIN_RELEVANCE = 0.30
 
-# Valid page_type values — mirrors PAGE_SOURCES in ingestion.py.
-PAGE_TYPES = frozenset({"faq", "deadlines", "eligibility", "application_process"})
+# Valid page_type values — mirrors PAGE_SOURCES + PROGRAM_SOURCES in ingestion.py.
+PAGE_TYPES = frozenset({
+    "faq", "deadlines", "eligibility", "application_process", "program_application"
+})
 
 
 # ---------------------------------------------------------------------------
@@ -62,33 +64,41 @@ PAGE_TYPES = frozenset({"faq", "deadlines", "eligibility", "application_process"
 # ---------------------------------------------------------------------------
 
 def retrieve(
-    query:      str,
-    k:          int   = 3,
-    min_score:  float = MIN_RELEVANCE,
-    page_type:  Optional[str] = None,
+    query:        str,
+    k:            int   = 3,
+    min_score:    float = MIN_RELEVANCE,
+    page_type:    Optional[str] = None,
+    program_name: Optional[str] = None,
 ) -> list[dict]:
     """
     Retrieve the top-k most relevant chunks for a query.
 
     Args:
-        query:     User query string.  Embedded with all-MiniLM-L6-v2.
-        k:         Maximum number of results to return.
-                   Internally fetches k*2 candidates before score filtering.
-        min_score: Minimum cosine similarity to include.  Default 0.30.
-        page_type: If provided, restrict search to one source type.
-                   Must be one of: "faq", "deadlines", "eligibility",
-                   "application_process".  Unknown values are ignored.
+        query:        User query string.  Embedded with all-MiniLM-L6-v2.
+        k:            Maximum number of results to return.
+                      Internally fetches k*2 candidates before score filtering.
+        min_score:    Minimum cosine similarity to include.  Default 0.30.
+        page_type:    If provided, restrict search to one source type.
+                      Must be one of: "faq", "deadlines", "eligibility",
+                      "application_process", "program_application".
+                      Unknown values are ignored.
+        program_name: If provided, restrict to chunks from one specific program.
+                      Use canonical names like "Physical Therapy (DPT)".
+                      Can be combined with page_type for a compound filter.
 
     Returns:
         List of result dicts, sorted by score descending, at most k items:
         [
             {
-                "text":       str,    chunk text (up to ~500 chars)
-                "title":      str,    source page title
-                "url":        str,    source URL — use this for citations
-                "page_type":  str,    faq | deadlines | eligibility | application_process
-                "score":      float,  cosine similarity in [0.0, 1.0]
-                "chunk_id":   str,    stable chunk identifier
+                "text":               str,    chunk text (up to ~500 chars)
+                "title":              str,    source page title
+                "url":                str,    source URL — use this for citations
+                "page_type":          str,    faq | deadlines | eligibility | application_process | program_application
+                "content_category":   str,    department_application | supplemental_application | …
+                "parent_program_url": str,    "" for seed pages; seed URL for nested subpages
+                "workflow_priority":  int,    1–6 (1=most specific)
+                "score":              float,  cosine similarity in [0.0, 1.0]
+                "chunk_id":           str,    stable chunk identifier
             },
             ...
         ]
@@ -114,14 +124,25 @@ def retrieve(
         print("[retriever] Vector store unavailable — cannot retrieve")
         return []
 
-    # Build ChromaDB metadata filter for page_type-scoped search.
-    # ChromaDB filter syntax: {"field": {"$eq": value}}
+    # Build ChromaDB metadata filter.
+    # Single-field: {"field": {"$eq": value}}
+    # Compound:     {"$and": [{"field1": {"$eq": v1}}, {"field2": {"$eq": v2}}]}
     where_filter: Optional[dict] = None
+    filter_clauses: list[dict] = []
+
     if page_type:
         if page_type not in PAGE_TYPES:
             print(f"[retriever] Unknown page_type '{page_type}' — ignoring filter")
         else:
-            where_filter = {"page_type": {"$eq": page_type}}
+            filter_clauses.append({"page_type": {"$eq": page_type}})
+
+    if program_name:
+        filter_clauses.append({"program_name": {"$eq": program_name}})
+
+    if len(filter_clauses) == 1:
+        where_filter = filter_clauses[0]
+    elif len(filter_clauses) > 1:
+        where_filter = {"$and": filter_clauses}
 
     # Over-fetch to have room for threshold filtering
     fetch_k = k * 2
@@ -146,12 +167,17 @@ def retrieve(
             continue
 
         results.append({
-            "text":      doc.page_content,
-            "title":     doc.metadata.get("title", ""),
-            "url":       doc.metadata.get("url", ""),
-            "page_type": doc.metadata.get("page_type", ""),
-            "score":     round(float(score), 4),
-            "chunk_id":  doc.metadata.get("chunk_id", ""),
+            "text":               doc.page_content,
+            "title":              doc.metadata.get("title", ""),
+            "url":                doc.metadata.get("url", ""),
+            "page_type":          doc.metadata.get("page_type", ""),
+            "program_name":       doc.metadata.get("program_name", ""),
+            "content_category":   doc.metadata.get("content_category", ""),
+            "discovered_from":    doc.metadata.get("discovered_from", ""),
+            "parent_program_url": doc.metadata.get("parent_program_url", ""),
+            "workflow_priority":  doc.metadata.get("workflow_priority", 6),
+            "score":              round(float(score), 4),
+            "chunk_id":           doc.metadata.get("chunk_id", ""),
         })
 
     # Re-sort after filtering (similarity_search_with_relevance_scores sorts by

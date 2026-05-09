@@ -778,6 +778,155 @@ st.markdown("""
 
 
 /* ══════════════════════════════════════════════════════════════════════
+   APPLICATION STEP CARDS
+══════════════════════════════════════════════════════════════════════ */
+
+.app-steps-header {
+    font-size:      0.68rem;
+    font-weight:    800;
+    color:          var(--navy);
+    text-transform: uppercase;
+    letter-spacing: 0.9px;
+    margin:         0 0 14px 0;
+    padding-bottom: 10px;
+    border-bottom:  1px solid var(--border-soft);
+}
+
+.app-step-card {
+    display:       flex;
+    gap:           16px;
+    align-items:   flex-start;
+    background:    var(--surface);
+    border:        1px solid var(--border-soft);
+    border-radius: var(--radius);
+    padding:       16px 20px;
+    margin-bottom: 10px;
+    box-shadow:    var(--shadow-xs);
+    transition:    box-shadow 0.18s var(--ease), transform 0.14s var(--ease);
+}
+.app-step-card:hover {
+    box-shadow: var(--shadow-md);
+    transform:  translateY(-1px);
+}
+
+.app-step-num {
+    width:          36px;
+    height:         36px;
+    min-width:      36px;
+    border-radius:  50%;
+    color:          #ffffff;
+    font-weight:    800;
+    font-size:      0.95rem;
+    display:        flex;
+    align-items:    center;
+    justify-content:center;
+    margin-top:     2px;
+    box-shadow:     0 2px 6px rgba(0,0,0,0.15);
+}
+
+.app-step-body        { flex: 1; min-width: 0; }
+.app-step-cat-badge {
+    display:        inline-block;
+    background:     #eef4ff;
+    color:          var(--navy);
+    font-size:      0.67rem;
+    font-weight:    700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    padding:        2px 8px;
+    border-radius:  8px;
+    margin-bottom:  6px;
+}
+.app-step-title {
+    font-weight: 700;
+    font-size:   0.97rem;
+    color:       var(--text);
+    line-height: 1.35;
+    margin-bottom: 5px;
+}
+.app-step-desc {
+    font-size:   0.875rem;
+    color:       var(--text-sub);
+    line-height: 1.6;
+    margin-bottom: 9px;
+}
+.app-step-content {
+    font-size:   0.89rem;
+    color:       var(--text-sub);
+    line-height: 1.7;
+    margin:      8px 0 10px 0;
+    word-break:  break-word;
+}
+.app-step-content p {
+    margin: 0 0 6px 0;
+}
+
+.app-step-related {
+    margin-top:    10px;
+    padding-top:   8px;
+    border-top:    1px dashed var(--border-soft);
+    font-size:     0.80rem;
+    color:         var(--muted);
+    line-height:   1.8;
+}
+.app-step-related strong {
+    color:       var(--text-sub);
+    font-weight: 600;
+    display:     block;
+    margin-bottom: 3px;
+}
+.app-step-sublink {
+    display:         inline-flex;
+    align-items:     center;
+    gap:             4px;
+    color:           var(--navy);
+    text-decoration: none;
+    font-weight:     500;
+    font-size:       0.80rem;
+    background:      #eef4ff;
+    padding:         2px 8px;
+    border-radius:   5px;
+    margin:          2px 4px 2px 0;
+    border:          1px solid rgba(0,51,102,0.12);
+    transition:      background 0.14s var(--ease), color 0.14s var(--ease);
+}
+.app-step-sublink:hover {
+    background: var(--navy);
+    color:      #ffffff;
+}
+
+.app-step-source {
+    margin-top: 8px;
+    font-size:  0.76rem;
+    color:      var(--muted);
+}
+.app-step-source a {
+    color:           var(--muted);
+    text-decoration: none;
+    word-break:      break-all;
+}
+.app-step-source a:hover { color: var(--navy); text-decoration: underline; }
+
+.app-step-link {
+    display:        inline-flex;
+    align-items:    center;
+    gap:            5px;
+    font-size:      0.82rem;
+    font-weight:    600;
+    color:          var(--navy);
+    text-decoration:none;
+    border:         1px solid rgba(0,51,102,0.25);
+    padding:        4px 11px;
+    border-radius:  6px;
+    transition:     background 0.15s var(--ease), color 0.15s var(--ease);
+}
+.app-step-link:hover {
+    background: var(--navy);
+    color:      #ffffff;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════
    FOOTER
 ══════════════════════════════════════════════════════════════════════ */
 
@@ -1281,6 +1430,78 @@ def _render_deadline_disambiguation(cards: list[dict], hint: str) -> None:
                 """, unsafe_allow_html=True)
 
 
+_STEP_PRIORITY_COLOR: dict[int, str] = {
+    1: "#f97316",   # department_application  — orange
+    2: "#8b5cf6",   # supplemental_application — purple
+    3: "#003366",   # program_requirements / eligibility — navy
+    4: "#0891b2",   # transcript / international — teal
+    5: "#64748b",   # generic_application — slate
+    6: "#9ca3af",   # overview / unknown — gray
+}
+
+
+def _render_application_steps(workflow_steps: list[dict], program_name: str = "") -> None:
+    """
+    Render program-specific application steps in the same format as
+    _render_guidance_panel(): Goal line, bullets, warning note, related links,
+    source link, and collapsed Sources / Evidence.
+    """
+    if not workflow_steps:
+        st.info("No specific steps found. Please visit the official CSULB page.")
+        return
+
+    for ws in workflow_steps:
+        step_num   = ws.get("step", "?")
+        title      = ws.get("title", "")
+        goal       = ws.get("goal", "")
+        note       = ws.get("note", "")
+        points     = ws.get("summary_points", [])
+        source_url = ws.get("source_url", "")
+        rel_links  = ws.get("related_links", [])
+        raw_ev     = ws.get("raw_evidence", "")
+
+        with st.expander(f"Step {step_num} — {title}", expanded=(step_num == 1)):
+            # ── Goal (matches _render_guidance_panel style) ───────────────────
+            if goal:
+                st.markdown(f"**Goal:** {goal}")
+
+            # ── Bullets ───────────────────────────────────────────────────────
+            if points:
+                for pt in points:
+                    st.markdown(f"- {pt}")
+            else:
+                st.markdown("_Visit the official page for full details._")
+
+            # ── Warning note (matches watch_out in generic steps) ─────────────
+            if note:
+                st.warning(f"⚠️ {note}")
+
+            # ── Related links ─────────────────────────────────────────────────
+            if rel_links:
+                st.markdown("**Related links:**")
+                for lk in rel_links:
+                    url_val = lk.get("url", "")
+                    txt_val = lk.get("text", url_val)
+                    if url_val.startswith("mailto:"):
+                        st.markdown(f"- 📧 [{txt_val}]({url_val})")
+                    else:
+                        st.markdown(f"- [{txt_val}]({url_val})")
+
+            # ── Official source ───────────────────────────────────────────────
+            if source_url:
+                st.markdown(f"[🔗 Resource]({source_url})")
+
+            # ── Collapsed evidence ────────────────────────────────────────────
+            if raw_ev:
+                with st.expander("📄 Sources / Evidence", expanded=False):
+                    st.markdown(
+                        f"<div style='font-size:0.82em;color:#555;white-space:pre-wrap'>"
+                        f"{raw_ev[:1500]}"
+                        f"</div>",
+                        unsafe_allow_html=True,
+                    )
+
+
 def _render_topic_panel(response: dict) -> None:
     """
     Render deadline, eligibility, or application-steps tool results.
@@ -1348,7 +1569,160 @@ def _render_topic_panel(response: dict) -> None:
         return
     # ── End deadline route ───────────────────────────────────────────────────
 
-    # ── Eligibility / Application routes: existing behaviour ────────────────
+    # ── Application route: program-aware rendering ──────────────────────────
+    if route == "application":
+        program_name     = tool_result.get("program_name")
+        program_specific = tool_result.get("program_specific", False)
+        content_category = tool_result.get("content_category", "")
+        supp_results     = tool_result.get("supplemental_results", [])
+
+        # Program-specific heading + category badge
+        if program_name:
+            badge_color = "#0ea5e9"
+            badge_label = "Program-Specific Steps"
+            if content_category == "department_application":
+                badge_color = "#f97316"
+                badge_label = "Department Portal Required"
+            elif content_category == "supplemental_application":
+                badge_color = "#8b5cf6"
+                badge_label = "Supplemental Application Required"
+            elif content_category == "program_requirements":
+                badge_color = "#0369a1"
+                badge_label = "Admission Requirements"
+            elif content_category == "program_eligibility":
+                badge_color = "#0891b2"
+                badge_label = "Eligibility Criteria"
+            elif content_category == "transcript_instructions":
+                badge_color = "#059669"
+                badge_label = "Transcript Instructions"
+            elif content_category == "international_instructions":
+                badge_color = "#7c3aed"
+                badge_label = "International Student Requirements"
+            elif not program_specific:
+                badge_color = "#64748b"
+                badge_label = "General Info — No Specific Steps Found"
+
+            st.markdown(
+                f'<div style="margin-bottom:6px;">'
+                f'<span style="font-weight:600;font-size:1.05rem;">'
+                f'🎓 {program_name}</span>&nbsp;&nbsp;'
+                f'<span style="background:{badge_color};color:#fff;'
+                f'font-size:.72rem;font-weight:600;padding:2px 8px;'
+                f'border-radius:10px;">{badge_label}</span></div>',
+                unsafe_allow_html=True,
+            )
+
+        # Department portal warning
+        if content_category == "department_application":
+            st.warning(
+                "⚠️ **Department Application Portal** — This program uses a "
+                "department-specific application system (e.g. PTCAS), not Cal State Apply. "
+                "Follow the program's instructions and submit through their designated portal."
+            )
+
+        # Supplemental form warning
+        elif content_category == "supplemental_application":
+            st.warning(
+                "⚠️ **Supplemental Application Required** — This program requires "
+                "a supplemental application (e.g. a Qualtrics form) in addition to "
+                "Cal State Apply. Complete both and verify all deadlines with the program."
+            )
+
+        # Requirements info box
+        elif content_category == "program_requirements":
+            st.info(
+                "ℹ️ **Admission Requirements** — Review the specific admission requirements "
+                "below. Requirements typically include GPA minimums, letters of recommendation, "
+                "statement of purpose, and possibly test scores or an interview."
+            )
+
+        # Eligibility info box
+        elif content_category == "program_eligibility":
+            st.info(
+                "ℹ️ **Eligibility Criteria** — Check whether you meet this program's "
+                "eligibility requirements before beginning your application."
+            )
+
+        # Transcript instructions info box
+        elif content_category == "transcript_instructions":
+            st.info(
+                "ℹ️ **Transcript Submission** — Review the instructions below for "
+                "submitting official transcripts to this program."
+            )
+
+        # International applicant info box
+        elif content_category == "international_instructions":
+            st.info(
+                "ℹ️ **International Applicants** — Additional requirements apply for "
+                "international students, including English proficiency test scores "
+                "(TOEFL/IELTS) and credential evaluations."
+            )
+
+        # ── Main results: step cards ──────────────────────────────────────────
+        steps = tool_result.get("steps", [])
+        workflow_steps = tool_result.get("workflow_steps", [])
+        if workflow_steps:
+            _render_application_steps(workflow_steps, program_name or "")
+        elif steps:  # fallback to old steps if workflow_steps unavailable
+            _render_application_steps(steps, program_name or "")
+        elif fallback_data and isinstance(fallback_data, list):
+            # Fallback: admissions.json steps (used when RAG is unavailable)
+            for fb_step in fallback_data:
+                sn      = fb_step.get("step", "?")
+                stitle  = fb_step.get("title", "")
+                details = fb_step.get("details", "")
+                link    = (fb_step.get("resources") or [{}])[0].get("url", "")
+                with st.expander(f"Step {sn} — {stitle}", expanded=(sn == 1)):
+                    if details:
+                        st.markdown(details)
+                    if link and link.startswith("http"):
+                        st.markdown(f"[🔗 Visit Official Page]({link})")
+        elif results:
+            # Fallback: render raw RAG chunks if steps list is unexpectedly empty
+            for i, r in enumerate(results[:4], 1):
+                score_pct = int(r["score"] * 100)
+                title     = r.get("title") or "CSULB"
+                with st.expander(
+                    f"Source {i} — {title}  ·  {score_pct}% match",
+                    expanded=(i == 1),
+                ):
+                    st.markdown(r["text"])
+                    url = r.get("url", "")
+                    if url:
+                        st.caption(f"[🔗 {url}]({url})")
+        else:
+            st.info("No specific information found. Please check the source link below.")
+
+        # Supplemental / generic context (collapsed by default).
+        # Hidden when program-specific workflow steps are already displayed —
+        # the "General process for context" card is redundant in that case.
+        if supp_results and not workflow_steps:
+            label = (
+                "📋 General process for context"
+                if program_specific
+                else "📋 Supplemental application details"
+            )
+            with st.expander(label, expanded=False):
+                for r in supp_results[:3]:
+                    supp_url = r.get("url", "")
+                    supp_title = r.get("title") or "CSULB"
+                    st.markdown(f"**{supp_title}**")
+                    st.markdown(r["text"])
+                    if supp_url:
+                        st.caption(f"[🔗 {supp_url}]({supp_url})")
+                    st.divider()
+        elif not program_specific and tool_result.get("has_supplemental"):
+            st.warning(
+                "⚠️ **Supplemental Application Required** — Most doctoral programs "
+                "require an additional supplemental application beyond Cal State Apply. "
+                "Contact your program directly to confirm all required materials."
+            )
+
+        if disclaimer:
+            st.info(disclaimer)
+        return
+
+    # ── Eligibility route: existing behaviour ────────────────────────────────
     if results:
         for i, r in enumerate(results[:4], 1):
             score_pct = int(r["score"] * 100)
@@ -1364,7 +1738,6 @@ def _render_topic_panel(response: dict) -> None:
 
     elif fallback_data:
         if isinstance(fallback_data, list):
-            # Application steps list of {step, title, details} dicts
             for step in fallback_data:
                 st.markdown(
                     f"**Step {step.get('step', '')}: {step.get('title', '')}**"
@@ -1395,22 +1768,6 @@ def _render_topic_panel(response: dict) -> None:
                 st.caption(additional)
     else:
         st.info("No specific information found. Please check the source link below.")
-
-    # Supplemental application note (application route only)
-    if route == "application" and tool_result.get("has_supplemental"):
-        supp = tool_result.get("supplemental_results", [])
-        if supp:
-            st.warning(
-                "⚠️ **Supplemental Application Required** — Most doctoral programs "
-                "require an additional supplemental application beyond Cal State Apply. "
-                "Contact your program directly to confirm all required materials."
-            )
-            with st.expander("Supplemental application details", expanded=False):
-                for r in supp[:2]:
-                    st.markdown(r["text"])
-                    url = r.get("url", "")
-                    if url:
-                        st.caption(f"[🔗 {url}]({url})")
 
     if disclaimer:
         st.info(disclaimer)

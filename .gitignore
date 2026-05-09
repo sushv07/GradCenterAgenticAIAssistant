@@ -11,3 +11,4 @@ chroma_db/
 
 # RAG build logs
 logs/
+.claude/

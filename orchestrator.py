@@ -25,6 +25,7 @@ from answer_agent import answer
 from guidance_agent import guide_from_file
 import tracker
 from advisor_retrieval import find_advisor, format_advisor_result, advisors
+from tools.application_steps_tool import _detect_program as _tool_detect_program
 
 
 # ---------------------------------------------------------------------------
@@ -1005,9 +1006,13 @@ def run(query: str, session_id: str = "default") -> dict[str, Any]:
             return _build_topic_response("deadlines", query, session_id)
         if _raw_toks & _ELIGIBILITY_SIGNALS:
             return _build_topic_response("eligibility", query, session_id)
-        # Application-steps: only when "steps"/"process"/"procedure" is explicit.
-        # Generic "how do I apply?" queries keep the existing GUIDANCE path.
-        if is_process_query and (_raw_toks & _PROCESS_STEP_SIGNALS):
+        # Application-steps: trigger when either:
+        #   (a) explicit step/process/procedure signals present, OR
+        #   (b) a specific program is named (e.g. "edd", "dpt", "dnp") — these
+        #       always want program-specific RAG, not the generic 8-step guidance.
+        # Generic "how do I apply?" without a named program keeps GUIDANCE path.
+        _has_program_signal = bool(_tool_detect_program(query))
+        if is_process_query and ((_raw_toks & _PROCESS_STEP_SIGNALS) or _has_program_signal):
             return _build_topic_response("application", query, session_id)
 
     # ── Advisor retrieval ──────────────────────────────────────────────────────

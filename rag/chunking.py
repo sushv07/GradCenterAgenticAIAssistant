@@ -46,6 +46,7 @@ chunk_id design:
 from __future__ import annotations
 
 import hashlib
+import json
 
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -99,11 +100,15 @@ def chunk_documents(pages: list[dict]) -> list[Document]:
     Each chunk is a LangChain Document with:
         page_content = the chunk text (up to CHUNK_SIZE characters)
         metadata     = {
-            "title":       str  — source page title
-            "url":         str  — source URL (always present for citation)
-            "page_type":   str  — faq | deadlines | eligibility | application_process
-            "chunk_id":    str  — "{url_hash8}_{index:04d}" unique identifier
-            "chunk_index": int  — position within the parent page (0-based)
+            "title":            str  — source page title
+            "url":              str  — source URL (always present for citation)
+            "page_type":        str  — faq | deadlines | eligibility |
+                                       application_process | program_application
+            "program_name":     str  — canonical program name, "" for generic pages
+            "content_category": str  — e.g. department_application, supplemental_application,
+                                       program_overview, generic_application, ""
+            "chunk_id":         str  — "{url_hash8}_{index:04d}" unique identifier
+            "chunk_index":      int  — position within the parent page (0-based)
         }
 
     Args:
@@ -130,10 +135,20 @@ def chunk_documents(pages: list[dict]) -> list[Document]:
     all_docs: list[Document] = []
 
     for page in pages:
-        url       = page.get("url", "")
-        title     = page.get("title", "")
-        page_type = page.get("page_type", "unknown")
-        text      = page.get("text", "").strip()
+        url               = page.get("url", "")
+        title             = page.get("title", "")
+        page_type         = page.get("page_type", "unknown")
+        # Extended metadata — "" / 6 when absent (backward-compatible)
+        program_name        = page.get("program_name", "")
+        content_category    = page.get("content_category", "")
+        discovered_from     = page.get("discovered_from", "")
+        parent_program_url  = page.get("parent_program_url", "")
+        workflow_priority   = page.get("workflow_priority", 6)
+        text              = page.get("text", "").strip()
+        # Serialise extracted hyperlinks as a JSON string so they survive
+        # ChromaDB's flat-metadata constraint (no lists/dicts allowed).
+        # Same value on every chunk of this page; consumers parse with json.loads().
+        links_json = json.dumps(page.get("links", []), ensure_ascii=False)
 
         if not text:
             print(f"[chunking] Skipping empty page: {url}")
@@ -153,11 +168,17 @@ def chunk_documents(pages: list[dict]) -> list[Document]:
             doc = Document(
                 page_content=chunk_text,
                 metadata={
-                    "title":       title,
-                    "url":         url,
-                    "page_type":   page_type,
-                    "chunk_id":    _make_chunk_id(url, i),
-                    "chunk_index": i,
+                    "title":              title,
+                    "url":                url,
+                    "page_type":          page_type,
+                    "program_name":       program_name,
+                    "content_category":   content_category,
+                    "discovered_from":    discovered_from,
+                    "parent_program_url": parent_program_url,
+                    "workflow_priority":  workflow_priority,
+                    "chunk_id":           _make_chunk_id(url, i),
+                    "chunk_index":        i,
+                    "links_json":         links_json,
                 },
             )
             page_docs.append(doc)
