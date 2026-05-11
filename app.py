@@ -5,27 +5,17 @@ Run: streamlit run app.py
 """
 from __future__ import annotations
 
-import os
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
 import streamlit as st
-import tracker
 import orchestrator
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Lazy agent loader
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _load_agent():
-    try:
-        import agent as _agent_mod
-        return _agent_mod
-    except ImportError:
-        return None
+from tools.program_interest_tool import (
+    generate_program_specific_response,
+    generate_general_interest_response,
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -725,57 +715,6 @@ st.markdown("""
 }
 
 
-/* ══════════════════════════════════════════════════════════════════════
-   STEP CARDS  (checklist / pending)
-══════════════════════════════════════════════════════════════════════ */
-
-.step-card {
-    background:    var(--surface);
-    border:        1px solid var(--border-soft);
-    border-radius: var(--radius);
-    padding:       14px 18px;
-    margin-bottom: 8px;
-    transition:    box-shadow 0.18s var(--ease), transform 0.14s var(--ease);
-}
-.step-card:hover {
-    box-shadow: var(--shadow-md);
-    transform:  translateY(-1px);
-}
-.step-card.blocked {
-    background:  #fdfafa;
-    border-left: 3px solid #f87171;
-}
-.step-meta { font-size: 0.74rem; color: var(--muted); margin-bottom: 4px; }
-
-/* Badges */
-.badge {
-    display:        inline-block;
-    padding:        3px 10px;
-    border-radius:  12px;
-    font-size:      0.71rem;
-    font-weight:    700;
-    letter-spacing: 0.2px;
-}
-.badge-pending     { background: #f3f4f6; color: #374151; }
-.badge-in_progress { background: #fef3c7; color: #92400e; }
-.badge-completed   { background: #d1fae5; color: #065f46; }
-.badge-blocked     { background: #fee2e2; color: #991b1b; }
-
-/* Priority labels */
-.pri-high   { color: #b91c1c; font-weight: 700; font-size: 0.78rem; }
-.pri-medium { color: #c2410c; font-weight: 700; font-size: 0.78rem; }
-.pri-low    { color: #15803d; font-weight: 700; font-size: 0.78rem; }
-
-/* Blocked message */
-.blocked-msg {
-    margin-top:    8px;
-    padding:       6px 10px;
-    background:    #fff1f2;
-    border-radius: 5px;
-    color:         #9f1239;
-    font-size:     0.81rem;
-}
-
 
 /* ══════════════════════════════════════════════════════════════════════
    APPLICATION STEP CARDS
@@ -946,6 +885,120 @@ st.markdown("""
     transition:      opacity 0.15s;
 }
 .csulb-footer a:hover { opacity: 0.72; text-decoration: underline; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   GRADUATE PROGRAM CONNECT  (Program Interest Response panel)
+══════════════════════════════════════════════════════════════════════ */
+
+
+.pir-info-card {
+    background:    var(--surface);
+    border:        1px solid var(--border-soft);
+    border-left:   4px solid var(--navy);
+    border-radius: var(--radius);
+    padding:       16px 20px;
+    margin-bottom: 18px;
+    box-shadow:    var(--shadow-xs);
+}
+.pir-info-title {
+    font-size:   1.0rem;
+    font-weight: 700;
+    color:       var(--navy);
+    margin:      0 0 12px 0;
+}
+.pir-info-row {
+    display:     flex;
+    align-items: flex-start;
+    gap:         8px;
+    font-size:   0.855rem;
+    color:       var(--text-sub);
+    margin:      5px 0;
+    line-height: 1.5;
+}
+.pir-info-icon { font-size: 0.9rem; flex-shrink: 0; margin-top: 1px; }
+.pir-info-label {
+    font-weight: 600;
+    color:       var(--text);
+    white-space: nowrap;
+}
+.pir-info-row a {
+    color:           var(--navy);
+    font-weight:     500;
+    text-decoration: none;
+}
+.pir-info-row a:hover { text-decoration: underline; }
+
+.pir-deadline-chips {
+    display:     flex;
+    gap:         8px;
+    flex-wrap:   wrap;
+    margin-top:  6px;
+}
+.pir-deadline-chip {
+    background:    #eef4ff;
+    border:        1px solid rgba(0,51,102,0.14);
+    border-radius: 20px;
+    padding:       3px 11px;
+    font-size:     0.79rem;
+    font-weight:   600;
+    color:         var(--navy);
+}
+.pir-deadline-chip.na {
+    background: #f5f5f5;
+    border-color: var(--border);
+    color: var(--muted);
+}
+
+.pir-section-label {
+    font-size:      0.68rem;
+    font-weight:    800;
+    color:          var(--navy);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin:         0 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom:  1px solid var(--border-soft);
+}
+
+.pir-response-body {
+    background:    var(--surface);
+    border:        1px solid var(--border-soft);
+    border-radius: var(--radius);
+    padding:       22px 26px;
+    font-size:     0.90rem;
+    color:         var(--text);
+    line-height:   1.75;
+    box-shadow:    var(--shadow-xs);
+    white-space:   pre-wrap;
+    word-break:    break-word;
+    margin-bottom: 14px;
+}
+.pir-response-body p   { margin: 0 0 0.9em 0; }
+.pir-response-body ul  { margin: 4px 0 0.9em 18px; padding: 0; }
+.pir-response-body li  { margin-bottom: 3px; }
+.pir-response-body a   {
+    color:           var(--navy);
+    font-weight:     500;
+    text-decoration: none;
+    border-bottom:   1px solid rgba(0,51,102,0.25);
+}
+.pir-response-body a:hover {
+    border-bottom-color: var(--navy);
+    text-decoration: none;
+}
+
+.pir-sources {
+    font-size:  0.77rem;
+    color:      var(--muted);
+    margin-top: 4px;
+}
+.pir-sources a {
+    color:           var(--navy);
+    font-weight:     500;
+    text-decoration: none;
+}
+.pir-sources a:hover { text-decoration: underline; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -956,12 +1009,10 @@ st.markdown("""
 
 def _init_state() -> None:
     defaults: dict = {
-        "session_id":     "default",
-        "messages":       [],
-        "last_response":  None,
-        "agent_mode":     False,
-        "agent_messages": [],
-        "nav_active":     "Ask Assistant",
+        "session_id":    "default",
+        "messages":      [],
+        "last_response": None,
+        "nav_active":    "Ask Assistant",
     }
     for k, v in defaults.items():
         if k not in st.session_state:
@@ -974,41 +1025,12 @@ _init_state()
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-_STATUS_EMOJI = {"pending": "⏳", "in_progress": "🚧", "completed": "✅"}
-_PRI_LABEL    = {"high": "● High", "medium": "● Medium", "low": "● Low"}
-_PRI_CLASS    = {"high": "pri-high", "medium": "pri-medium", "low": "pri-low"}
-
-def _badge(status: str, is_blocked: bool = False) -> str:
-    if is_blocked:
-        return '<span class="badge badge-blocked">🔒 Blocked</span>'
-    return (f'<span class="badge badge-{status}">'
-            f'{_STATUS_EMOJI.get(status,"")} {status.replace("_"," ").title()}</span>')
-
-def _pri_html(priority: str) -> str:
-    return (f'<span class="{_PRI_CLASS.get(priority,"pri-medium")}">'
-            f'{_PRI_LABEL.get(priority, priority)}</span>')
-
-def _reload_progress() -> dict | None:
-    sid = st.session_state["session_id"]
-    try:    return tracker.progress(sid)
-    except KeyError: return None
-
-def _mark(step_ref: int | str, status: str) -> None:
-    sid = st.session_state["session_id"]
-    try:
-        tracker.mark(sid, step_ref, status)
-        st.toast(f"Step {step_ref} → {status.replace('_',' ')}", icon="✅")
-    except Exception as e:
-        st.error(str(e))
-    st.rerun()
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Header
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _render_header() -> None:
-    mode_label = "🤖 Agent Mode" if st.session_state.get("agent_mode") else "💬 AI Assistant"
     sid = st.session_state["session_id"]
     st.markdown(f"""
     <div class="csulb-header">
@@ -1018,7 +1040,7 @@ def _render_header() -> None:
             <div class="csulb-header-sub">California State University, Long Beach</div>
         </div>
         <div class="csulb-header-right">
-            <span class="csulb-header-badge">{mode_label}</span>
+            <span class="csulb-header-badge">💬 AI Assistant</span>
             <div class="csulb-header-session">Session: {sid}</div>
         </div>
     </div>
@@ -1066,232 +1088,24 @@ def _render_sidebar() -> None:
             label_visibility="collapsed",
         )
         if new_sid != st.session_state["session_id"]:
-            st.session_state["session_id"]     = new_sid
-            st.session_state["messages"]       = []
-            st.session_state["last_response"]  = None
-            st.session_state["agent_messages"] = []
+            st.session_state["session_id"]    = new_sid
+            st.session_state["messages"]      = []
+            st.session_state["last_response"] = None
             st.rerun()
-
-        sessions = tracker.list_sessions()
-        if sessions:
-            st.markdown('<span class="nav-section-label" style="margin-top:8px;display:block;">Saved Sessions</span>',
-                        unsafe_allow_html=True)
-            for s in sessions:
-                pct    = round(100 * s["completed"] / max(s["total"], 1))
-                active = " ←" if s["session_id"] == st.session_state["session_id"] else ""
-                if st.button(
-                    f"{s['session_id']}  {s['completed']}/{s['total']} ({pct}%){active}",
-                    key=f"switch_{s['session_id']}",
-                    use_container_width=True,
-                ):
-                    st.session_state["session_id"]     = s["session_id"]
-                    st.session_state["messages"]       = []
-                    st.session_state["agent_messages"] = []
-                    st.session_state["last_response"]  = None
-                    st.rerun()
 
         if st.button("🗑 Clear history", use_container_width=True,
                      key=f"{st.session_state['session_id']}_clear"):
-            st.session_state["messages"]       = []
-            st.session_state["agent_messages"] = []
-            st.session_state["last_response"]  = None
+            st.session_state["messages"]      = []
+            st.session_state["last_response"] = None
             st.rerun()
-
-        st.markdown("---")
-
-        # Agent mode
-        st.markdown('<span class="nav-section-label">Mode</span>', unsafe_allow_html=True)
-
-        if not os.environ.get("OPENAI_API_KEY"):
-            api_key = st.text_input(
-                "OpenAI API Key",
-                type="password",
-                placeholder="sk-…",
-                help="Required for Agent Mode",
-                key="openai_key_input",
-            )
-            if api_key:
-                os.environ["OPENAI_API_KEY"] = api_key
-
-        has_key  = bool(os.environ.get("OPENAI_API_KEY"))
-        agent_on = st.toggle(
-            "🌟 Enable Agent Mode",
-            value=st.session_state["agent_mode"] if has_key else False,
-            key="agent_toggle",
-            disabled=not has_key,
-            help="Uses OpenAI to look up advisors and draft emails." if has_key
-                 else "Enter your OpenAI API Key to enable.",
-        )
-        if has_key and agent_on != st.session_state["agent_mode"]:
-            st.session_state["agent_mode"]     = agent_on
-            st.session_state["messages"]       = []
-            st.session_state["agent_messages"] = []
-            st.session_state["last_response"]  = None
-            st.rerun()
-
-        if st.session_state["agent_mode"]:
-            st.caption("Agent can look up advisors and draft emails.")
-        else:
-            st.caption("Standard AI mode: advisors, steps, FAQs.")
 
         st.markdown("---")
         st.caption("© CSULB Graduate Center")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Progress widget
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _render_progress_widget(p: dict) -> None:
-    pct      = p["percent_done"]
-    total    = p["total"]
-    done     = p["completed"]
-    blocked  = p.get("blocked", 0)
-    in_prog  = p.get("in_progress", 0)
-    remaining = total - done
-    st.progress(pct / 100, text=f"**{pct}%** complete — {done} of {total} done")
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("✅ Done",        f"{done}/{total}")
-    c2.metric("🚧 In Progress", in_prog)
-    c3.metric("⏳ Remaining",   remaining)
-    c4.metric("🔒 Blocked",     blocked)
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Step card
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _render_step_card(step: dict, idx: int, view: str = "card") -> None:
-    step_num   = step.get("step", idx + 1)
-    step_id    = step.get("id", f"step-{step_num}")
-    title      = step.get("title") or step.get("action", "")
-    status     = step.get("status", "pending")
-    priority   = step.get("priority", "medium")
-    is_blocked = bool(step.get("is_blocked"))
-    blocked_by = step.get("blocked_by") or []
-    warnings   = step.get("warnings") or []
-    resources  = step.get("resources") or []
-    primary    = step.get("primary_action", "")
-    details    = step.get("details", "")
-    completed  = status == "completed"
-
-    card_cls = "step-card blocked" if is_blocked else "step-card"
-    blocked_html = ""
-    if is_blocked and blocked_by:
-        blocked_html = "".join(
-            f'<div class="blocked-msg">⛔ Blocked until '
-            f'<strong>Step {b["step"]} — {b["title"]}</strong> is completed</div>'
-            for b in blocked_by
-        )
-
-    st.markdown(f"""
-    <div class="{card_cls}">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
-        <div style="flex:1;min-width:0;">
-          <div class="step-meta">Step {step_num} &nbsp;·&nbsp;
-            <code style="font-size:.72rem;color:#6b7280;">{step_id}</code></div>
-          <strong style="font-size:.97rem;color:#111827;">{title}</strong>
-        </div>
-        <div style="text-align:right;white-space:nowrap;flex-shrink:0;">
-          {_badge(status, is_blocked)}&nbsp;{_pri_html(priority)}
-        </div>
-      </div>
-      {blocked_html}
-    </div>
-    """, unsafe_allow_html=True)
-
-    sid = st.session_state["session_id"]
-    k   = f"{sid}_{view}_{step_id}"
-    if not completed and not is_blocked:
-        b1, b2, _ = st.columns([1.4, 1.6, 4])
-        with b1:
-            if status != "in_progress":
-                if st.button("▶ Start", key=f"{k}_start", use_container_width=True):
-                    _mark(step_num, "in_progress")
-        with b2:
-            if st.button("✓ Mark complete", key=f"{k}_done",
-                         use_container_width=True, type="primary"):
-                _mark(step_num, "completed")
-    elif completed:
-        col_undo, _ = st.columns([1.5, 5])
-        with col_undo:
-            if st.button("↩ Undo", key=f"{k}_undo", use_container_width=True):
-                _mark(step_num, "pending")
-
-    if primary or details or warnings or resources:
-        with st.expander("Details", expanded=False):
-            if primary:
-                st.markdown(
-                    f'<div class="action-box" style="margin-bottom:10px;">'
-                    f'<span class="action-label">Do this</span>{primary}</div>',
-                    unsafe_allow_html=True,
-                )
-            if details:
-                st.markdown(
-                    f'<p style="color:#374151;font-size:.9rem;margin:0 0 8px 0;">{details}</p>',
-                    unsafe_allow_html=True,
-                )
-            for w in warnings:
-                st.warning(w)
-            if resources:
-                st.markdown("**Resources:**")
-                for r in resources:
-                    label = r.get("label", r.get("url", "Link"))
-                    url   = r.get("url", "")
-                    st.markdown(f"- [{label}]({url})" if url.startswith("http") else f"- {label}: `{url}`")
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Panels
 # ─────────────────────────────────────────────────────────────────────────────
-
-def _render_pending_panel() -> None:
-    sid = st.session_state["session_id"]
-    try:
-        view = tracker.pending(sid)
-    except KeyError:
-        st.info("No active session. Ask me to build a checklist first.")
-        return
-    pending_steps = view["pending"]
-    if not pending_steps:
-        st.success("🎉 All tasks completed!")
-        return
-    ready   = view.get("ready_count", len(pending_steps))
-    blocked = view.get("blocked_count", 0)
-    total   = view["total"]
-    done    = total - len(pending_steps)
-    st.markdown(
-        f"**{done}/{total} done** &nbsp;·&nbsp; ✅ {ready} ready &nbsp;·&nbsp; 🔒 {blocked} blocked",
-        unsafe_allow_html=True,
-    )
-    st.divider()
-    for i, step in enumerate(pending_steps):
-        _render_step_card(step, i, view="pending")
-
-
-def _render_checklist_panel(steps: list[dict]) -> None:
-    if not steps:
-        st.info("No steps to display.")
-        return
-    sid = st.session_state["session_id"]
-    try:
-        record = tracker.load(sid)
-        if record:
-            id_to_status  = {s["id"]: s["status"] for s in record.get("steps", []) if "id" in s}
-            completed_ids = {s["id"] for s in record.get("steps", []) if s.get("status") == "completed"}
-            enriched = []
-            for step in steps:
-                sid_key     = step.get("id", "")
-                live_status = id_to_status.get(sid_key, step.get("status", "pending"))
-                enriched_step = {**step, "status": live_status}
-                enriched_step = tracker._annotate_step(enriched_step, steps, completed_ids)
-                enriched.append(enriched_step)
-            steps = enriched
-    except Exception:
-        pass
-    for i, step in enumerate(steps):
-        _render_step_card(step, i, view="checklist")
-
 
 def _render_guidance_panel(steps: list[dict]) -> None:
     for step in steps:
@@ -1886,170 +1700,10 @@ def _render_answer_panel(response: dict) -> None:
                     unsafe_allow_html=True)
 
 
-def _render_tracking_panel(response: dict) -> None:
-    p = response.get("progress")
-    if p and p.get("total", 0) > 0:
-        _render_progress_widget(p); st.markdown("")
-    focus = response.get("current_focus")
-    if focus:
-        is_blocked = focus.get("is_blocked")
-        icon = "🔒" if is_blocked else ("🚧" if focus.get("label","").startswith("🚧") else "⏳")
-        st.markdown(f"**{icon} {focus['label']} — Step {focus['step']}: {focus['title']}**")
-        if is_blocked:
-            for b in focus.get("blocked_by", []):
-                st.error(f"⛔ Blocked by Step {b['step']} ({b['title']})")
-        elif focus.get("details"):
-            st.caption(focus["details"])
-    next_step = response.get("next_step")
-    if next_step and next_step != "All tasks complete — nothing left to do here.":
-        st.info(f"➡️ **Next:** {next_step}")
-    for item in (response.get("pending") or []):
-        is_blocked = item.get("is_blocked")
-        title      = item.get("title") or item.get("action","")
-        priority   = item.get("priority","medium")
-        step_num   = item.get("step")
-        icon       = "🔒 " if is_blocked else ""
-        pri_icon   = {"high":"🔴","medium":"🟡","low":"🟢"}.get(priority,"")
-        st.markdown(f"- {icon}**Step {step_num}** — {title} &nbsp;{pri_icon}", unsafe_allow_html=True)
-        if is_blocked:
-            for b in item.get("blocked_by",[]):
-                st.caption(f"    ⛔ Complete Step {b['step']} ({b['title']}) first")
-    for s in (response.get("sessions") or []):
-        pct = round(100 * s.get("completed",0) / max(s.get("total",1),1))
-        st.markdown(f"- **{s['session_id']}** — {s['completed']}/{s['total']} ({pct}%)  _{s.get('intent','')}_")
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Agent response helpers
 # ─────────────────────────────────────────────────────────────────────────────
-
-def _parse_advisor_from_history(history: list[dict]) -> dict | None:
-    for msg in history:
-        if msg.get("role") != "tool": continue
-        content = msg.get("content", "")
-        if "ADVISOR_NAME:" not in content: continue
-        fields: dict[str, str] = {}
-        for line in content.splitlines():
-            for key in ("ADVISOR_NAME","ADVISOR_EMAIL","PROGRAM","PHONE","OFFICE"):
-                if line.startswith(f"{key}:"):
-                    fields[key] = line[len(key)+1:].strip()
-        if fields: return fields
-    return None
-
-
-def _render_advisor_card(fields: dict) -> None:
-    name    = fields.get("ADVISOR_NAME", "—")
-    email   = fields.get("ADVISOR_EMAIL", "")
-    program = fields.get("PROGRAM", "—")
-    phone   = fields.get("PHONE", "")
-    office  = fields.get("OFFICE", "")
-    email_html = (f'<a href="mailto:{email}" class="advisor-email">{email}</a>'
-                  if email else "—")
-    extra = ""
-    if phone:
-        extra += f'<div class="advisor-row"><span class="advisor-key">Phone</span><span class="advisor-val">{phone}</span></div>'
-    if office:
-        extra += f'<div class="advisor-row"><span class="advisor-key">Office</span><span class="advisor-val">{office}</span></div>'
-    st.markdown(f"""
-    <div class="advisor-card">
-        <div class="advisor-card-header">📋 Advisor Contact</div>
-        <div class="advisor-row"><span class="advisor-key">Name</span><strong class="advisor-val">{name}</strong></div>
-        <div class="advisor-row"><span class="advisor-key">Program</span><span class="advisor-val">{program}</span></div>
-        <div class="advisor-row"><span class="advisor-key">Email</span>{email_html}</div>
-        {extra}
-    </div>
-    """, unsafe_allow_html=True)
-
-
-def _render_agent_response(response: dict) -> None:
-    if response.get("needs_clarification"):
-        q = response.get("clarification_question","")
-        r = response.get("clarification_reason","")
-        st.markdown(
-            f'<div class="clarification-box"><strong>🤔 I need a bit more info</strong><br>{q}</div>',
-            unsafe_allow_html=True,
-        )
-        if r: st.caption(f"Reason: {r}")
-        return
-
-    if "get_advisor" in response.get("tools_used", []):
-        fields = _parse_advisor_from_history(response.get("conversation_history", []))
-        if fields:
-            _render_advisor_card(fields)
-
-    answer = response.get("answer", "")
-    if not answer:
-        return
-
-    import re as _re, urllib.parse as _up
-
-    web_match  = _re.search(r'OUTLOOK_WEB_URL:\s*(\S+)', answer)
-    mail_match = _re.search(r'MAILTO_URL:\s*(\S+)', answer)
-    outlook_web_url = web_match.group(1)  if web_match  else None
-    mailto_url      = mail_match.group(1) if mail_match else None
-    if not mailto_url:
-        md = _re.search(r'\[.*?\]\((mailto:[^)]+)\)', answer)
-        if md: mailto_url = md.group(1)
-
-    has_draft = bool(outlook_web_url or mailto_url)
-
-    if has_draft:
-        clean = _re.sub(r'OUTLOOK_WEB_URL:\s*\S+\n?', '', answer)
-        clean = _re.sub(r'MAILTO_URL:\s*\S+\n?', '', clean)
-        clean = _re.sub(r'\[.*?\]\((https://outlook[^)]+|mailto:[^)]+)\)', '', clean).strip()
-        if clean: st.markdown(clean)
-
-        _to = _subj = _body = ""
-        src = outlook_web_url or mailto_url or ""
-        try:
-            _parts  = src.split("?", 1)
-            _params = dict(_up.parse_qsl(_parts[1])) if len(_parts) > 1 else {}
-            _to     = _up.unquote(_params.get("to",""))
-            if not _to and "mailto:" in _parts[0]:
-                _to = _up.unquote(_parts[0].split("mailto:",1)[1])
-            _subj = _params.get("subject","")
-            _body = _params.get("body","")
-        except Exception:
-            pass
-
-        if _to or _subj:
-            st.markdown(
-                f'<div class="email-card">'
-                f'<span class="email-key">To: </span><strong class="email-val">{_to}</strong><br>'
-                f'<span class="email-key">Subject: </span><strong class="email-val">{_subj}</strong>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-
-        if outlook_web_url:
-            if st.button("📧 Open Draft in Outlook Web", key=f"oweb_{hash(outlook_web_url)}",
-                         use_container_width=True, type="primary"):
-                import sys, subprocess
-                try:
-                    if sys.platform == "darwin":
-                        subprocess.Popen(["open", outlook_web_url])
-                    elif sys.platform == "win32":
-                        subprocess.Popen(["rundll32","url.dll,FileProtocolHandler", outlook_web_url])
-                    else:
-                        subprocess.Popen(["xdg-open", outlook_web_url])
-                except Exception as e:
-                    st.error(f"Could not open browser: {e}")
-
-        st.markdown("**Or copy and paste into Outlook:**")
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("**To**"); st.code(_to or "—", language=None)
-        with c2:
-            st.markdown("**Subject**"); st.code(_subj or "—", language=None)
-        if _body:
-            st.markdown("**Body**"); st.code(_body, language=None)
-    else:
-        st.markdown(answer)
-
-    tools = response.get("tools_used", [])
-    if tools:
-        st.caption(f"🔧 Tools: {', '.join(tools)}")
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Orchestrator response renderer
@@ -2074,22 +1728,15 @@ def _render_response(response: dict, msg_idx: int = 0) -> None:
                 unsafe_allow_html=True,
             )
 
-    p = _reload_progress()
-    if p and p["total"] > 0 and route in ("checklist","tracking"):
-        _render_progress_widget(p); st.markdown("")
-
     if   route == "advisor":   _render_advisor_panel(response)
     elif route in ("deadlines", "eligibility", "application"):
         _render_topic_panel(response)
-    elif route == "checklist":
-        st.markdown("### Your Checklist")
-        _render_checklist_panel(response.get("steps", []))
-    elif route == "guidance":
+    elif route in ("guidance", "checklist"):
         st.markdown("### Step-by-Step Guidance")
         _render_guidance_panel(response.get("steps", []))
-    elif route == "tracking":  _render_tracking_panel(response)
     elif route == "answer":
         st.markdown("### Answer"); _render_answer_panel(response)
+    # tracking route: summary + primary_action rendered above are sufficient
 
     if source:
         st.caption(f"Source: [{source}]({source})")
@@ -2145,41 +1792,281 @@ def _render_sample_questions() -> None:
 
 def _submit_query(query: str) -> None:
     sid = st.session_state["session_id"]
-
-    if st.session_state.get("agent_mode"):
-        agent_mod = _load_agent()
-        if not agent_mod:
-            st.error("Could not import the agent module. Make sure `openai` is installed.")
-            return
-        with st.spinner("🤖 Agent is thinking…"):
-            history = st.session_state.get("agent_messages", [])
-            result  = agent_mod.run_agent(query, session_id=sid, conversation_history=history)
-        st.session_state["agent_messages"] = result.get("conversation_history", history)
-        result["_mode"] = "agent"
-        st.session_state["messages"].append({"role": "user", "content": query})
-        st.session_state["messages"].append({
-            "role":     "assistant",
-            "content":  result.get("answer") or result.get("clarification_question",""),
-            "response": result,
-        })
-        st.session_state["last_response"] = result
-    else:
-        with st.spinner("Searching for an answer…"):
-            response = orchestrator.run(query, session_id=sid)
-        st.session_state["messages"].append({"role": "user",  "content": query})
-        st.session_state["messages"].append({
-            "role":     "assistant",
-            "content":  response.get("summary",""),
-            "response": response,
-        })
-        st.session_state["last_response"] = response
-
+    with st.spinner("Searching for an answer…"):
+        response = orchestrator.run(query, session_id=sid)
+    st.session_state["messages"].append({"role": "user",  "content": query})
+    st.session_state["messages"].append({
+        "role":     "assistant",
+        "content":  response.get("summary", ""),
+        "response": response,
+    })
+    st.session_state["last_response"] = response
     st.rerun()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Footer
 # ─────────────────────────────────────────────────────────────────────────────
+
+# ---------------------------------------------------------------------------
+# Program Interest Response — helpers
+# ---------------------------------------------------------------------------
+
+# Static URL → clean display label mapping used in the formatted response view.
+_PIR_URL_LABELS: dict[str, str] = {
+    "https://www.csulb.edu/graduate-studies/article/programs-advisors-and-deadlines-masters":
+        "Programs, Advisors & Deadlines",
+    "https://csulb.qualtrics.com/jfe/form/SV_6XARxv1fwI99C6i":
+        "Application Materials Submission Form",
+    "https://www.csulb.edu/graduate-center/workshops-events":
+        "Graduate Center Workshops & Events",
+    "https://www.csulb.edu/graduate-studies":
+        "CSULB Graduate Studies",
+    "https://www.csulb.edu/graduate-studies-csulb":
+        "CSULB Graduate Studies",
+}
+
+
+def _pir_url_label(url: str, program_name: str = "", program_url: str = "") -> str:
+    """Return a clean human-readable label for a known URL."""
+    if program_url and url == program_url and program_name:
+        return f"{program_name} Program Page"
+    return _PIR_URL_LABELS.get(url, url)
+
+
+def _format_clickable_content(message: str, result: dict) -> str:
+    """
+    Convert raw URLs in the plain-text message to labeled markdown links.
+
+    The source template embeds URLs as:
+      • Standalone line:         https://some-url
+      • Inline in parens:        text (https://some-url) more text
+
+    Both forms are converted to clean markdown links using display labels
+    from _PIR_URL_LABELS (or the program name for the program-specific URL).
+    The original plain-text message is unchanged — only the display copy
+    returned by this function uses markdown links.
+    """
+    import re as _re
+
+    prog_url  = (result.get("program_url")  or "").rstrip("/")
+    prog_name = (result.get("program_name") or "")
+
+    def label(url: str) -> str:
+        return _pir_url_label(url.rstrip("/"), prog_name, prog_url)
+
+    out: list[str] = []
+    for line in message.split("\n"):
+        stripped = line.strip()
+        # Standalone URL line
+        if _re.match(r"^https?://\S+$", stripped):
+            out.append(f"[{label(stripped)}]({stripped})")
+        else:
+            # Inline URL wrapped in parentheses:  (https://...)
+            def _repl(m: "re.Match") -> str:
+                url = m.group(1)
+                return f"([{label(url)}]({url}))"
+            out.append(_re.sub(r"\((https?://[^\s)]+)\)", _repl, line))
+
+    return "\n".join(out)
+
+
+def _md_links_to_html(text: str) -> str:
+    """
+    Convert Markdown link syntax [label](url) to plain HTML anchors.
+
+    Used so that links in the generated response survive Streamlit's rule that
+    markdown is not processed inside HTML block elements (e.g. a styled <div>).
+    All other text is left as-is; newlines are preserved by the CSS
+    white-space:pre-wrap already set on .pir-response-body.
+    """
+    import re as _re_lh
+    return _re_lh.sub(
+        r'\[([^\]]+)\]\((https?://[^\)]+)\)',
+        r'<a href="\2" target="_blank">\1</a>',
+        text,
+    )
+
+
+def _render_program_interest_panel() -> None:
+    """
+    Graduate Program Connect panel — polished student-support guidance UI.
+
+    Generates outreach responses for prospective students using approved
+    templates and official CSULB program data. No LLM required.
+    """
+    with st.expander("🎓 Graduate Program Guidance — Explore programs, timelines & support", expanded=False):
+
+        # ── Section 1: Inside header ──────────────────────────────────────────
+        st.markdown(
+            "<h4 style='"
+            "margin:0 0 2px 0;"
+            "color:var(--navy);"
+            "font-size:1.05rem;"
+            "font-weight:700;"
+            "letter-spacing:-0.01em;"
+            "'>🎓 Graduate Program Guidance</h4>"
+            "<p style='"
+            "color:var(--muted);"
+            "font-size:0.85rem;"
+            "margin:0 0 18px 0;"
+            "line-height:1.5;"
+            "'>Explore CSULB graduate programs, review application timelines, "
+            "and access Grad Center advising resources.</p>",
+            unsafe_allow_html=True,
+        )
+
+        # ── Response type selector ────────────────────────────────────────────
+        response_type = st.radio(
+            "Which type of response would you like to generate?",
+            options=["Specific program", "Any graduate program"],
+            key="pir_response_type",
+            horizontal=True,
+        )
+
+        result: dict | None = None
+
+        # ── Program-specific path ─────────────────────────────────────────────
+        if response_type == "Specific program":
+            col_in, col_btn = st.columns([5, 1], vertical_alignment="bottom")
+            with col_in:
+                program_input = st.text_input(
+                    "Program",
+                    placeholder="e.g. DNP nursing, physical therapy DPT, Ed.D. P-12, engineering PhD…",
+                    key="pir_program_input",
+                    label_visibility="collapsed",
+                )
+            with col_btn:
+                generate_clicked = st.button(
+                    "Get Program Guidance",
+                    key="pir_generate_specific",
+                    type="primary",
+                    use_container_width=True,
+                )
+
+            if generate_clicked:
+                if not program_input.strip():
+                    st.warning("Please enter a program name to continue.")
+                else:
+                    with st.spinner("Looking up program data…"):
+                        result = generate_program_specific_response(program_input.strip())
+                    st.session_state["pir_last_result"] = result
+
+            result = st.session_state.get("pir_last_result")
+            if result and result.get("response_type") != "program_specific":
+                result = None
+                st.session_state.pop("pir_last_result", None)
+
+        # ── General path ──────────────────────────────────────────────────────
+        else:
+            if st.button("Get Program Guidance", key="pir_generate_general",
+                         type="primary"):
+                with st.spinner("Preparing response…"):
+                    result = generate_general_interest_response()
+                st.session_state["pir_last_result"] = result
+
+            result = st.session_state.get("pir_last_result")
+            if result and result.get("response_type") != "general":
+                result = None
+                st.session_state.pop("pir_last_result", None)
+
+        # ── Nothing generated yet ─────────────────────────────────────────────
+        if result is None:
+            return
+
+        # ── Error / ambiguous ─────────────────────────────────────────────────
+        if not result.get("found"):
+            st.error(result.get("error") or "Could not generate a response.")
+            suggestions = result.get("suggestions", [])
+            if suggestions:
+                st.markdown("**Did you mean one of these programs?**")
+                for s in suggestions:
+                    st.markdown(f"- {s}")
+            return
+
+        st.markdown("---")
+
+        # ── Section 4: Program info card ──────────────────────────────────────
+        if result.get("response_type") == "program_specific":
+            prog_name  = result.get("program_name", "")
+            prog_url   = result.get("program_url",  "")
+            adv_email  = result.get("advisor_email", "")
+            deadlines  = result.get("deadlines") or {}
+            fall_dl    = deadlines.get("fall",   "")
+            spring_dl  = deadlines.get("spring", "")
+
+            url_html   = (f'<a href="{prog_url}" target="_blank">View Program Page →</a>'
+                          if prog_url else "—")
+            email_html = (f'<a href="mailto:{adv_email}">{adv_email}</a>'
+                          if adv_email else "Refer to the program page for contact information.")
+            grad_url   = "https://www.csulb.edu/graduate-studies-csulb"
+
+            # Info card — no deadline HTML embedded here (avoids indentation-as-codeblock bug)
+            st.markdown(
+                f'<div class="pir-info-card">'
+                f'<p class="pir-info-title">🎓 {prog_name}</p>'
+                f'<div class="pir-info-row">'
+                f'<span class="pir-info-icon">📧</span>'
+                f'<span><span class="pir-info-label">Advisor&nbsp;</span>{email_html}</span>'
+                f'</div>'
+                f'<div class="pir-info-row">'
+                f'<span class="pir-info-icon">🔗</span>'
+                f'<span><span class="pir-info-label">Program Page&nbsp;</span>{url_html}</span>'
+                f'</div>'
+                f'<div class="pir-info-row">'
+                f'<span class="pir-info-icon">🏫</span>'
+                f'<span><span class="pir-info-label">Graduate Studies&nbsp;</span>'
+                f'<a href="{grad_url}" target="_blank">CSULB Graduate Studies →</a></span>'
+                f'</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+            # Deadlines rendered as native Streamlit markdown — no HTML injection
+            if fall_dl or spring_dl:
+                fall_label   = fall_dl   or "—"
+                spring_label = spring_dl or "—"
+                st.markdown(
+                    '<p class="pir-section-label" style="margin-top:4px;">Application Deadlines</p>',
+                    unsafe_allow_html=True,
+                )
+                col_f, col_s = st.columns(2)
+                col_f.markdown(f"🍂 **Fall**\n\n{fall_label}")
+                col_s.markdown(f"🌱 **Spring**\n\n{spring_label}")
+
+        # ── Guidance content ───────────────────────────────────────────────────
+        formatted_md = _format_clickable_content(result["message"], result)
+
+        # Render the template message as markdown so links are clickable.
+        # _md_links_to_html converts [label](url) to <a> tags before injection
+        # into the styled div because Streamlit does not process markdown inside
+        # HTML block elements.
+        response_html = _md_links_to_html(formatted_md)
+        st.markdown(
+            f'<div class="pir-response-body">{response_html}</div>',
+            unsafe_allow_html=True,
+        )
+
+        # ── Sources ───────────────────────────────────────────────────────────
+        sources = result.get("sources", [])
+        if sources:
+            label_map = {
+                "https://www.csulb.edu/graduate-studies-csulb": "CSULB Graduate Studies",
+                "https://www.csulb.edu/graduate-studies":       "CSULB Graduate Studies",
+            }
+            prog_url  = result.get("program_url",  "") or ""
+            prog_name = result.get("program_name", "") or ""
+            if prog_url and prog_name:
+                label_map[prog_url] = f"{prog_name} Program Page"
+            parts = [
+                f'<a href="{s}" target="_blank">{label_map.get(s, s)}</a>'
+                for s in sources
+            ]
+            st.markdown(
+                f'<p class="pir-sources">Sources: {" · ".join(parts)}</p>',
+                unsafe_allow_html=True,
+            )
+
 
 def _render_footer() -> None:
     st.markdown("""
@@ -2200,71 +2087,30 @@ def main() -> None:
     _render_header()
 
     # Mode banner
-    if st.session_state.get("agent_mode"):
-        st.markdown("""
-        <div class="mode-banner">
-            <span>🤖</span>
-            <span>Agent Mode — I can look up advisors and open email drafts in Outlook Web</span>
-            <span class="mode-banner-tag">Agent</span>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class="mode-banner">
-            <span>💬</span>
-            <span>AI Assistant Mode — Ask about programs, advisors, admissions steps, and FAQs</span>
-            <span class="mode-banner-tag">Standard</span>
-        </div>
-        """, unsafe_allow_html=True)
+    st.markdown("""
+    <div class="mode-banner">
+        <span>💬</span>
+        <span>AI Assistant Mode — Ask about programs, advisors, admissions steps, and FAQs</span>
+        <span class="mode-banner-tag">Standard</span>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # Tabs
-    tab_chat, tab_checklist, tab_pending = st.tabs([
-        "💬  Chat", "📋  Full Checklist", "⏳  Pending Tasks",
-    ])
+    if not st.session_state["messages"]:
+        _render_sample_questions()
 
-    with tab_chat:
-        if not st.session_state["messages"]:
-            _render_sample_questions()
+    for i, msg in enumerate(st.session_state["messages"]):
+        with st.chat_message(msg["role"],
+                             avatar="👤" if msg["role"] == "user" else "🎓"):
+            if msg["role"] == "assistant" and "response" in msg:
+                _render_response(msg["response"], msg_idx=i)
+            else:
+                st.markdown(msg["content"])
 
-        for i, msg in enumerate(st.session_state["messages"]):
-            with st.chat_message(msg["role"],
-                                 avatar="👤" if msg["role"] == "user" else "🎓"):
-                if msg["role"] == "assistant" and "response" in msg:
-                    resp = msg["response"]
-                    if resp.get("_mode") == "agent":
-                        _render_agent_response(resp)
-                    else:
-                        _render_response(resp, msg_idx=i)
-                else:
-                    st.markdown(msg["content"])
+    if query := st.chat_input("Ask me anything about CSULB grad admissions…"):
+        _submit_query(query)
 
-        if query := st.chat_input("Ask me anything about CSULB grad admissions…"):
-            _submit_query(query)
-
-    with tab_checklist:
-        sid    = st.session_state["session_id"]
-        record = tracker.load(sid)
-        if not record:
-            st.info('No checklist yet. Go to **Chat** and ask: *"Give me a checklist for admitted students"*')
-        else:
-            steps = record.get("steps", [])
-            p     = _reload_progress()
-            if p:
-                st.markdown(f"### {record.get('intent','Checklist').replace('_',' ').title()}")
-                _render_progress_widget(p); st.markdown("")
-            completed_ids = {s["id"] for s in steps if s.get("status") == "completed"}
-            annotated     = [tracker._annotate_step(s, steps, completed_ids) for s in steps]
-            _render_checklist_panel(annotated)
-
-    with tab_pending:
-        sid    = st.session_state["session_id"]
-        record = tracker.load(sid)
-        if not record:
-            st.info('No checklist yet. Go to **Chat** and ask: *"Give me a checklist for applying"*')
-        else:
-            st.markdown(f"### Pending — {record.get('intent','').replace('_',' ').title()}")
-            _render_pending_panel()
-
+    st.markdown("---")
+    _render_program_interest_panel()
     _render_footer()
 
 
