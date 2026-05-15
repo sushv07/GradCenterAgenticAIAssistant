@@ -37,244 +37,282 @@ st.set_page_config(
 st.markdown("""
 <style>
 /* ═══════════════════════════════════════════════════════════════════════
-   CSULB GRADUATE CENTER  –  Production UI
-   Navy #003366 · Gold #FFC72C
+   CSULB GRADUATE CENTER  –  Production UI  v2
+   Gold #FFC72C · Navy #003366  |  warm gold-first palette
 ═══════════════════════════════════════════════════════════════════════ */
 
 /* ── Design tokens ───────────────────────────────────────────────────── */
 :root {
-    --navy:        #003366;
-    --navy-deep:   #002244;
-    --navy-mid:    #004080;
-    --gold:        #FFC72C;
-    --gold-dark:   #e6b000;
-    --bg:          #f4f6f9;
+    --navy:        #111111;
+    --navy-deep:   #000000;
+    --navy-mid:    #333333;
+    --gold:        #F0A800;
+    --gold-dark:   #C98A00;
+    --gold-light:  #FFF3CC;
+    --gold-mid:    #F5C040;
+    --bg:          #fafaf7;
     --surface:     #ffffff;
     --text:        #111827;
     --text-sub:    #374151;
     --muted:       #6b7280;
-    --border:      #d1d9e0;
-    --border-soft: #e5e9f0;
+    --border:      #ddd8cc;
+    --border-soft: #ede8da;
     --radius:      8px;
     --radius-lg:   12px;
     --ease:        cubic-bezier(0.16, 1, 0.3, 1);
-    --shadow-xs:   0 1px 2px rgba(0,0,0,0.06);
+    --shadow-xs:   0 1px 2px rgba(0,0,0,0.05);
     --shadow-sm:   0 2px 6px rgba(0,0,0,0.07);
     --shadow-md:   0 4px 16px rgba(0,0,0,0.09);
-    --shadow-navy: 0 4px 14px rgba(0,51,102,0.18);
+    --shadow-gold: 0 4px 14px rgba(201,138,0,0.32);
 }
 
 
 /* ══════════════════════════════════════════════════════════════════════
-   LAYOUT
+   LAYOUT  –  strip every top offset Streamlit injects for the header
 ══════════════════════════════════════════════════════════════════════ */
 
 .stApp { background: var(--bg) !important; }
 
-/* Wider, grounded content area – removes the "floating card" feel */
-.main .block-container {
-    padding-top:    0         !important;
-    padding-bottom: 4rem      !important;
-    padding-left:   2.5rem    !important;
-    padding-right:  2.5rem    !important;
-    max-width:      100%      !important;
+/* Override the CSS variable Streamlit uses to size the fixed header.
+   Setting it to 0 causes any rule that reads var(--header-height) to
+   resolve to 0, eliminating the reserved space. */
+:root {
+    --header-height:            0px !important;
+    --header-decoration-height: 0px !important;
+    --header-decoration-top:    0px !important;
 }
 
-/* Streamlit injects a gap above tab panels — collapse it */
+/* Collapse the Streamlit toolbar to zero height so it stops
+   reserving space at the top. The sidebar collapsed-control button
+   lives OUTSIDE this element so sidebar remains unaffected. */
+[data-testid="stHeader"] {
+    height:     0   !important;
+    min-height: 0   !important;
+    padding:    0   !important;
+    overflow:   hidden !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border:     none !important;
+}
+
+/* Strip the padding-top that Streamlit injects to clear the fixed header.
+   Target every layer — Streamlit can set it on any of these. */
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+.main {
+    padding-top: 0 !important;
+    margin-top:  0 !important;
+}
+[data-testid="stMain"],
+.main {
+    overflow-y: auto   !important;
+    overflow-x: hidden !important;
+}
+
+.main .block-container {
+    padding-top:    0        !important;
+    padding-bottom: 0.1rem   !important;
+    padding-left:   1.5rem   !important;
+    padding-right:  1.5rem   !important;
+    max-width:      100%     !important;
+    overflow:       visible  !important;
+}
+
+/* Strip margins Streamlit adds on its own wrapper divs so the banner
+   sits flush at the very top of the content column. */
+[data-testid="stVerticalBlock"] > [data-testid="stVerticalBlockBorderWrapper"]:first-child,
+[data-testid="stVerticalBlock"] > div:first-child {
+    margin-top:  0 !important;
+    padding-top: 0 !important;
+}
+[data-testid="stElementContainer"]:first-child,
+[data-testid="stMarkdown"]:first-child {
+    margin-top:  0 !important;
+    padding-top: 0 !important;
+}
+
 .stTabs [data-baseweb="tab-panel"] > div:first-child { padding-top: 0 !important; }
 
 
 /* ══════════════════════════════════════════════════════════════════════
-   SIDEBAR
+   SIDEBAR  –  amber gold background, navy text
 ══════════════════════════════════════════════════════════════════════ */
 
 [data-testid="stSidebar"] {
-    background: var(--navy) !important;
-    border-right: 3px solid var(--gold);
-    box-shadow: 2px 0 12px rgba(0,0,0,0.12);
+    background:   linear-gradient(180deg, var(--gold) 0%, var(--gold-mid) 55%, var(--gold-dark) 100%) !important;
+    border-right: 2px solid var(--gold-dark);
+    box-shadow:   2px 0 10px rgba(0,0,0,0.12);
 }
 
-/* Text inside sidebar */
 [data-testid="stSidebar"] .stMarkdown p,
 [data-testid="stSidebar"] .stMarkdown h2,
 [data-testid="stSidebar"] .stMarkdown h3,
 [data-testid="stSidebar"] label,
-[data-testid="stSidebar"] span   { color: rgba(220,228,255,0.88) !important; }
-[data-testid="stSidebar"] hr     { border-color: rgba(255,255,255,0.10) !important; margin: 10px 0 !important; }
-[data-testid="stSidebar"] .stCaption { color: rgba(255,255,255,0.38) !important; font-size: 0.74rem !important; }
+[data-testid="stSidebar"] span { color: var(--navy) !important; }
+[data-testid="stSidebar"] hr   { border-color: rgba(0,51,102,0.18) !important; margin: 5px 0 !important; }
+[data-testid="stSidebar"] .stCaption { color: rgba(0,51,102,0.62) !important; font-size: 0.74rem !important; }
 
-/* Session text input */
 [data-testid="stSidebar"] .stTextInput > div > input {
-    background:    rgba(255,255,255,0.09) !important;
-    border:        1px solid rgba(255,255,255,0.18) !important;
-    color:         #ffffff !important;
-    border-radius: var(--radius) !important;
-    font-size:     0.84rem !important;
+    background:    rgba(255,255,255,0.55) !important;
+    border:        1px solid rgba(0,51,102,0.22) !important;
+    color:         var(--navy)            !important;
+    border-radius: var(--radius)          !important;
+    font-size:     0.84rem                !important;
     transition:    border-color 0.15s var(--ease), box-shadow 0.15s var(--ease) !important;
 }
 [data-testid="stSidebar"] .stTextInput > div > input:focus {
-    border-color: rgba(255,199,44,0.55) !important;
-    box-shadow:   0 0 0 3px rgba(255,199,44,0.12) !important;
+    border-color: var(--navy)                       !important;
+    box-shadow:   0 0 0 3px rgba(0,51,102,0.14)     !important;
 }
 
-/* Sidebar buttons (sessions / clear) */
 [data-testid="stSidebar"] .stButton > button {
-    background:    rgba(255,255,255,0.07) !important;
-    color:         rgba(220,228,255,0.82) !important;
-    border:        1px solid rgba(255,255,255,0.14) !important;
-    border-radius: var(--radius) !important;
-    font-size:     0.82rem !important;
-    font-weight:   500 !important;
-    transition:    background 0.18s var(--ease), color 0.18s var(--ease), border-color 0.18s var(--ease) !important;
+    background:    rgba(255,255,255,0.40) !important;
+    color:         var(--navy)            !important;
+    border:        1px solid rgba(0,51,102,0.20) !important;
+    border-radius: var(--radius)          !important;
+    font-size:     0.82rem                !important;
+    font-weight:   500                    !important;
+    transition:    background 0.18s var(--ease), border-color 0.18s var(--ease) !important;
+    box-shadow:    none                   !important;
 }
 [data-testid="stSidebar"] .stButton > button:hover {
-    background:    rgba(255,199,44,0.18) !important;
-    color:         var(--gold)            !important;
-    border-color:  rgba(255,199,44,0.40)  !important;
-    font-weight:   600                    !important;
+    background:   rgba(255,255,255,0.65) !important;
+    border-color: rgba(0,51,102,0.35)    !important;
+    font-weight:  600                    !important;
+    transform:    none                   !important;
 }
-[data-testid="stSidebar"] .stToggle { color: rgba(220,228,255,0.88) !important; }
 
 
 /* ══════════════════════════════════════════════════════════════════════
-   SIDEBAR NAV
+   SIDEBAR BRAND & NAV
 ══════════════════════════════════════════════════════════════════════ */
 
 .sidebar-brand {
     text-align:    center;
-    padding:       22px 14px 16px;
-    border-bottom: 1px solid rgba(255,255,255,0.10);
-    margin-bottom: 12px;
+    padding:       6px 14px 10px;
+    border-bottom: 1px solid rgba(0,0,0,0.12);
+    margin-bottom: 6px;
+    background:    transparent;
 }
 .sidebar-brand-logo {
-    font-size:     2rem;
     display:       block;
-    margin-bottom: 8px;
-    line-height:   1;
+    margin:        0 auto 8px;
+    width:         115px;
+    height:        115px;
+    object-fit:    contain;
+    border-radius: 50%;
+    box-shadow:    0 3px 10px rgba(0,0,0,0.20);
 }
 .sidebar-brand-name {
-    color:       #ffffff;
-    font-size:   0.88rem;
-    font-weight: 700;
-    display:     block;
-    line-height: 1.35;
-    letter-spacing: 0.1px;
+    color:          var(--navy);
+    font-size:      0.95rem;
+    font-weight:    800;
+    display:        block;
+    line-height:    1.3;
+    letter-spacing: -0.1px;
+    white-space:    nowrap;
 }
 .sidebar-brand-tag {
     display:        inline-block;
     margin-top:     5px;
-    color:          var(--gold);
-    font-size:      0.62rem;
-    font-weight:    700;
+    background:     rgba(0,0,0,0.10);
+    color:          var(--navy);
+    font-size:      0.58rem;
+    font-weight:    800;
     letter-spacing: 1.1px;
     text-transform: uppercase;
-    opacity:        0.85;
+    border-radius:  20px;
+    padding:        3px 10px;
+    border:         1px solid rgba(0,0,0,0.18);
 }
 
 .nav-section-label {
-    color:          rgba(255,255,255,0.30) !important;
-    font-size:      0.60rem !important;
-    font-weight:    700 !important;
-    letter-spacing: 1.3px !important;
-    text-transform: uppercase !important;
+    color:          rgba(0,51,102,0.60) !important;
+    font-size:      0.58rem             !important;
+    font-weight:    700                 !important;
+    letter-spacing: 1.3px               !important;
+    text-transform: uppercase           !important;
     padding:        0 6px;
-    margin-bottom:  5px;
+    margin-bottom:  3px;
     display:        block;
 }
 
 .nav-item {
     display:        flex;
     align-items:    center;
-    gap:            10px;
-    padding:        9px 12px;
+    gap:            8px;
+    padding:        7px 10px;
     border-radius:  6px;
-    color:          rgba(220,228,255,0.65);
-    font-size:      0.85rem;
-    font-weight:    400;
+    color:          var(--navy);
+    font-size:      0.82rem;
+    font-weight:    500;
     margin-bottom:  2px;
     cursor:         default;
     border-left:    3px solid transparent;
-    transition:     background 0.16s var(--ease),
-                    color      0.16s var(--ease),
-                    border-color 0.16s var(--ease);
+    transition:     background 0.15s var(--ease), border-color 0.15s var(--ease);
 }
 .nav-item:hover {
-    background:      rgba(255,255,255,0.06);
-    color:           rgba(255,255,255,0.92);
-    border-left-color: rgba(255,199,44,0.35);
+    background:        rgba(255,255,255,0.30);
+    border-left-color: rgba(0,51,102,0.35);
 }
-
-/* ── Active nav item – clear, decisive, unmistakable ─────────────────── */
 .nav-item.active {
-    background:      rgba(255,199,44,0.16);
-    color:           #ffffff;
-    font-weight:     600;
-    border-left:     3px solid var(--gold);
-    letter-spacing:  0.1px;
+    background:    rgba(255,255,255,0.50);
+    color:         var(--navy);
+    font-weight:   700;
+    border-left:   3px solid var(--navy);
 }
 .nav-item.active span:first-child { opacity: 1; }
 
 
 /* ══════════════════════════════════════════════════════════════════════
-   HEADER  – authority & hierarchy
+   HEADER  –  warm gold gradient, navy text
 ══════════════════════════════════════════════════════════════════════ */
 
 .csulb-header {
-    background:    var(--navy);
-    padding:       18px 32px;
-    margin:        -1rem -1rem 2rem -1rem;
+    background:    linear-gradient(135deg, var(--gold) 0%, var(--gold-mid) 100%);
+    padding:       clamp(14px, 2.2vh, 28px) clamp(28px, 4vw, 60px);
+    margin:        0 -1rem 0.1rem -1rem;
+    margin-top:    0 !important;
     display:       flex;
     align-items:   center;
-    gap:           16px;
-    border-bottom: 4px solid var(--gold);
-    /* anchor the header – kills the "floating" band effect */
-    box-shadow:    0 2px 8px rgba(0,0,0,0.20);
+    gap:           clamp(14px, 2vw, 30px);
+    border-bottom: 4px solid var(--gold-dark);
+    box-shadow:    0 3px 12px rgba(0,0,0,0.13);
+    position:      sticky;
+    top:           0;
+    z-index:       100;
 }
 .csulb-header-logo {
-    font-size:  2.1rem;
+    font-size:   clamp(3rem, 5vw, 5.5rem);
     line-height: 1;
     flex-shrink: 0;
 }
 .csulb-header-text { flex: 1; min-width: 0; }
 .csulb-header-title {
-    color:          #ffffff;
-    font-size:      1.35rem;
+    color:          var(--navy);
+    font-size:      clamp(1.8rem, 3.2vw, 3.2rem);
     font-weight:    800;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.5px;
     margin:         0;
     line-height:    1.15;
-    /* subtle lift for readability on dark bg */
-    text-shadow:    0 1px 3px rgba(0,0,0,0.25);
 }
 .csulb-header-sub {
-    color:          var(--gold);
-    font-size:      0.68rem;
+    color:          var(--navy-mid);
+    font-size:      clamp(0.9rem, 1.3vw, 1.3rem);
     font-weight:    600;
-    letter-spacing: 1.1px;
+    letter-spacing: 1.4px;
     text-transform: uppercase;
-    margin:         5px 0 0;
-    opacity:        0.85;
+    margin:         8px 0 0;
+    opacity:        0.78;
 }
-.csulb-header-right {
-    text-align:  right;
-    flex-shrink: 0;
-}
-.csulb-header-badge {
-    display:        inline-block;
-    background:     rgba(255,199,44,0.18);
-    color:          #ffffff;
-    font-size:      0.70rem;
-    font-weight:    700;
-    padding:        5px 16px;
-    border-radius:  20px;
-    letter-spacing: 0.4px;
-    border:         1px solid rgba(255,199,44,0.40);
-}
-.csulb-header-session {
-    color:      rgba(255,255,255,0.42);
-    font-size:  0.68rem;
-    margin-top: 5px;
-    letter-spacing: 0.2px;
+.csulb-header-lb-logo {
+    height:        clamp(72px, 10vw, 130px);
+    width:         clamp(72px, 10vw, 130px);
+    object-fit:    contain;
+    flex-shrink:   0;
+    margin-left:   14px;
+    border-radius: 50%;
+    box-shadow:    0 4px 14px rgba(0,0,0,0.22);
 }
 
 
@@ -286,26 +324,27 @@ st.markdown("""
     display:       flex;
     align-items:   center;
     gap:           10px;
-    background:    var(--surface);
-    color:         var(--text-sub);
-    border:        1px solid var(--border-soft);
+    background:    var(--gold-light);
+    color:         var(--navy);
+    border:        1px solid rgba(230,168,0,0.22);
     border-radius: var(--radius);
-    padding:       9px 16px;
-    margin-bottom: 20px;
+    padding:       8px 16px;
+    margin-bottom: 10px;
     font-size:     0.83rem;
     font-weight:   400;
     box-shadow:    var(--shadow-xs);
 }
 .mode-banner-tag {
     margin-left:    auto;
-    background:     var(--navy);
-    color:          #ffffff;
+    background:     var(--gold);
+    color:          var(--navy);
     font-size:      0.65rem;
     font-weight:    700;
     padding:        3px 10px;
     border-radius:  5px;
     letter-spacing: 0.4px;
     text-transform: uppercase;
+    border:         1px solid var(--gold-dark);
 }
 
 
@@ -316,79 +355,72 @@ st.markdown("""
 .stTabs [data-baseweb="tab-list"] {
     background:    transparent;
     border-bottom: 2px solid var(--border-soft);
-    gap:           0;
-    padding:       0;
+    gap: 0; padding: 0;
 }
 .stTabs [data-baseweb="tab"] {
-    padding:     11px 22px;
-    font-weight: 500;
-    font-size:   0.87rem;
-    color:       var(--muted) !important;
-    border-radius: 0 !important;
-    background:  transparent !important;
-    transition:  color 0.15s var(--ease) !important;
+    padding:       11px 22px;
+    font-weight:   500;
+    font-size:     0.87rem;
+    color:         var(--muted) !important;
+    border-radius: 0           !important;
+    background:    transparent !important;
+    transition:    color 0.15s var(--ease) !important;
 }
 .stTabs [data-baseweb="tab"]:hover { color: var(--text-sub) !important; }
 .stTabs [aria-selected="true"] {
-    color:       var(--navy)  !important;
-    font-weight: 700          !important;
+    color:         var(--navy)  !important;
+    font-weight:   700          !important;
     border-bottom: 3px solid var(--gold) !important;
-    margin-bottom: -2px;       /* sits on the border-bottom of the tab list */
+    margin-bottom: -2px;
 }
-.stTabs [data-baseweb="tab-panel"] {
-    background: transparent;
-    border:     none;
-    padding:    24px 0 0;
-}
+.stTabs [data-baseweb="tab-panel"] { background: transparent; border: none; padding: 24px 0 0; }
 
 
 /* ══════════════════════════════════════════════════════════════════════
-   BUTTONS  – micro-interactions
+   BUTTONS  –  gold primary, warm outlined default
 ══════════════════════════════════════════════════════════════════════ */
 
-/* Default outlined button */
 .stButton > button {
-    background:     var(--surface) !important;
-    color:          var(--navy)    !important;
-    border:         1.5px solid var(--navy) !important;
-    font-weight:    500            !important;
-    border-radius:  var(--radius)  !important;
-    transition:     background   0.16s var(--ease),
-                    color        0.16s var(--ease),
-                    border-color 0.16s var(--ease),
-                    box-shadow   0.16s var(--ease),
-                    transform    0.12s var(--ease) !important;
+    background:    var(--gold)              !important;
+    color:         var(--navy)              !important;
+    border:        1.5px solid var(--gold-dark) !important;
+    font-weight:   600                      !important;
+    border-radius: var(--radius)            !important;
+    transition:    background 0.16s var(--ease), color 0.16s var(--ease),
+                   border-color 0.16s var(--ease), box-shadow 0.16s var(--ease),
+                   transform 0.12s var(--ease) !important;
 }
 .stButton > button:hover {
-    background:   var(--navy)    !important;
-    color:        #ffffff        !important;
-    border-color: var(--navy)    !important;
-    box-shadow:   var(--shadow-sm) !important;
-    transform:    translateY(-1px) !important;
+    background:   var(--gold-dark)   !important;
+    color:        var(--navy)        !important;
+    border-color: var(--gold-dark)   !important;
+    box-shadow:   var(--shadow-gold) !important;
+    transform:    translateY(-1px)   !important;
 }
 .stButton > button:active { transform: translateY(0) !important; }
 
-/* Primary filled button */
+/* Primary — black fill, gold text */
 .stButton > button[kind="primary"] {
-    background:   var(--navy)     !important;
-    color:        #ffffff         !important;
-    border-color: var(--navy)     !important;
-    font-weight:  600             !important;
+    background:   #111111          !important;
+    color:        var(--gold)      !important;
+    border-color: #111111          !important;
+    font-weight:  700              !important;
     box-shadow:   var(--shadow-xs) !important;
 }
 .stButton > button[kind="primary"]:hover {
-    background:  var(--navy-deep) !important;
-    box-shadow:  var(--shadow-navy) !important;
-    transform:   translateY(-1px)   !important;
+    background:  #000000           !important;
+    color:       var(--gold-mid)   !important;
+    box-shadow:  0 4px 14px rgba(0,0,0,0.30) !important;
+    transform:   translateY(-1px)  !important;
 }
 .stButton > button[kind="primary"]:active { transform: translateY(0) !important; }
 
 [data-testid="stLinkButton"] > a {
-    background:    var(--navy)   !important;
-    color:         #ffffff       !important;
-    font-weight:   600           !important;
-    border-radius: var(--radius) !important;
-    transition:    opacity 0.15s !important;
+    background:    var(--gold)       !important;
+    color:         var(--navy)       !important;
+    font-weight:   700               !important;
+    border-radius: var(--radius)     !important;
+    transition:    opacity 0.15s     !important;
 }
 [data-testid="stLinkButton"] > a:hover { opacity: 0.88 !important; }
 
@@ -400,8 +432,8 @@ st.markdown("""
 [data-testid="stChatMessage"] {
     background:    var(--surface);
     border-radius: var(--radius-lg);
-    padding:       16px 20px;
-    margin:        6px 0;
+    padding:       14px 18px;
+    margin:        5px 0;
     border:        1px solid var(--border-soft);
     box-shadow:    var(--shadow-xs);
     transition:    box-shadow 0.18s var(--ease);
@@ -410,14 +442,12 @@ st.markdown("""
 
 
 /* ══════════════════════════════════════════════════════════════════════
-   CHAT INPUT  – primary interaction surface
+   CHAT INPUT
 ══════════════════════════════════════════════════════════════════════ */
 
-/* Container lift above the page */
 [data-testid="stChatInput"] {
-    box-shadow: 0 -2px 12px rgba(0,51,102,0.07) !important;
+    box-shadow: 0 -2px 10px rgba(230,168,0,0.08) !important;
 }
-/* The textarea itself */
 [data-testid="stChatInput"] textarea {
     border:        2px solid var(--border)  !important;
     border-radius: var(--radius-lg)         !important;
@@ -425,16 +455,30 @@ st.markdown("""
     font-size:     0.96rem                  !important;
     line-height:   1.55                     !important;
     min-height:    52px                     !important;
-    transition:    border-color 0.18s var(--ease),
-                   box-shadow   0.18s var(--ease) !important;
+    transition:    border-color 0.18s var(--ease), box-shadow 0.18s var(--ease) !important;
     box-shadow:    var(--shadow-xs)         !important;
 }
-/* Focus – gold accent ring, decisive navy border */
 [data-testid="stChatInput"] textarea:focus {
-    border-color: var(--navy)   !important;
-    box-shadow:   0 0 0 3px rgba(0,51,102,0.11),
-                  var(--shadow-sm) !important;
-    outline:      none          !important;
+    border-color: var(--gold-dark)                  !important;
+    box-shadow:   0 0 0 3px rgba(255,199,44,0.18),
+                  var(--shadow-sm)                  !important;
+    outline: none !important;
+}
+
+/* Chat send button — gold fill */
+[data-testid="stChatInput"] button {
+    background:    var(--gold)       !important;
+    color:         var(--navy)       !important;
+    border-color:  var(--gold-dark)  !important;
+    border-radius: 8px               !important;
+}
+[data-testid="stChatInput"] button:hover {
+    background:  var(--gold-dark) !important;
+    box-shadow:  var(--shadow-gold) !important;
+}
+[data-testid="stChatInput"] button svg {
+    fill:   var(--navy) !important;
+    stroke: var(--navy) !important;
 }
 
 
@@ -453,43 +497,78 @@ st.markdown("""
 }
 
 [data-testid="stExpander"] {
-    border:        1px solid var(--border-soft) !important;
-    border-radius: var(--radius)                !important;
+    border:        1.5px solid var(--gold-dark)  !important;
+    border-radius: var(--radius)                 !important;
+    background:    var(--gold)                   !important;
+    box-shadow:    var(--shadow-xs)              !important;
+}
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary p,
+[data-testid="stExpander"] summary span,
+[data-testid="stExpander"] [data-testid="stExpanderToggleIcon"] ~ div,
+[data-testid="stExpander"] details summary div p {
+    font-weight: 800     !important;
+    color:       #111111 !important;
+    font-size:   1.15rem !important;
+}
+[data-testid="stExpander"] details summary,
+[data-testid="stExpander"] > details > summary {
+    padding-top:    10px !important;
+    padding-bottom: 10px !important;
+    min-height:     44px !important;
+}
+[data-testid="stExpander"] summary:hover {
+    background: var(--gold-mid) !important;
+}
+/* Keep the expanded content area white for readability */
+[data-testid="stExpander"] > div:last-child {
     background:    var(--surface)               !important;
-    box-shadow:    var(--shadow-xs)             !important;
+    border-top:    1.5px solid var(--gold-dark) !important;
 }
 
-#MainMenu, footer, [data-testid="stDeployButton"] { visibility: hidden !important; }
+#MainMenu  { visibility: hidden !important; }
+footer     { visibility: hidden !important; }
+
+
+/* Deploy button — hidden */
+[data-testid="stDeployButton"],
+[data-testid="stDeployButton"] *,
+[class*="deployButton"],
+button[kind="header"] {
+    visibility:     hidden !important;
+    opacity:        0      !important;
+    pointer-events: none   !important;
+}
 
 
 /* ══════════════════════════════════════════════════════════════════════
-   WELCOME / EMPTY STATE
+   WELCOME / EMPTY STATE  –  compact for all screen sizes
 ══════════════════════════════════════════════════════════════════════ */
 
 .welcome-state {
     text-align: center;
-    padding:    48px 20px 28px;
+    padding:    clamp(8px, 1.2vh, 18px) 20px clamp(6px, 0.8vh, 12px);
 }
 .welcome-state-icon {
-    font-size:     2.8rem;
+    font-size:     clamp(4rem, 7vw, 6rem);
     display:       block;
-    margin-bottom: 18px;
+    margin-bottom: clamp(6px, 0.8vh, 12px);
     line-height:   1;
 }
 .welcome-state-title {
     color:          var(--navy);
-    font-size:      1.25rem;
+    font-size:      clamp(1.2rem, 1.92vh, 1.56rem);
     font-weight:    800;
-    margin-bottom:  10px;
+    margin-bottom:  4px;
     letter-spacing: -0.3px;
-    line-height:    1.3;
+    line-height:    1.2;
 }
 .welcome-state-sub {
     color:       var(--muted);
-    font-size:   0.91rem;
-    max-width:   460px;
-    margin:      0 auto 32px;
-    line-height: 1.7;
+    font-size:   clamp(0.9rem, 1.15vh, 1.035rem);
+    max-width:   520px;
+    margin:      0 auto clamp(8px, 1.2vh, 16px);
+    line-height: 1.5;
 }
 .sample-label {
     color:          var(--gold-dark);
@@ -497,7 +576,8 @@ st.markdown("""
     font-weight:    700;
     letter-spacing: 1px;
     text-transform: uppercase;
-    margin-bottom:  12px;
+    margin-top:     4px;
+    margin-bottom:  8px;
     display:        block;
 }
 
@@ -508,11 +588,11 @@ st.markdown("""
 
 /* Summary box */
 .summary-box {
-    background:    #eef4ff;
-    border-left:   4px solid var(--navy);
+    background:    var(--gold-light);
+    border-left:   4px solid var(--gold-dark);
     border-radius: 0 var(--radius) var(--radius) 0;
-    padding:       13px 18px;
-    margin-bottom: 16px;
+    padding:       12px 18px;
+    margin-bottom: 14px;
     color:         var(--text);
     font-size:     0.95rem;
     line-height:   1.65;
@@ -523,8 +603,8 @@ st.markdown("""
     background:    #fffceb;
     border-left:   4px solid var(--gold-dark);
     border-radius: 0 var(--radius) var(--radius) 0;
-    padding:       12px 18px;
-    margin-bottom: 16px;
+    padding:       11px 18px;
+    margin-bottom: 14px;
     color:         var(--text);
     font-size:     0.95rem;
     font-weight:   500;
@@ -548,10 +628,10 @@ st.markdown("""
 .advisor-card {
     background:    var(--surface);
     border:        1px solid var(--border-soft);
-    border-top:    3px solid var(--navy);
+    border-top:    3px solid var(--gold-dark);
     border-radius: var(--radius);
-    padding:       18px 22px;
-    margin-bottom: 16px;
+    padding:       16px 20px;
+    margin-bottom: 14px;
     box-shadow:    var(--shadow-xs);
 }
 .advisor-card-header {
@@ -560,14 +640,14 @@ st.markdown("""
     color:          var(--navy);
     text-transform: uppercase;
     letter-spacing: 0.9px;
-    margin-bottom:  12px;
-    padding-bottom: 10px;
+    margin-bottom:  10px;
+    padding-bottom: 8px;
     border-bottom:  1px solid var(--border-soft);
 }
 .advisor-row {
     display:       flex;
     gap:           10px;
-    margin-bottom: 7px;
+    margin-bottom: 6px;
     font-size:     0.9rem;
     line-height:   1.45;
 }
@@ -578,11 +658,11 @@ st.markdown("""
 
 /* Email draft card */
 .email-card {
-    background:    #f5f9ff;
-    border:        1px solid #c5d8f5;
+    background:    var(--gold-light);
+    border:        1px solid rgba(230,168,0,0.22);
     border-radius: var(--radius);
     padding:       14px 18px;
-    margin:        12px 0 16px;
+    margin:        10px 0 14px;
     font-size:     0.9rem;
     line-height:   1.8;
     box-shadow:    var(--shadow-xs);
@@ -594,10 +674,10 @@ st.markdown("""
 .deadline-card {
     background:    var(--surface);
     border:        1px solid var(--border-soft);
-    border-top:    3px solid var(--navy);
+    border-top:    3px solid var(--gold-dark);
     border-radius: var(--radius);
-    padding:       20px 24px 18px;
-    margin-bottom: 16px;
+    padding:       18px 22px 16px;
+    margin-bottom: 14px;
     box-shadow:    var(--shadow-sm);
 }
 .deadline-card-header {
@@ -607,25 +687,18 @@ st.markdown("""
     text-transform: uppercase;
     letter-spacing: 0.9px;
     margin-bottom:  4px;
-    padding-bottom: 10px;
+    padding-bottom: 8px;
     border-bottom:  1px solid var(--border-soft);
 }
 .deadline-program-name {
     font-size:   1.05rem;
     font-weight: 700;
     color:       var(--text);
-    margin:      0 0 14px 0;
+    margin:      0 0 12px 0;
     line-height: 1.3;
 }
-.deadline-cols {
-    display:   flex;
-    gap:       24px;
-    flex-wrap: wrap;
-}
-.deadline-col {
-    flex:       1;
-    min-width:  180px;
-}
+.deadline-cols { display: flex; gap: 24px; flex-wrap: wrap; }
+.deadline-col  { flex: 1; min-width: 180px; }
 .deadline-col-label {
     font-size:      0.68rem;
     font-weight:    800;
@@ -633,7 +706,7 @@ st.markdown("""
     text-transform: uppercase;
     color:          var(--navy);
     margin-bottom:  8px;
-    opacity:        0.8;
+    opacity:        0.75;
 }
 .deadline-row {
     display:       flex;
@@ -644,76 +717,43 @@ st.markdown("""
     font-size:     0.9rem;
 }
 .deadline-row:last-child { border-bottom: none; }
-.deadline-season {
-    min-width:  46px;
-    color:      var(--muted);
-    font-weight: 500;
-    font-size:   0.82rem;
-}
-.deadline-val {
-    font-weight: 600;
-    color:       var(--text);
-}
-.deadline-val.closed {
-    color:      #9ca3af;
-    font-style: italic;
-    font-weight: 400;
-}
+.deadline-season { min-width: 46px; color: var(--muted); font-weight: 500; font-size: 0.82rem; }
+.deadline-val { font-weight: 600; color: var(--text); }
+.deadline-val.closed { color: #9ca3af; font-style: italic; font-weight: 400; }
 .deadline-contact {
-    margin-top:    14px;
-    padding-top:   12px;
-    border-top:    1px solid var(--border-soft);
-    font-size:     0.85rem;
-    color:         var(--text-sub);
-    display:       flex;
-    flex-wrap:     wrap;
-    gap:           16px;
+    margin-top:  12px; padding-top: 10px;
+    border-top:  1px solid var(--border-soft);
+    font-size:   0.85rem; color: var(--text-sub);
+    display:     flex; flex-wrap: wrap; gap: 16px;
 }
-.deadline-contact a {
-    color:           #1a56db;
-    text-decoration: none;
-}
+.deadline-contact a { color: #1a56db; text-decoration: none; }
 .deadline-contact a:hover { text-decoration: underline; }
 
 /* Mini disambiguation card */
 .deadline-mini-card {
     background:    var(--surface);
     border:        1px solid var(--border-soft);
-    border-left:   3px solid var(--navy);
+    border-left:   3px solid var(--gold-dark);
     border-radius: var(--radius);
-    padding:       12px 16px;
-    margin-bottom: 8px;
+    padding:       10px 14px;
+    margin-bottom: 7px;
     font-size:     0.88rem;
 }
-.deadline-mini-program {
-    font-weight:  700;
-    color:        var(--text);
-    margin-bottom: 4px;
-}
-.deadline-mini-row {
-    color:       var(--text-sub);
-    font-size:   0.82rem;
-    line-height: 1.5;
-}
+.deadline-mini-program { font-weight: 700; color: var(--text); margin-bottom: 4px; }
+.deadline-mini-row { color: var(--text-sub); font-size: 0.82rem; line-height: 1.5; }
 
 /* Clarification box */
 .clarification-box {
-    background:    #fffef0;
-    border:        1px solid rgba(230,176,0,0.4);
+    background:    var(--gold-light);
+    border:        1px solid rgba(230,168,0,0.35);
     border-left:   4px solid var(--gold-dark);
     border-radius: var(--radius);
-    padding:       14px 18px;
-    margin-bottom: 14px;
+    padding:       13px 18px;
+    margin-bottom: 13px;
 }
 
 /* Suggestion chips */
-.chip-label {
-    font-size:   0.80rem;
-    font-weight: 600;
-    color:       var(--navy);
-    margin-bottom: 8px;
-}
-
+.chip-label { font-size: 0.80rem; font-weight: 600; color: var(--navy); margin-bottom: 8px; }
 
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -726,47 +766,43 @@ st.markdown("""
     color:          var(--navy);
     text-transform: uppercase;
     letter-spacing: 0.9px;
-    margin:         0 0 14px 0;
-    padding-bottom: 10px;
+    margin:         0 0 12px 0;
+    padding-bottom: 8px;
     border-bottom:  1px solid var(--border-soft);
 }
 
 .app-step-card {
     display:       flex;
-    gap:           16px;
+    gap:           14px;
     align-items:   flex-start;
     background:    var(--surface);
     border:        1px solid var(--border-soft);
     border-radius: var(--radius);
-    padding:       16px 20px;
-    margin-bottom: 10px;
+    padding:       14px 18px;
+    margin-bottom: 8px;
     box-shadow:    var(--shadow-xs);
     transition:    box-shadow 0.18s var(--ease), transform 0.14s var(--ease);
 }
-.app-step-card:hover {
-    box-shadow: var(--shadow-md);
-    transform:  translateY(-1px);
-}
+.app-step-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
 
 .app-step-num {
-    width:          36px;
-    height:         36px;
-    min-width:      36px;
-    border-radius:  50%;
-    color:          #ffffff;
-    font-weight:    800;
-    font-size:      0.95rem;
-    display:        flex;
-    align-items:    center;
-    justify-content:center;
-    margin-top:     2px;
-    box-shadow:     0 2px 6px rgba(0,0,0,0.15);
+    width:           34px; height: 34px; min-width: 34px;
+    border-radius:   50%;
+    color:           var(--navy);
+    background:      var(--gold);
+    font-weight:     800;
+    font-size:       0.90rem;
+    display:         flex;
+    align-items:     center;
+    justify-content: center;
+    margin-top:      2px;
+    box-shadow:      0 2px 5px rgba(230,168,0,0.30);
 }
 
-.app-step-body        { flex: 1; min-width: 0; }
+.app-step-body { flex: 1; min-width: 0; }
 .app-step-cat-badge {
     display:        inline-block;
-    background:     #eef4ff;
+    background:     var(--gold-light);
     color:          var(--navy);
     font-size:      0.67rem;
     font-weight:    700;
@@ -774,46 +810,20 @@ st.markdown("""
     text-transform: uppercase;
     padding:        2px 8px;
     border-radius:  8px;
-    margin-bottom:  6px;
+    margin-bottom:  5px;
 }
-.app-step-title {
-    font-weight: 700;
-    font-size:   0.97rem;
-    color:       var(--text);
-    line-height: 1.35;
-    margin-bottom: 5px;
-}
-.app-step-desc {
-    font-size:   0.875rem;
-    color:       var(--text-sub);
-    line-height: 1.6;
-    margin-bottom: 9px;
-}
-.app-step-content {
-    font-size:   0.89rem;
-    color:       var(--text-sub);
-    line-height: 1.7;
-    margin:      8px 0 10px 0;
-    word-break:  break-word;
-}
-.app-step-content p {
-    margin: 0 0 6px 0;
-}
+.app-step-title   { font-weight: 700; font-size: 0.97rem; color: var(--text);     line-height: 1.35; margin-bottom: 4px; }
+.app-step-desc    { font-size: 0.875rem; color: var(--text-sub); line-height: 1.6; margin-bottom: 8px; }
+.app-step-content { font-size: 0.89rem;  color: var(--text-sub); line-height: 1.7; margin: 7px 0 9px; word-break: break-word; }
+.app-step-content p { margin: 0 0 6px 0; }
 
 .app-step-related {
-    margin-top:    10px;
-    padding-top:   8px;
-    border-top:    1px dashed var(--border-soft);
-    font-size:     0.80rem;
-    color:         var(--muted);
-    line-height:   1.8;
+    margin-top:  9px; padding-top: 7px;
+    border-top:  1px dashed var(--border-soft);
+    font-size:   0.80rem; color: var(--muted); line-height: 1.8;
 }
-.app-step-related strong {
-    color:       var(--text-sub);
-    font-weight: 600;
-    display:     block;
-    margin-bottom: 3px;
-}
+.app-step-related strong { color: var(--text-sub); font-weight: 600; display: block; margin-bottom: 3px; }
+
 .app-step-sublink {
     display:         inline-flex;
     align-items:     center;
@@ -822,47 +832,34 @@ st.markdown("""
     text-decoration: none;
     font-weight:     500;
     font-size:       0.80rem;
-    background:      #eef4ff;
+    background:      var(--gold-light);
     padding:         2px 8px;
     border-radius:   5px;
     margin:          2px 4px 2px 0;
-    border:          1px solid rgba(0,51,102,0.12);
+    border:          1px solid rgba(230,168,0,0.25);
     transition:      background 0.14s var(--ease), color 0.14s var(--ease);
 }
-.app-step-sublink:hover {
-    background: var(--navy);
-    color:      #ffffff;
-}
+.app-step-sublink:hover { background: var(--navy); color: #ffffff; }
 
-.app-step-source {
-    margin-top: 8px;
-    font-size:  0.76rem;
-    color:      var(--muted);
-}
-.app-step-source a {
-    color:           var(--muted);
-    text-decoration: none;
-    word-break:      break-all;
-}
+.app-step-source { margin-top: 7px; font-size: 0.76rem; color: var(--muted); }
+.app-step-source a { color: var(--muted); text-decoration: none; word-break: break-all; }
 .app-step-source a:hover { color: var(--navy); text-decoration: underline; }
 
 .app-step-link {
-    display:        inline-flex;
-    align-items:    center;
-    gap:            5px;
-    font-size:      0.82rem;
-    font-weight:    600;
-    color:          var(--navy);
-    text-decoration:none;
-    border:         1px solid rgba(0,51,102,0.25);
-    padding:        4px 11px;
-    border-radius:  6px;
-    transition:     background 0.15s var(--ease), color 0.15s var(--ease);
+    display:         inline-flex;
+    align-items:     center;
+    gap:             5px;
+    font-size:       0.82rem;
+    font-weight:     600;
+    color:           var(--navy);
+    text-decoration: none;
+    border:          1px solid rgba(230,168,0,0.35);
+    padding:         4px 11px;
+    border-radius:   6px;
+    background:      var(--gold-light);
+    transition:      background 0.15s var(--ease), color 0.15s var(--ease);
 }
-.app-step-link:hover {
-    background: var(--navy);
-    color:      #ffffff;
-}
+.app-step-link:hover { background: var(--navy); color: #ffffff; border-color: var(--navy); }
 
 
 /* ══════════════════════════════════════════════════════════════════════
@@ -871,41 +868,35 @@ st.markdown("""
 
 .csulb-footer {
     text-align:  center;
-    padding:     20px 16px 10px;
-    margin-top:  3rem;
+    padding:     10px 16px 6px;
+    margin-top:  0.8rem;
     border-top:  1px solid var(--border-soft);
     color:       var(--muted);
     font-size:   0.76rem;
     line-height: 1.6;
 }
-.csulb-footer a {
-    color:           var(--navy);
-    font-weight:     600;
-    text-decoration: none;
-    transition:      opacity 0.15s;
-}
+.csulb-footer a { color: var(--navy); font-weight: 600; text-decoration: none; transition: opacity 0.15s; }
 .csulb-footer a:hover { opacity: 0.72; text-decoration: underline; }
 
 
 /* ══════════════════════════════════════════════════════════════════════
-   GRADUATE PROGRAM CONNECT  (Program Interest Response panel)
+   GRADUATE PROGRAM GUIDANCE  (Program Interest panel)
 ══════════════════════════════════════════════════════════════════════ */
-
 
 .pir-info-card {
     background:    var(--surface);
     border:        1px solid var(--border-soft);
-    border-left:   4px solid var(--navy);
+    border-left:   4px solid var(--gold-dark);
     border-radius: var(--radius);
-    padding:       16px 20px;
-    margin-bottom: 18px;
+    padding:       14px 18px;
+    margin-bottom: 16px;
     box-shadow:    var(--shadow-xs);
 }
 .pir-info-title {
     font-size:   1.0rem;
     font-weight: 700;
     color:       var(--navy);
-    margin:      0 0 12px 0;
+    margin:      0 0 10px 0;
 }
 .pir-info-row {
     display:     flex;
@@ -913,92 +904,111 @@ st.markdown("""
     gap:         8px;
     font-size:   0.855rem;
     color:       var(--text-sub);
-    margin:      5px 0;
+    margin:      4px 0;
     line-height: 1.5;
 }
 .pir-info-icon { font-size: 0.9rem; flex-shrink: 0; margin-top: 1px; }
-.pir-info-label {
-    font-weight: 600;
-    color:       var(--text);
-    white-space: nowrap;
-}
-.pir-info-row a {
-    color:           var(--navy);
-    font-weight:     500;
-    text-decoration: none;
-}
+.pir-info-label { font-weight: 600; color: var(--text); white-space: nowrap; }
+.pir-info-row a { color: var(--navy); font-weight: 500; text-decoration: none; }
 .pir-info-row a:hover { text-decoration: underline; }
 
-.pir-deadline-chips {
-    display:     flex;
-    gap:         8px;
-    flex-wrap:   wrap;
-    margin-top:  6px;
-}
+.pir-deadline-chips { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 .pir-deadline-chip {
-    background:    #eef4ff;
-    border:        1px solid rgba(0,51,102,0.14);
+    background:    var(--gold-light);
+    border:        1px solid rgba(230,168,0,0.30);
     border-radius: 20px;
     padding:       3px 11px;
     font-size:     0.79rem;
     font-weight:   600;
     color:         var(--navy);
 }
-.pir-deadline-chip.na {
-    background: #f5f5f5;
-    border-color: var(--border);
-    color: var(--muted);
-}
+.pir-deadline-chip.na { background: #f5f5f5; border-color: var(--border); color: var(--muted); }
 
 .pir-section-label {
     font-size:      0.68rem;
     font-weight:    800;
-    color:          var(--navy);
+    color:          #111111;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin:         0 0 12px 0;
-    padding-bottom: 8px;
+    margin:         0 0 10px 0;
+    padding-bottom: 7px;
     border-bottom:  1px solid var(--border-soft);
 }
 
 .pir-response-body {
     background:    var(--surface);
     border:        1px solid var(--border-soft);
+    border-left:   3px solid var(--gold);
     border-radius: var(--radius);
-    padding:       22px 26px;
+    padding:       20px 24px;
     font-size:     0.90rem;
     color:         var(--text);
     line-height:   1.75;
     box-shadow:    var(--shadow-xs);
     white-space:   pre-wrap;
     word-break:    break-word;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 }
-.pir-response-body p   { margin: 0 0 0.9em 0; }
-.pir-response-body ul  { margin: 4px 0 0.9em 18px; padding: 0; }
-.pir-response-body li  { margin-bottom: 3px; }
-.pir-response-body a   {
+.pir-response-body p  { margin: 0 0 0.9em 0; }
+.pir-response-body ul { margin: 4px 0 0.9em 18px; padding: 0; }
+.pir-response-body li { margin-bottom: 3px; }
+.pir-response-body a  {
     color:           var(--navy);
     font-weight:     500;
     text-decoration: none;
-    border-bottom:   1px solid rgba(0,51,102,0.25);
+    border-bottom:   1px solid rgba(230,168,0,0.45);
 }
-.pir-response-body a:hover {
-    border-bottom-color: var(--navy);
-    text-decoration: none;
+.pir-response-body a:hover { border-bottom-color: var(--gold-dark); text-decoration: none; }
+
+.pir-sources { font-size: 0.77rem; color: var(--muted); margin-top: 4px; }
+.pir-sources a { color: var(--navy); font-weight: 500; text-decoration: none; }
+.pir-sources a:hover { text-decoration: underline; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   RESPONSIVE  –  MacBook Pro / smaller laptops
+══════════════════════════════════════════════════════════════════════ */
+
+@media screen and (max-height: 980px) {
+    /* Header */
+    .csulb-header        { padding: 10px 28px !important; }
+    .csulb-header-logo   { font-size: 2.8rem  !important; }
+    .csulb-header-title  { font-size: 1.7rem  !important; }
+    .csulb-header-sub    { font-size: 0.85rem !important; }
+    .csulb-header-lb-logo{ height: 68px !important; width: 68px !important; }
+    /* Welcome */
+    .welcome-state       { padding: 6px 20px 4px !important; }
+    .welcome-state-icon  { font-size: 3.5rem !important; margin-bottom: 4px !important; }
+    .welcome-state-title { font-size: 1.2rem  !important; }
+    .welcome-state-sub   { font-size: 0.92rem !important; margin-bottom: 8px !important; }
+    /* Sidebar */
+    .sidebar-brand       { padding: 8px 12px 8px  !important; }
+    .sidebar-brand-logo  { width: 96px !important; height: 96px !important; margin-bottom: 5px !important; }
+    .sidebar-brand-name  { font-size: 0.88rem !important; }
+    .sidebar-brand-tag   { font-size: 0.56rem !important; padding: 2px 8px !important; margin-top: 4px !important; }
+    .nav-item            { padding: 5px 8px !important; font-size: 0.78rem !important; }
 }
 
-.pir-sources {
-    font-size:  0.77rem;
-    color:      var(--muted);
-    margin-top: 4px;
+@media screen and (max-height: 820px) {
+    /* Header */
+    .csulb-header        { padding: 8px 22px !important; }
+    .csulb-header-logo   { font-size: 2.3rem  !important; }
+    .csulb-header-title  { font-size: 1.45rem !important; }
+    .csulb-header-sub    { font-size: 0.78rem !important; }
+    .csulb-header-lb-logo{ height: 56px !important; width: 56px !important; }
+    /* Welcome */
+    .welcome-state       { padding: 4px 20px 2px !important; }
+    .welcome-state-icon  { font-size: 3rem   !important; margin-bottom: 3px !important; }
+    .welcome-state-title { font-size: 1.14rem !important; margin-bottom: 2px !important; }
+    .welcome-state-sub   { font-size: 0.875rem !important; margin-bottom: 6px !important; }
+    /* Sidebar */
+    .sidebar-brand       { padding: 6px 10px 6px !important; }
+    .sidebar-brand-logo  { width: 82px !important; height: 82px !important; margin-bottom: 4px !important; }
+    .sidebar-brand-name  { font-size: 0.82rem !important; white-space: normal !important; }
+    .sidebar-brand-tag   { font-size: 0.52rem !important; padding: 2px 7px !important; margin-top: 3px !important; }
+    .nav-item            { padding: 4px 7px !important; font-size: 0.75rem !important; }
+    .nav-section-label   { font-size: 0.5rem !important; }
 }
-.pir-sources a {
-    color:           var(--navy);
-    font-weight:     500;
-    text-decoration: none;
-}
-.pir-sources a:hover { text-decoration: underline; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1030,8 +1040,45 @@ _init_state()
 # Header
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _load_image_b64(filename: str) -> str:
+    """Return a base64 data URI for any file in the static/ folder."""
+    import base64
+    static_dir = Path(__file__).parent / "static"
+    path = static_dir / filename
+    if not path.exists():
+        return ""
+    mime = "image/png" if path.suffix.lower() == ".png" else "image/jpeg"
+    return f"data:{mime};base64,{base64.b64encode(path.read_bytes()).decode()}"
+
+
+def _load_logo_b64() -> str:
+    """
+    Read the LB logo from static/lb_logo.png and return a base64 data URI.
+    Returns an empty string if the file is missing (logo is simply hidden).
+    """
+    import base64
+    # Look for any image file in static/ (supports renamed files)
+    static_dir = Path(__file__).parent / "static"
+    logo_path  = None
+    for ext in ("png", "jpg", "jpeg", "webp", "gif"):
+        candidate = static_dir / f"lb-circle.{ext}"
+        if candidate.exists():
+            logo_path = candidate
+            break
+    if logo_path is None:
+        return ""
+    mime = "image/png" if logo_path.suffix == ".png" else "image/jpeg"
+    b64  = base64.b64encode(logo_path.read_bytes()).decode()
+    return f"data:{mime};base64,{b64}"
+
+
 def _render_header() -> None:
-    sid = st.session_state["session_id"]
+    sid      = st.session_state["session_id"]
+    logo_src = _load_logo_b64()
+    logo_tag = (
+        f'<img src="{logo_src}" class="csulb-header-lb-logo" alt="CSULB LB Logo" />'
+        if logo_src else ""
+    )
     st.markdown(f"""
     <div class="csulb-header">
         <div class="csulb-header-logo">🎓</div>
@@ -1039,11 +1086,49 @@ def _render_header() -> None:
             <div class="csulb-header-title">CSULB Graduate Center AI Assistant</div>
             <div class="csulb-header-sub">California State University, Long Beach</div>
         </div>
-        <div class="csulb-header-right">
-            <span class="csulb-header-badge">💬 AI Assistant</span>
-            <div class="csulb-header-session">Session: {sid}</div>
-        </div>
+        {logo_tag}
     </div>
+
+    <!-- Inline JS: runs in the main page context (no iframe sandbox).
+         Zeros out the padding-top Streamlit injects for its fixed header,
+         then installs a MutationObserver to keep it at 0 if Streamlit re-applies it.
+         Also attempts to auto-expand the sidebar. -->
+    <img src="x" alt=""
+         style="display:none;position:absolute;width:0;height:0;"
+         onerror="(function(){{
+             var PADS = [
+                 document.querySelector('[data-testid=\\'stAppViewContainer\\']'),
+                 document.querySelector('[data-testid=\\'stMain\\']'),
+                 document.querySelector('.main'),
+                 document.querySelector('.stApp'),
+             ];
+             function zp(el){{
+                 if(el) el.style.setProperty('padding-top','0','important');
+             }}
+             PADS.forEach(zp);
+             PADS.forEach(function(el){{
+                 if(!el) return;
+                 new MutationObserver(function(){{ zp(el); }})
+                     .observe(el,{{attributes:true,attributeFilter:['style']}});
+             }});
+             // Sidebar expand
+             var tried=0;
+             var t=setInterval(function(){{
+                 var btn=document.querySelector('[data-testid=\\'stSidebarCollapsedControl\\'] button')
+                      || document.querySelector('button[aria-label*=\\'sidebar\\' i]');
+                 if(btn){{ btn.click(); clearInterval(t); }}
+                 else if(++tried>30) clearInterval(t);
+             }},100);
+             // Clear sidebar localStorage so future loads stay expanded
+             try{{
+                 var ls=window.localStorage;
+                 for(var i=ls.length-1;i>=0;i--){{
+                     var k=ls.key(i);
+                     if(k&&(k.toLowerCase().indexOf('sidebar')>-1||k.toLowerCase().indexOf('collapsed')>-1))
+                         ls.removeItem(k);
+                 }}
+             }}catch(e){{}}
+         }})();" />
     """, unsafe_allow_html=True)
 
 
@@ -1060,10 +1145,16 @@ _NAV_ITEMS = [
 
 def _render_sidebar() -> None:
     with st.sidebar:
-        # Branding
-        st.markdown("""
+        # Branding — use base64 LB logo; fall back to emoji if file missing
+        logo_src = _load_logo_b64()
+        logo_el  = (
+            f'<img src="{logo_src}" class="sidebar-brand-logo" alt="CSULB LB Logo" />'
+            if logo_src
+            else '<span class="sidebar-brand-logo" style="font-size:6rem;display:block;">🎓</span>'
+        )
+        st.markdown(f"""
         <div class="sidebar-brand">
-            <span class="sidebar-brand-logo">🎓</span>
+            {logo_el}
             <span class="sidebar-brand-name">CSULB Graduate Center</span>
             <span class="sidebar-brand-tag">AI Assistant</span>
         </div>
@@ -1098,6 +1189,18 @@ def _render_sidebar() -> None:
             st.session_state["messages"]      = []
             st.session_state["last_response"] = None
             st.rerun()
+
+        # Elbee mascot above footer
+        elbee_src = _load_image_b64("ES - Elbee Circle.png")
+        if elbee_src:
+            st.markdown(
+                f'<div style="text-align:center;padding:8px 0 4px;">'
+                f'<img src="{elbee_src}" alt="Elbee" '
+                f'style="width:90px;height:90px;object-fit:contain;'
+                f'border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.18);" />'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
 
         st.markdown("---")
         st.caption("© CSULB Graduate Center")
@@ -1247,7 +1350,7 @@ def _render_deadline_disambiguation(cards: list[dict], hint: str) -> None:
 _STEP_PRIORITY_COLOR: dict[int, str] = {
     1: "#f97316",   # department_application  — orange
     2: "#8b5cf6",   # supplemental_application — purple
-    3: "#003366",   # program_requirements / eligibility — navy
+    3: "#111111",   # program_requirements / eligibility
     4: "#0891b2",   # transcript / international — teal
     5: "#64748b",   # generic_application — slate
     6: "#9ca3af",   # overview / unknown — gray
@@ -1895,7 +1998,7 @@ def _render_program_interest_panel() -> None:
     Generates outreach responses for prospective students using approved
     templates and official CSULB program data. No LLM required.
     """
-    with st.expander("🎓 Graduate Program Guidance — Explore programs, timelines & support", expanded=False):
+    with st.expander("🎓 Click here for Graduate Program Guidance - Explore programs, timelines & support", expanded=False):
 
         # ── Section 1: Inside header ──────────────────────────────────────────
         st.markdown(
@@ -1907,7 +2010,7 @@ def _render_program_interest_panel() -> None:
             "letter-spacing:-0.01em;"
             "'>🎓 Graduate Program Guidance</h4>"
             "<p style='"
-            "color:var(--muted);"
+            "color:#111111;"
             "font-size:0.85rem;"
             "margin:0 0 18px 0;"
             "line-height:1.5;"
@@ -2086,14 +2189,88 @@ def main() -> None:
     _render_sidebar()
     _render_header()
 
-    # Mode banner
-    st.markdown("""
-    <div class="mode-banner">
-        <span>💬</span>
-        <span>AI Assistant Mode — Ask about programs, advisors, admissions steps, and FAQs</span>
-        <span class="mode-banner-tag">Standard</span>
-    </div>
-    """, unsafe_allow_html=True)
+    # ── Sidebar auto-expand ────────────────────────────────────────────────
+    # Injected AFTER sidebar so the sidebar DOM is already present.
+    # Strategy:
+    #   1. Wipe every localStorage key that contains "sidebar"/"collapsed"
+    #      so Streamlit's next load defaults back to initial_sidebar_state="expanded".
+    #   2. Poll every 100 ms (up to 3 s) for the collapsed-control button and
+    #      click it — this expands the sidebar on the CURRENT load.
+    import streamlit.components.v1 as components
+    components.html(
+        """<script>
+        (function(){
+            var doc = window.parent.document;
+
+            // ── 1. Kill the padding-top Streamlit injects for its fixed header ──
+            // Use a MutationObserver so we win even when Streamlit's JS fires
+            // after ours and re-applies the padding.
+            var PAD_SELECTORS = [
+                '[data-testid="stAppViewContainer"]',
+                '[data-testid="stMain"]',
+                '.main',
+            ];
+            function zeroPad(el) {
+                if (el && el.style.paddingTop !== '0px') {
+                    el.style.setProperty('padding-top', '0', 'important');
+                }
+            }
+            function stripTopPadding() {
+                PAD_SELECTORS.forEach(function(sel) { zeroPad(doc.querySelector(sel)); });
+            }
+            stripTopPadding();
+
+            // Watch stAppViewContainer — Streamlit sets padding-top on it after JS load
+            var appView = doc.querySelector('[data-testid="stAppViewContainer"]');
+            if (appView) {
+                new MutationObserver(function() { zeroPad(appView); })
+                    .observe(appView, { attributes: true, attributeFilter: ['style'] });
+            }
+            // Also watch stMain
+            var stMain = doc.querySelector('[data-testid="stMain"]');
+            if (stMain) {
+                new MutationObserver(function() { zeroPad(stMain); })
+                    .observe(stMain, { attributes: true, attributeFilter: ['style'] });
+            }
+
+            // ── 2. Clear sidebar localStorage so future loads stay expanded ──
+            try {
+                var ls = window.parent.localStorage;
+                var toRemove = [];
+                for (var i = 0; i < ls.length; i++) {
+                    var k = ls.key(i);
+                    if (k && (k.indexOf('sidebar') !== -1 ||
+                               k.indexOf('Sidebar') !== -1 ||
+                               k.indexOf('collapsed') !== -1 ||
+                               k.indexOf('Collapsed') !== -1)) {
+                        toRemove.push(k);
+                    }
+                }
+                toRemove.forEach(function(k) { ls.removeItem(k); });
+            } catch(e) {}
+
+            // ── 3. Click the expand button for the CURRENT load ──
+            var SELECTORS = [
+                '[data-testid="stSidebarCollapsedControl"] button',
+                '[data-testid="collapsedControl"] button',
+                'button[aria-label*="sidebar" i]',
+                'button[aria-label*="open sidebar" i]',
+            ];
+            function tryExpand() {
+                for (var s = 0; s < SELECTORS.length; s++) {
+                    var btn = doc.querySelector(SELECTORS[s]);
+                    if (btn) { btn.click(); return true; }
+                }
+                return false;
+            }
+            var attempts = 0;
+            var timer = setInterval(function() {
+                if (tryExpand() || ++attempts >= 30) clearInterval(timer);
+            }, 100);
+        })();
+        </script>""",
+        height=0, scrolling=False,
+    )
 
     if not st.session_state["messages"]:
         _render_sample_questions()
