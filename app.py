@@ -89,7 +89,7 @@ st.markdown("""
     height:     0   !important;
     min-height: 0   !important;
     padding:    0   !important;
-    overflow:   hidden !important;
+    overflow:   visible !important;
     background: transparent !important;
     box-shadow: none !important;
     border:     none !important;
@@ -98,7 +98,11 @@ st.markdown("""
 /* Strip the padding-top that Streamlit injects to clear the fixed header.
    Target every layer — Streamlit can set it on any of these. */
 [data-testid="stAppViewContainer"],
+[data-testid="stAppViewContainer"] > section,
+[data-testid="stAppViewContainer"] > section > div,
 [data-testid="stMain"],
+[data-testid="stMain"] > div,
+[data-testid="stMain"] > div > div,
 .main {
     padding-top: 0 !important;
     margin-top:  0 !important;
@@ -137,6 +141,15 @@ st.markdown("""
 /* ══════════════════════════════════════════════════════════════════════
    SIDEBAR  –  amber gold background, navy text
 ══════════════════════════════════════════════════════════════════════ */
+
+[data-testid="stSidebar"] [data-testid="stSidebarContent"],
+[data-testid="stSidebar"] [data-testid="stSidebarUserContent"],
+[data-testid="stSidebar"] > div,
+[data-testid="stSidebar"] > div > div,
+[data-testid="stSidebar"] > div > div > div {
+    padding-top: 0 !important;
+    margin-top:  0 !important;
+}
 
 [data-testid="stSidebar"] {
     background:   linear-gradient(180deg, var(--gold) 0%, var(--gold-mid) 55%, var(--gold-dark) 100%) !important;
@@ -189,40 +202,42 @@ st.markdown("""
 
 .sidebar-brand {
     text-align:    center;
-    padding:       6px 14px 10px;
+    padding:       0 14px 10px;
+    margin-top:    -2.8rem !important;
     border-bottom: 1px solid rgba(0,0,0,0.12);
     margin-bottom: 6px;
     background:    transparent;
 }
 .sidebar-brand-logo {
     display:       block;
-    margin:        0 auto 8px;
-    width:         115px;
-    height:        115px;
+    margin:        0 auto 12px;
+    width:         185px;
+    height:        185px;
     object-fit:    contain;
     border-radius: 50%;
-    box-shadow:    0 3px 10px rgba(0,0,0,0.20);
+    box-shadow:    0 4px 14px rgba(0,0,0,0.22);
 }
 .sidebar-brand-name {
     color:          var(--navy);
-    font-size:      0.95rem;
+    font-size:      1.8rem;
     font-weight:    800;
     display:        block;
     line-height:    1.3;
-    letter-spacing: -0.1px;
-    white-space:    nowrap;
+    letter-spacing: -0.2px;
+    white-space:    normal;
+    text-align:     center;
 }
 .sidebar-brand-tag {
     display:        inline-block;
-    margin-top:     5px;
+    margin-top:     8px;
     background:     rgba(0,0,0,0.10);
     color:          var(--navy);
-    font-size:      0.58rem;
+    font-size:      1.1rem;
     font-weight:    800;
-    letter-spacing: 1.1px;
+    letter-spacing: 1.2px;
     text-transform: uppercase;
     border-radius:  20px;
-    padding:        3px 10px;
+    padding:        6px 20px;
     border:         1px solid rgba(0,0,0,0.18);
 }
 
@@ -271,8 +286,8 @@ st.markdown("""
 .csulb-header {
     background:    linear-gradient(135deg, var(--gold) 0%, var(--gold-mid) 100%);
     padding:       clamp(14px, 2.2vh, 28px) clamp(28px, 4vw, 60px);
-    margin:        0 -1rem 0.1rem -1rem;
-    margin-top:    0 !important;
+    margin:        -5rem -1rem 0.1rem -1rem;
+    margin-top:    -5rem !important;
     display:       flex;
     align-items:   center;
     gap:           clamp(14px, 2vw, 30px);
@@ -283,14 +298,14 @@ st.markdown("""
     z-index:       100;
 }
 .csulb-header-logo {
-    font-size:   clamp(3rem, 5vw, 5.5rem);
+    font-size:   clamp(4rem, 6.5vw, 7rem);
     line-height: 1;
     flex-shrink: 0;
 }
 .csulb-header-text { flex: 1; min-width: 0; }
 .csulb-header-title {
     color:          var(--navy);
-    font-size:      clamp(1.8rem, 3.2vw, 3.2rem);
+    font-size:      clamp(2.2rem, 4vw, 4rem);
     font-weight:    800;
     letter-spacing: -0.5px;
     margin:         0;
@@ -298,7 +313,7 @@ st.markdown("""
 }
 .csulb-header-sub {
     color:          var(--navy-mid);
-    font-size:      clamp(0.9rem, 1.3vw, 1.3rem);
+    font-size:      clamp(1.1rem, 1.7vw, 1.7rem);
     font-weight:    600;
     letter-spacing: 1.4px;
     text-transform: uppercase;
@@ -381,7 +396,7 @@ st.markdown("""
 ══════════════════════════════════════════════════════════════════════ */
 
 .stButton > button {
-    background:    var(--gold)              !important;
+    background:    linear-gradient(135deg, var(--gold) 0%, var(--gold-mid) 100%) !important;
     color:         var(--navy)              !important;
     border:        1.5px solid var(--gold-dark) !important;
     font-weight:   600                      !important;
@@ -391,7 +406,7 @@ st.markdown("""
                    transform 0.12s var(--ease) !important;
 }
 .stButton > button:hover {
-    background:   var(--gold-dark)   !important;
+    background:   linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 100%) !important;
     color:        var(--navy)        !important;
     border-color: var(--gold-dark)   !important;
     box-shadow:   var(--shadow-gold) !important;
@@ -497,10 +512,10 @@ st.markdown("""
 }
 
 [data-testid="stExpander"] {
-    border:        1.5px solid var(--gold-dark)  !important;
-    border-radius: var(--radius)                 !important;
-    background:    var(--gold)                   !important;
-    box-shadow:    var(--shadow-xs)              !important;
+    border:        1.5px solid var(--gold-dark)                               !important;
+    border-radius: var(--radius)                                              !important;
+    background:    linear-gradient(135deg, var(--gold) 0%, var(--gold-mid) 100%) !important;
+    box-shadow:    var(--shadow-xs)                                           !important;
 }
 [data-testid="stExpander"] summary,
 [data-testid="stExpander"] summary p,
@@ -518,12 +533,21 @@ st.markdown("""
     min-height:     44px !important;
 }
 [data-testid="stExpander"] summary:hover {
-    background: var(--gold-mid) !important;
+    background: linear-gradient(135deg, var(--gold-dark) 0%, var(--gold) 100%) !important;
 }
 /* Keep the expanded content area white for readability */
 [data-testid="stExpander"] > div:last-child {
     background:    var(--surface)               !important;
     border-top:    1.5px solid var(--gold-dark) !important;
+}
+
+/* Radio label inside the Graduate Program Guidance expander */
+[data-testid="stRadio"] > label,
+[data-testid="stRadio"] > div > label,
+[data-testid="stRadio"] p {
+    font-size:   0.97rem !important;
+    font-weight: 600     !important;
+    color:       var(--navy) !important;
 }
 
 #MainMenu  { visibility: hidden !important; }
@@ -547,28 +571,29 @@ button[kind="header"] {
 
 .welcome-state {
     text-align: center;
-    padding:    clamp(8px, 1.2vh, 18px) 20px clamp(6px, 0.8vh, 12px);
+    padding:    28px 20px clamp(6px, 0.8vh, 12px);
 }
 .welcome-state-icon {
-    font-size:     clamp(4rem, 7vw, 6rem);
+    font-size:     clamp(6rem, 10vw, 9rem);
     display:       block;
-    margin-bottom: clamp(6px, 0.8vh, 12px);
+    margin-top:    0;
+    margin-bottom: clamp(10px, 1.2vh, 18px);
     line-height:   1;
 }
 .welcome-state-title {
     color:          var(--navy);
-    font-size:      clamp(1.2rem, 1.92vh, 1.56rem);
+    font-size:      clamp(1.6rem, 2.6vh, 2.2rem);
     font-weight:    800;
-    margin-bottom:  4px;
-    letter-spacing: -0.3px;
+    margin-bottom:  8px;
+    letter-spacing: -0.4px;
     line-height:    1.2;
 }
 .welcome-state-sub {
     color:       var(--muted);
-    font-size:   clamp(0.9rem, 1.15vh, 1.035rem);
-    max-width:   520px;
-    margin:      0 auto clamp(8px, 1.2vh, 16px);
-    line-height: 1.5;
+    font-size:   clamp(1.05rem, 1.5vh, 1.3rem);
+    max-width:   620px;
+    margin:      0 auto clamp(12px, 1.5vh, 20px);
+    line-height: 1.6;
 }
 .sample-label {
     color:          var(--gold-dark);
@@ -972,40 +997,40 @@ button[kind="header"] {
 @media screen and (max-height: 980px) {
     /* Header */
     .csulb-header        { padding: 10px 28px !important; }
-    .csulb-header-logo   { font-size: 2.8rem  !important; }
-    .csulb-header-title  { font-size: 1.7rem  !important; }
-    .csulb-header-sub    { font-size: 0.85rem !important; }
+    .csulb-header-logo   { font-size: 3.5rem  !important; }
+    .csulb-header-title  { font-size: 2.1rem  !important; }
+    .csulb-header-sub    { font-size: 1.05rem !important; }
     .csulb-header-lb-logo{ height: 68px !important; width: 68px !important; }
     /* Welcome */
     .welcome-state       { padding: 6px 20px 4px !important; }
-    .welcome-state-icon  { font-size: 3.5rem !important; margin-bottom: 4px !important; }
-    .welcome-state-title { font-size: 1.2rem  !important; }
-    .welcome-state-sub   { font-size: 0.92rem !important; margin-bottom: 8px !important; }
+    .welcome-state-icon  { font-size: 5.5rem !important; margin-bottom: 10px !important; }
+    .welcome-state-title { font-size: 1.6rem  !important; }
+    .welcome-state-sub   { font-size: 1.05rem !important; margin-bottom: 12px !important; }
     /* Sidebar */
     .sidebar-brand       { padding: 8px 12px 8px  !important; }
-    .sidebar-brand-logo  { width: 96px !important; height: 96px !important; margin-bottom: 5px !important; }
-    .sidebar-brand-name  { font-size: 0.88rem !important; }
-    .sidebar-brand-tag   { font-size: 0.56rem !important; padding: 2px 8px !important; margin-top: 4px !important; }
+    .sidebar-brand-logo  { width: 155px !important; height: 155px !important; margin-bottom: 8px !important; }
+    .sidebar-brand-name  { font-size: 1.55rem !important; }
+    .sidebar-brand-tag   { font-size: 0.96rem !important; padding: 5px 16px !important; margin-top: 6px !important; }
     .nav-item            { padding: 5px 8px !important; font-size: 0.78rem !important; }
 }
 
 @media screen and (max-height: 820px) {
     /* Header */
     .csulb-header        { padding: 8px 22px !important; }
-    .csulb-header-logo   { font-size: 2.3rem  !important; }
-    .csulb-header-title  { font-size: 1.45rem !important; }
-    .csulb-header-sub    { font-size: 0.78rem !important; }
+    .csulb-header-logo   { font-size: 2.9rem  !important; }
+    .csulb-header-title  { font-size: 1.8rem  !important; }
+    .csulb-header-sub    { font-size: 0.95rem !important; }
     .csulb-header-lb-logo{ height: 56px !important; width: 56px !important; }
     /* Welcome */
     .welcome-state       { padding: 4px 20px 2px !important; }
-    .welcome-state-icon  { font-size: 3rem   !important; margin-bottom: 3px !important; }
-    .welcome-state-title { font-size: 1.14rem !important; margin-bottom: 2px !important; }
-    .welcome-state-sub   { font-size: 0.875rem !important; margin-bottom: 6px !important; }
+    .welcome-state-icon  { font-size: 4.5rem  !important; margin-bottom: 8px !important; }
+    .welcome-state-title { font-size: 1.45rem !important; margin-bottom: 6px !important; }
+    .welcome-state-sub   { font-size: 0.98rem !important; margin-bottom: 10px !important; }
     /* Sidebar */
     .sidebar-brand       { padding: 6px 10px 6px !important; }
-    .sidebar-brand-logo  { width: 82px !important; height: 82px !important; margin-bottom: 4px !important; }
-    .sidebar-brand-name  { font-size: 0.82rem !important; white-space: normal !important; }
-    .sidebar-brand-tag   { font-size: 0.52rem !important; padding: 2px 7px !important; margin-top: 3px !important; }
+    .sidebar-brand-logo  { width: 135px !important; height: 135px !important; margin-bottom: 6px !important; }
+    .sidebar-brand-name  { font-size: 1.4rem !important; white-space: normal !important; }
+    .sidebar-brand-tag   { font-size: 0.88rem !important; padding: 4px 14px !important; margin-top: 4px !important; }
     .nav-item            { padding: 4px 7px !important; font-size: 0.75rem !important; }
     .nav-section-label   { font-size: 0.5rem !important; }
 }
@@ -1088,47 +1113,6 @@ def _render_header() -> None:
         </div>
         {logo_tag}
     </div>
-
-    <!-- Inline JS: runs in the main page context (no iframe sandbox).
-         Zeros out the padding-top Streamlit injects for its fixed header,
-         then installs a MutationObserver to keep it at 0 if Streamlit re-applies it.
-         Also attempts to auto-expand the sidebar. -->
-    <img src="x" alt=""
-         style="display:none;position:absolute;width:0;height:0;"
-         onerror="(function(){{
-             var PADS = [
-                 document.querySelector('[data-testid=\\'stAppViewContainer\\']'),
-                 document.querySelector('[data-testid=\\'stMain\\']'),
-                 document.querySelector('.main'),
-                 document.querySelector('.stApp'),
-             ];
-             function zp(el){{
-                 if(el) el.style.setProperty('padding-top','0','important');
-             }}
-             PADS.forEach(zp);
-             PADS.forEach(function(el){{
-                 if(!el) return;
-                 new MutationObserver(function(){{ zp(el); }})
-                     .observe(el,{{attributes:true,attributeFilter:['style']}});
-             }});
-             // Sidebar expand
-             var tried=0;
-             var t=setInterval(function(){{
-                 var btn=document.querySelector('[data-testid=\\'stSidebarCollapsedControl\\'] button')
-                      || document.querySelector('button[aria-label*=\\'sidebar\\' i]');
-                 if(btn){{ btn.click(); clearInterval(t); }}
-                 else if(++tried>30) clearInterval(t);
-             }},100);
-             // Clear sidebar localStorage so future loads stay expanded
-             try{{
-                 var ls=window.localStorage;
-                 for(var i=ls.length-1;i>=0;i--){{
-                     var k=ls.key(i);
-                     if(k&&(k.toLowerCase().indexOf('sidebar')>-1||k.toLowerCase().indexOf('collapsed')>-1))
-                         ls.removeItem(k);
-                 }}
-             }}catch(e){{}}
-         }})();" />
     """, unsafe_allow_html=True)
 
 
@@ -1160,16 +1144,6 @@ def _render_sidebar() -> None:
         </div>
         """, unsafe_allow_html=True)
 
-        # Navigation
-        st.markdown('<span class="nav-section-label">Navigation</span>', unsafe_allow_html=True)
-        for icon, label in _NAV_ITEMS:
-            active_cls = "active" if st.session_state.get("nav_active") == label else ""
-            st.markdown(
-                f'<div class="nav-item {active_cls}"><span>{icon}</span><span>{label}</span></div>',
-                unsafe_allow_html=True,
-            )
-
-        st.markdown("---")
 
         # Session
         st.markdown('<span class="nav-section-label">Session</span>', unsafe_allow_html=True)
@@ -1194,10 +1168,10 @@ def _render_sidebar() -> None:
         elbee_src = _load_image_b64("ES - Elbee Circle.png")
         if elbee_src:
             st.markdown(
-                f'<div style="text-align:center;padding:8px 0 4px;">'
+                f'<div style="text-align:center;padding:10px 0 6px;">'
                 f'<img src="{elbee_src}" alt="Elbee" '
-                f'style="width:90px;height:90px;object-fit:contain;'
-                f'border-radius:50%;box-shadow:0 2px 8px rgba(0,0,0,0.18);" />'
+                f'style="width:145px;height:145px;object-fit:contain;'
+                f'border-radius:50%;box-shadow:0 3px 12px rgba(0,0,0,0.22);" />'
                 f'</div>',
                 unsafe_allow_html=True,
             )
@@ -2003,15 +1977,15 @@ def _render_program_interest_panel() -> None:
         # ── Section 1: Inside header ──────────────────────────────────────────
         st.markdown(
             "<h4 style='"
-            "margin:0 0 2px 0;"
+            "margin:0 0 6px 0;"
             "color:var(--navy);"
-            "font-size:1.05rem;"
-            "font-weight:700;"
+            "font-size:1.25rem;"
+            "font-weight:800;"
             "letter-spacing:-0.01em;"
             "'>🎓 Graduate Program Guidance</h4>"
             "<p style='"
             "color:#111111;"
-            "font-size:0.85rem;"
+            "font-size:0.97rem;"
             "margin:0 0 18px 0;"
             "line-height:1.5;"
             "'>Explore CSULB graduate programs, review application timelines, "
@@ -2188,89 +2162,8 @@ def _render_footer() -> None:
 def main() -> None:
     _render_sidebar()
     _render_header()
-
-    # ── Sidebar auto-expand ────────────────────────────────────────────────
-    # Injected AFTER sidebar so the sidebar DOM is already present.
-    # Strategy:
-    #   1. Wipe every localStorage key that contains "sidebar"/"collapsed"
-    #      so Streamlit's next load defaults back to initial_sidebar_state="expanded".
-    #   2. Poll every 100 ms (up to 3 s) for the collapsed-control button and
-    #      click it — this expands the sidebar on the CURRENT load.
-    import streamlit.components.v1 as components
-    components.html(
-        """<script>
-        (function(){
-            var doc = window.parent.document;
-
-            // ── 1. Kill the padding-top Streamlit injects for its fixed header ──
-            // Use a MutationObserver so we win even when Streamlit's JS fires
-            // after ours and re-applies the padding.
-            var PAD_SELECTORS = [
-                '[data-testid="stAppViewContainer"]',
-                '[data-testid="stMain"]',
-                '.main',
-            ];
-            function zeroPad(el) {
-                if (el && el.style.paddingTop !== '0px') {
-                    el.style.setProperty('padding-top', '0', 'important');
-                }
-            }
-            function stripTopPadding() {
-                PAD_SELECTORS.forEach(function(sel) { zeroPad(doc.querySelector(sel)); });
-            }
-            stripTopPadding();
-
-            // Watch stAppViewContainer — Streamlit sets padding-top on it after JS load
-            var appView = doc.querySelector('[data-testid="stAppViewContainer"]');
-            if (appView) {
-                new MutationObserver(function() { zeroPad(appView); })
-                    .observe(appView, { attributes: true, attributeFilter: ['style'] });
-            }
-            // Also watch stMain
-            var stMain = doc.querySelector('[data-testid="stMain"]');
-            if (stMain) {
-                new MutationObserver(function() { zeroPad(stMain); })
-                    .observe(stMain, { attributes: true, attributeFilter: ['style'] });
-            }
-
-            // ── 2. Clear sidebar localStorage so future loads stay expanded ──
-            try {
-                var ls = window.parent.localStorage;
-                var toRemove = [];
-                for (var i = 0; i < ls.length; i++) {
-                    var k = ls.key(i);
-                    if (k && (k.indexOf('sidebar') !== -1 ||
-                               k.indexOf('Sidebar') !== -1 ||
-                               k.indexOf('collapsed') !== -1 ||
-                               k.indexOf('Collapsed') !== -1)) {
-                        toRemove.push(k);
-                    }
-                }
-                toRemove.forEach(function(k) { ls.removeItem(k); });
-            } catch(e) {}
-
-            // ── 3. Click the expand button for the CURRENT load ──
-            var SELECTORS = [
-                '[data-testid="stSidebarCollapsedControl"] button',
-                '[data-testid="collapsedControl"] button',
-                'button[aria-label*="sidebar" i]',
-                'button[aria-label*="open sidebar" i]',
-            ];
-            function tryExpand() {
-                for (var s = 0; s < SELECTORS.length; s++) {
-                    var btn = doc.querySelector(SELECTORS[s]);
-                    if (btn) { btn.click(); return true; }
-                }
-                return false;
-            }
-            var attempts = 0;
-            var timer = setInterval(function() {
-                if (tryExpand() || ++attempts >= 30) clearInterval(timer);
-            }, 100);
-        })();
-        </script>""",
-        height=0, scrolling=False,
-    )
+    # JS for padding-fix + sidebar expand is injected inline via the
+    # <img onerror> tag inside _render_header() — no iframe needed here.
 
     if not st.session_state["messages"]:
         _render_sample_questions()
