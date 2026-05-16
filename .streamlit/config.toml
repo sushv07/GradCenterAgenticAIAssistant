@@ -1,3 +1,9 @@
+[server]
+# Prevents Streamlit from deep-scanning third-party packages like transformers,
+# which require torchvision and flood the console with ModuleNotFoundError noise.
+# Hot-reload for app.py still works normally.
+folderWatchBlacklist = ["transformers", "torch", "torchvision", "sentence_transformers", "sklearn", "numpy", "pandas"]
+
 [theme]
 base            = "light"
 primaryColor    = "#003366"

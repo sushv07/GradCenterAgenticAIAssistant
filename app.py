@@ -211,8 +211,8 @@ st.markdown("""
 .sidebar-brand-logo {
     display:       block;
     margin:        0 auto 12px;
-    width:         185px;
-    height:        185px;
+    width:         290px;
+    height:        290px;
     object-fit:    contain;
     border-radius: 50%;
     box-shadow:    0 4px 14px rgba(0,0,0,0.22);
@@ -1008,7 +1008,7 @@ button[kind="header"] {
     .welcome-state-sub   { font-size: 1.05rem !important; margin-bottom: 12px !important; }
     /* Sidebar */
     .sidebar-brand       { padding: 8px 12px 8px  !important; }
-    .sidebar-brand-logo  { width: 155px !important; height: 155px !important; margin-bottom: 8px !important; }
+    .sidebar-brand-logo  { width: 245px !important; height: 245px !important; margin-bottom: 8px !important; }
     .sidebar-brand-name  { font-size: 1.55rem !important; }
     .sidebar-brand-tag   { font-size: 0.96rem !important; padding: 5px 16px !important; margin-top: 6px !important; }
     .nav-item            { padding: 5px 8px !important; font-size: 0.78rem !important; }
@@ -1028,7 +1028,7 @@ button[kind="header"] {
     .welcome-state-sub   { font-size: 0.98rem !important; margin-bottom: 10px !important; }
     /* Sidebar */
     .sidebar-brand       { padding: 6px 10px 6px !important; }
-    .sidebar-brand-logo  { width: 135px !important; height: 135px !important; margin-bottom: 6px !important; }
+    .sidebar-brand-logo  { width: 210px !important; height: 210px !important; margin-bottom: 6px !important; }
     .sidebar-brand-name  { font-size: 1.4rem !important; white-space: normal !important; }
     .sidebar-brand-tag   { font-size: 0.88rem !important; padding: 4px 14px !important; margin-top: 4px !important; }
     .nav-item            { padding: 4px 7px !important; font-size: 0.75rem !important; }
@@ -1170,7 +1170,7 @@ def _render_sidebar() -> None:
             st.markdown(
                 f'<div style="text-align:center;padding:10px 0 6px;">'
                 f'<img src="{elbee_src}" alt="Elbee" '
-                f'style="width:145px;height:145px;object-fit:contain;'
+                f'style="width:220px;height:220px;object-fit:contain;'
                 f'border-radius:50%;box-shadow:0 3px 12px rgba(0,0,0,0.22);" />'
                 f'</div>',
                 unsafe_allow_html=True,
