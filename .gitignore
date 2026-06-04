@@ -9,6 +9,9 @@ venv/
 # ChromaDB persistent vector store (can be large; rebuilt automatically)
 chroma_db/
 
+# Session files (checklist tracking removed from product direction)
+sessions/
+
 # RAG build logs
 logs/
 .claude/

@@ -1808,12 +1808,11 @@ def _render_response(response: dict, msg_idx: int = 0) -> None:
     if   route == "advisor":   _render_advisor_panel(response)
     elif route in ("deadlines", "eligibility", "application"):
         _render_topic_panel(response)
-    elif route in ("guidance", "checklist"):
+    elif route == "guidance":
         st.markdown("### Step-by-Step Guidance")
         _render_guidance_panel(response.get("steps", []))
     elif route == "answer":
         st.markdown("### Answer"); _render_answer_panel(response)
-    # tracking route: summary + primary_action rendered above are sufficient
 
     if source:
         st.caption(f"Source: [{source}]({source})")
