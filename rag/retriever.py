@@ -41,9 +41,11 @@ retrieve_multi():
 
 from __future__ import annotations
 
+import time
 from typing import Optional
 
 from rag.store import get_or_build_store
+from gradcenter_logging import emit
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -147,6 +149,14 @@ def retrieve(
     # Over-fetch to have room for threshold filtering
     fetch_k = k * 2
 
+    # Build optional fields once — used in both the success and exception emit paths
+    _opt: dict = {"k_requested": fetch_k}
+    if page_type and page_type in PAGE_TYPES:
+        _opt["page_type"] = page_type
+    if program_name:
+        _opt["program_name"] = program_name
+
+    _t0 = time.perf_counter()
     try:
         if where_filter is not None:
             raw_results = store.similarity_search_with_relevance_scores(
@@ -157,8 +167,15 @@ def retrieve(
                 query, k=fetch_k
             )
     except Exception as exc:
+        _elapsed = round((time.perf_counter() - _t0) * 1000, 1)
+        emit("retrieval.result", level="ERROR",
+             num_returned=0, top_score=0.0, elapsed_ms=_elapsed,
+             min_score_used=min_score,
+             error=str(exc)[:200], error_type=type(exc).__name__, **_opt)
         print(f"[retriever] Query failed: {exc}")
         return []
+
+    _elapsed = round((time.perf_counter() - _t0) * 1000, 1)
 
     # Filter, format, and cap at k results
     results: list[dict] = []
@@ -183,8 +200,18 @@ def retrieve(
     # Re-sort after filtering (similarity_search_with_relevance_scores sorts by
     # score descending, but filtering can leave a gap in the ordering)
     results.sort(key=lambda r: r["score"], reverse=True)
+    results = results[:k]
 
-    return results[:k]
+    _top_score = results[0]["score"] if results else 0.0
+    emit("retrieval.result",
+         level="INFO" if results else "WARNING",
+         num_returned=len(results),
+         top_score=round(_top_score, 4),
+         elapsed_ms=_elapsed,
+         min_score_used=min_score,
+         **_opt)
+
+    return results
 
 
 # ---------------------------------------------------------------------------

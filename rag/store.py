@@ -48,6 +48,8 @@ from typing import Optional
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 
+from gradcenter_logging import emit
+
 # ---------------------------------------------------------------------------
 # Paths and configuration
 # ---------------------------------------------------------------------------
@@ -304,6 +306,9 @@ def get_or_build_store(
     # (only has faq/deadlines/eligibility/application_process, 0 program pages).
     # _STORE_VALIDATED is set to True after the first successful check so
     # subsequent queries skip it — O(1) on every call after the first.
+    # Track why a rebuild is needed (set before reaching the rebuild block).
+    _rebuild_trigger = ""
+
     if _STORE is not None and not force_rebuild:
         if not _STORE_VALIDATED:
             if _store_has_program_pages(_STORE):
@@ -314,7 +319,11 @@ def get_or_build_store(
                 "[store] In-memory store has no program_application chunks "
                 "(built before discovery) — clearing and rebuilding"
             )
+            emit("store.lifecycle", level="WARNING",
+                 store_type="chroma", lifecycle_event="validation_triggered",
+                 trigger="missing_program_pages")
             _STORE = None
+            _rebuild_trigger = "missing_program_pages"
         else:
             return _STORE
 
@@ -331,15 +340,48 @@ def get_or_build_store(
                     "[store] Loaded store has no program_application chunks "
                     "(built before discovery) — triggering rebuild"
                 )
+                emit("store.lifecycle", level="WARNING",
+                     store_type="chroma", lifecycle_event="validation_triggered",
+                     trigger="missing_program_pages")
+                _rebuild_trigger = "missing_program_pages"
                 # Don't cache the incomplete store; let rebuild run below.
             else:
+                try:
+                    _chunk_count = store._collection.count()
+                except Exception:
+                    _chunk_count = None
+                _lc_kw = {"num_chunks": _chunk_count} if _chunk_count is not None else {}
+                emit("store.lifecycle", level="INFO",
+                     store_type="chroma", lifecycle_event="load_complete",
+                     trigger="process_start", **_lc_kw)
                 _STORE = store
                 _STORE_VALIDATED = True  # disk store confirmed to have program pages
                 return store
         # Load failed (e.g. corrupt file) — fall through to rebuild
 
-    # 3. Rebuild from scratch
+    # 3. Rebuild from scratch — determine trigger if not already set
+    if not _rebuild_trigger:
+        if force_rebuild:
+            _rebuild_trigger = "force_rebuild"
+        elif not _chroma_has_data():
+            _rebuild_trigger = "first_run"
+        else:
+            _rebuild_trigger = "ttl_expired"
+
     print("[store] Rebuilding vector store from source pages ...")
+
+    # Capture TTL age for ttl_expired trigger (helps debug how stale the store was)
+    _ttl_kw: dict = {}
+    if _rebuild_trigger == "ttl_expired" and _TIMESTAMP_FILE.exists():
+        try:
+            _ttl_kw["ttl_age_s"] = round(time.time() - _TIMESTAMP_FILE.stat().st_mtime, 1)
+        except OSError:
+            pass
+
+    emit("store.lifecycle", level="WARNING",
+         store_type="chroma", lifecycle_event="build_start",
+         trigger=_rebuild_trigger, **_ttl_kw)
+    _build_t0 = time.perf_counter()
 
     try:
         # Lazy import to avoid circular dependencies:
@@ -365,10 +407,26 @@ def get_or_build_store(
             return None
 
         store = build_vector_store(documents)
+
+        _build_elapsed = round((time.perf_counter() - _build_t0) * 1000, 1)
+        try:
+            _built_count = store._collection.count()
+        except Exception:
+            _built_count = len(documents)
+        emit("store.lifecycle", level="WARNING",
+             store_type="chroma", lifecycle_event="build_complete",
+             trigger=_rebuild_trigger, elapsed_ms=_build_elapsed,
+             num_chunks=_built_count)
+
         _STORE = store
         return store
 
     except Exception as exc:
+        _build_elapsed = round((time.perf_counter() - _build_t0) * 1000, 1)
+        emit("store.lifecycle", level="ERROR",
+             store_type="chroma", lifecycle_event="build_failed",
+             trigger=_rebuild_trigger, elapsed_ms=_build_elapsed,
+             error=str(exc)[:200], error_type=type(exc).__name__)
         print(f"[store] Error during build: {exc}")
         import traceback
         traceback.print_exc()

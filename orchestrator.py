@@ -18,8 +18,11 @@ from __future__ import annotations
 import json
 import re
 import sys
+import time
 from enum import Enum
 from typing import Any
+
+from gradcenter_logging import emit
 
 from query_handler import handle_query
 from answer_agent import answer
@@ -334,6 +337,33 @@ def _format_response(query: str, route: Route, raw: dict) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Logging helpers
+# ---------------------------------------------------------------------------
+
+def _emit_tool_result(tool_name: str, result: dict, elapsed_ms: float) -> None:
+    """Emit tool.result for a topic-tool call from _build_topic_response()."""
+    found      = result.get("found", False)
+    top_score  = round(float(result.get("top_score") or 0.0), 4)
+    num_results = len(result.get("results") or [])
+    is_degraded = not found or result.get("fallback_used") or result.get("error")
+    level = "ERROR" if result.get("error") else ("WARNING" if is_degraded else "INFO")
+    _opt: dict = {"num_results": num_results}
+    if result.get("fallback_used"):
+        _opt["fallback_used"] = True
+    if result.get("needs_clarification"):
+        _opt["needs_clarification"] = True
+    if result.get("program_name"):
+        _opt["program_name"] = result["program_name"]
+    if result.get("program_specific") is not None:
+        _opt["program_specific"] = bool(result["program_specific"])
+    if result.get("error"):
+        _opt["error"] = str(result["error"])[:200]
+    emit("tool.result", level=level,
+         tool=tool_name, found=found, top_score=top_score,
+         elapsed_ms=elapsed_ms, **_opt)
+
+
+# ---------------------------------------------------------------------------
 # Topic-tool response builder
 # ---------------------------------------------------------------------------
 
@@ -355,7 +385,9 @@ def _build_topic_response(topic: str, query: str, session_id: str) -> dict:
     """
     if topic == "deadlines":
         from tools.deadlines_tool import get_deadlines
+        _tt0 = time.perf_counter()
         result = get_deadlines(query)
+        _emit_tool_result("deadlines_tool", result, round((time.perf_counter() - _tt0) * 1000, 1))
         heading     = "Deadlines"
         source_base = (
             "https://www.csulb.edu/graduate-studies-csulb/article/"
@@ -369,7 +401,9 @@ def _build_topic_response(topic: str, query: str, session_id: str) -> dict:
 
     elif topic == "eligibility":
         from tools.eligibility_tool import get_eligibility
+        _tt0 = time.perf_counter()
         result = get_eligibility(query)
+        _emit_tool_result("eligibility_tool", result, round((time.perf_counter() - _tt0) * 1000, 1))
         heading     = "Eligibility Requirements"
         source_base = "https://www.csulb.edu/admissions/doctoral-programs-admission-eligibility"
         next_actions = [
@@ -380,7 +414,9 @@ def _build_topic_response(topic: str, query: str, session_id: str) -> dict:
 
     else:  # "application"
         from tools.application_steps_tool import get_application_steps
+        _tt0 = time.perf_counter()
         result = get_application_steps(query)
+        _emit_tool_result("application_steps_tool", result, round((time.perf_counter() - _tt0) * 1000, 1))
         heading     = "Application Steps"
         source_base = "https://www.csulb.edu/admissions/doctoral-programs-application-process"
         next_actions = [
@@ -470,16 +506,32 @@ def run(query: str, session_id: str = "default") -> dict[str, Any]:
 
     if not _has_advisor_signal:
         if _raw_toks & _DEADLINE_SIGNALS:
+            emit("route.decision", level="INFO",
+                 route="deadlines", reason="deadline_signal",
+                 is_process_query=is_process_query,
+                 has_advisor_signal=_has_advisor_signal,
+                 matched_signals=sorted(_raw_toks & _DEADLINE_SIGNALS))
             return _build_topic_response("deadlines", query, session_id)
         if _raw_toks & _ELIGIBILITY_SIGNALS:
+            emit("route.decision", level="INFO",
+                 route="eligibility", reason="eligibility_signal",
+                 is_process_query=is_process_query,
+                 has_advisor_signal=_has_advisor_signal,
+                 matched_signals=sorted(_raw_toks & _ELIGIBILITY_SIGNALS))
             return _build_topic_response("eligibility", query, session_id)
         # Application-steps: trigger when either:
         #   (a) explicit step/process/procedure signals present, OR
         #   (b) a specific program is named (e.g. "edd", "dpt", "dnp") — these
         #       always want program-specific RAG, not the generic 8-step guidance.
         # Generic "how do I apply?" without a named program keeps GUIDANCE path.
-        _has_program_signal = bool(_tool_detect_program(query))
+        _detected_program = _tool_detect_program(query)   # capture name for logging
+        _has_program_signal = bool(_detected_program)
         if is_process_query and ((_raw_toks & _PROCESS_STEP_SIGNALS) or _has_program_signal):
+            emit("route.decision", level="INFO",
+                 route="application", reason="application_process",
+                 is_process_query=is_process_query,
+                 has_advisor_signal=_has_advisor_signal,
+                 program_detected=_detected_program or "")
             return _build_topic_response("application", query, session_id)
 
     # ── Advisor retrieval ──────────────────────────────────────────────────────
@@ -546,6 +598,12 @@ def run(query: str, session_id: str = "default") -> dict[str, Any]:
                 "outlook_url": _outlook.get("outlook_url", ""),
             }
 
+        _adv_reason = "advisor_fuzzy_match" if advisor_result["match"] else "advisor_suggestions"
+        emit("route.decision", level="INFO",
+             route="advisor", reason=_adv_reason,
+             is_process_query=is_process_query,
+             has_advisor_signal=_has_advisor_signal,
+             advisor_score=advisor_result["confidence"])
         return advisor_response
 
     # ── PhD / doctoral query with no match → list available doctoral programs ─
@@ -563,6 +621,11 @@ def run(query: str, session_id: str = "default") -> dict[str, Any]:
             )
         ]
         prog_names = [a["program"] for a in doctoral_programs if a.get("program")]
+        emit("route.decision", level="INFO",
+             route="advisor", reason="doctoral_no_match",
+             is_process_query=is_process_query,
+             has_advisor_signal=_has_advisor_signal,
+             advisor_score=advisor_result["confidence"])
         return {
             "query":          query,
             "route":          "advisor",
@@ -590,6 +653,11 @@ def run(query: str, session_id: str = "default") -> dict[str, Any]:
     _ADVISOR_INTENT = {"contact", "advisor", "adviser", "advising", "talk", "speak", "email", "reach"}
     if advisor_result["confidence"] == 0 and raw_tokens & _ADVISOR_INTENT:
         known = [a["program"] for a in advisors if a.get("program")]
+        emit("route.decision", level="INFO",
+             route="advisor", reason="advisor_intent_no_program",
+             is_process_query=is_process_query,
+             has_advisor_signal=_has_advisor_signal,
+             advisor_score=0)
         return {
             "query":          query,
             "route":          "advisor",
@@ -642,6 +710,10 @@ def run(query: str, session_id: str = "default") -> dict[str, Any]:
             # guidance already has markdown [text](url) links embedded — render-ready
             guidance_text = faq_data.get("guidance", "")
             primary = guidance_text or extra or "Request a free appointment with a Graduate Center Coordinator."
+            emit("route.decision", level="INFO",
+                 route="next_steps", reason="start_intent",
+                 is_process_query=is_process_query,
+                 has_advisor_signal=_has_advisor_signal)
             return {
                 "query":          query,
                 "route":          "next_steps",
@@ -662,7 +734,21 @@ def run(query: str, session_id: str = "default") -> dict[str, Any]:
             }
 
     route = detect_route(query)
-    raw   = _ROUTE_RUNNERS[route](query, session_id)
+
+    # Derive reason code from detect_route() outcome (mirrors detect_route()'s logic)
+    _dr_first = next(iter(re.findall(r"[a-z]+", query.lower())), "")
+    if route == Route.GUIDANCE:
+        _dr_reason = "detect_route_guidance"
+    elif _dr_first in {"is", "are", "does", "do", "can", "will", "should"}:
+        _dr_reason = "detect_route_answer_starter"
+    else:
+        _dr_reason = "detect_route_answer_default"
+    emit("route.decision", level="INFO",
+         route=route.value, reason=_dr_reason,
+         is_process_query=is_process_query,
+         has_advisor_signal=_has_advisor_signal)
+
+    raw      = _ROUTE_RUNNERS[route](query, session_id)
     response = _format_response(query, route, raw)
     response["session_id"] = session_id
     return response

@@ -6,12 +6,15 @@ Run: streamlit run app.py
 from __future__ import annotations
 
 import sys
+import time
+import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
 
 import streamlit as st
 import orchestrator
+from gradcenter_logging import emit, set_request_id, new_request_id
 from tools.program_interest_tool import (
     generate_program_specific_response,
     generate_general_interest_response,
@@ -1868,8 +1871,27 @@ def _render_sample_questions() -> None:
 
 def _submit_query(query: str) -> None:
     sid = st.session_state["session_id"]
+
+    # ── Request lifecycle ─────────────────────────────────────────────────────
+    _rid = new_request_id()
+    set_request_id(_rid)
+
+    _q_trunc = query[:200].rsplit(" ", 1)[0] if len(query) > 200 and " " in query[:200] else query[:200]
+    _q_opt   = {"query_truncated": True} if len(query) > 200 else {}
+    emit("request.start", level="INFO",
+         query=_q_trunc, query_len=len(query), **_q_opt)
+    _req_t0 = time.perf_counter()
+
     with st.spinner("Searching for an answer…"):
         response = orchestrator.run(query, session_id=sid)
+
+    _req_elapsed = round((time.perf_counter() - _req_t0) * 1000, 1)
+    _had_error   = bool(response.get("error"))
+    _route       = response.get("route") or ""
+    _rc_level    = "WARNING" if (_had_error or _req_elapsed > 30_000) else "INFO"
+    emit("request.complete", level=_rc_level,
+         route=_route, elapsed_ms=_req_elapsed, had_error=_had_error)
+
     st.session_state["messages"].append({"role": "user",  "content": query})
     st.session_state["messages"].append({
         "role":     "assistant",

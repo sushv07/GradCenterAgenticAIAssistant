@@ -13,6 +13,8 @@ from pathlib import Path
 
 from rapidfuzz import fuzz
 
+from gradcenter_logging import emit
+
 DATA_FILE = Path(__file__).parent / "advisors_extracted.json"
 
 
@@ -93,6 +95,28 @@ def _best_score_for(query: str, advisor: dict) -> tuple[int, int]:
     return best_partial, best_full
 
 
+def _emit_advisor_match(
+    outcome: str,
+    best_partial: int,
+    best_full: int,
+    matched_program: str,
+    normalized_query: str = "",
+    **kwargs: object,
+) -> None:
+    """Emit advisor.match event.  Called at every return path in find_advisor()."""
+    level = "WARNING" if outcome in ("ambiguous", "empty_normalized") else "INFO"
+    _kw: dict = {}
+    if normalized_query:
+        _kw["normalized_query"] = normalized_query
+    _kw.update(kwargs)
+    emit("advisor.match", level=level,
+         outcome=outcome,
+         best_partial=best_partial,
+         best_full=best_full,
+         matched_program=matched_program,
+         **_kw)
+
+
 def find_advisor(query: str) -> dict:
     """
     Fuzzy match query against each program's name and aliases list.
@@ -105,10 +129,12 @@ def find_advisor(query: str) -> dict:
       suggestions – [] when match found; top-3 program names when no match
     """
     if not query or not query.strip():
+        _emit_advisor_match("empty_normalized", 0, 0, "")
         return {"match": None, "confidence": 0, "suggestions": []}
 
     q = normalize_query(query)
     if not q:                          # query was all stop words
+        _emit_advisor_match("empty_normalized", 0, 0, "", normalized_query=q)
         return {"match": None, "confidence": 0, "suggestions": []}
 
     # Score every advisor record
@@ -158,6 +184,11 @@ def find_advisor(query: str) -> dict:
                 unique_to_cand = cand_tokens - others_tokens
                 if unique_to_cand & q_tokens:
                     # Query contains a token unique to this program → unambiguous
+                    _emit_advisor_match(
+                        "unambiguous_by_token", cand_partial, cand_full,
+                        cand_adv.get("program", ""),
+                        normalized_query=q, num_ambiguous=len(ambiguous),
+                    )
                     return {
                         "match": cand_adv,
                         "confidence": cand_partial,
@@ -165,6 +196,11 @@ def find_advisor(query: str) -> dict:
                     }
 
             # No unique tokens found → genuinely ambiguous, show all qualifying programs
+            _emit_advisor_match(
+                "ambiguous", best_partial, best_full,
+                best_record.get("program", ""),
+                normalized_query=q, num_ambiguous=len(ambiguous),
+            )
             return {
                 "match": None,
                 "confidence": best_partial,
@@ -173,6 +209,10 @@ def find_advisor(query: str) -> dict:
                     if adv.get("program")
                 ],
             }
+        _emit_advisor_match(
+            "strong_match", best_partial, best_full,
+            best_record.get("program", ""), normalized_query=q,
+        )
         return {
             "match": best_record,
             "confidence": best_partial,
@@ -191,6 +231,12 @@ def find_advisor(query: str) -> dict:
             if len(suggestions) == 3:
                 break
 
+    _emit_advisor_match(
+        "suggestions" if suggestions else "no_match",
+        best_partial, best_full,
+        best_record.get("program", ""),
+        normalized_query=q, num_suggestions=len(suggestions),
+    )
     return {
         "match": None,
         "confidence": best_partial,

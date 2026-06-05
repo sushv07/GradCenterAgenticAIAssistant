@@ -29,6 +29,8 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 
+from gradcenter_logging import emit
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -224,8 +226,31 @@ def _get_vectorstore() -> Optional[Chroma]:
 
     now = time.monotonic()
     if _VECTORSTORE is None or (now - _VECTORSTORE_BUILT_AT) > _VECTORSTORE_TTL:
+        _faq_trigger = "process_start" if _VECTORSTORE is None else "ttl_expired"
+        _faq_t0 = time.perf_counter()
+
+        emit("store.lifecycle", level="WARNING",
+             store_type="faq_rag", lifecycle_event="build_start",
+             trigger=_faq_trigger)
+
         _VECTORSTORE = _build_vectorstore()
         _VECTORSTORE_BUILT_AT = now
+
+        _faq_elapsed = round((time.perf_counter() - _faq_t0) * 1000, 1)
+        if _VECTORSTORE is not None:
+            try:
+                _faq_n = _VECTORSTORE._collection.count()
+            except Exception:
+                _faq_n = None
+            _faq_kw = {"num_chunks": _faq_n} if _faq_n is not None else {}
+            emit("store.lifecycle", level="WARNING",
+                 store_type="faq_rag", lifecycle_event="build_complete",
+                 trigger=_faq_trigger, elapsed_ms=_faq_elapsed, **_faq_kw)
+        else:
+            emit("store.lifecycle", level="ERROR",
+                 store_type="faq_rag", lifecycle_event="build_failed",
+                 trigger=_faq_trigger, elapsed_ms=_faq_elapsed,
+                 error="_build_vectorstore() returned None")
 
     return _VECTORSTORE
 
