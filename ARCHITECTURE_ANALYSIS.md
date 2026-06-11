@@ -1057,3 +1057,67 @@ Phase 2A completed:
 - gate_pass_rate: 100%
 - p50 latency: 0.9ms
 - p95 latency: 17.1ms
+
+## Phase 2 — Evaluation Harness
+
+Phase 2 introduced a deterministic evaluation layer for the Grad Center Assistant.
+
+The goal was to move from manual testing to repeatable behavioral validation.
+
+### What was added
+
+- Golden query dataset in `evals/golden_queries.json`
+- Evaluation runner in `evals/run_evals.py`
+- JSON reports in `evals/reports/`
+- Route correctness validation
+- Route reason validation using `route.decision` logs
+- Retrieval event structure validation
+- Fallback behavior validation
+- Advisor outcome validation
+- Backend inference validation
+- Vector DB usage reporting
+
+### Current baseline
+
+- Total cases: 34
+- PASS: 33
+- FAIL: 0
+- SKIP / known issue: 1
+- Gate pass rate: 100%
+- Backend match: 33 / 33
+- Backend mismatches: 0
+- Vector DB touched: 15 / 33 cases
+
+### What the evaluation checks
+
+The harness validates whether each query reaches the expected:
+
+- route
+- route reason
+- retrieval backend
+- ChromaDB page type
+- retrieval event structure
+- fallback behavior
+- advisor matching outcome
+
+This does not yet evaluate final answer quality or factual correctness.
+
+### Why this matters
+
+The system can now detect routing and backend regressions automatically before future architecture changes.
+
+This creates a baseline for future work such as:
+- retrieval consolidation
+- backend instrumentation
+- intent classification improvements
+- LLM-assisted routing or response generation
+
+### Current limitation
+
+Some backends are still partially unobserved:
+
+- `query_handler` / JSON keyword scoring
+- `admissions_rag` / live HTTP + snippet path
+- FAQ RAG query-level retrieval
+
+These should be instrumented before deeper answer-quality evaluation.

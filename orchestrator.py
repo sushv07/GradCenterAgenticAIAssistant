@@ -151,7 +151,26 @@ def _run_guidance(query: str, session_id: str) -> dict:
 
 
 def _run_answer(query: str, session_id: str) -> dict:
-    return answer(query, handle_query(query))
+    retrieved = handle_query(query)
+    _t0 = time.perf_counter()
+    result = answer(query, retrieved)
+    _elapsed = round((time.perf_counter() - _t0) * 1000, 1)
+    _level = (
+        "WARNING"
+        if result.get("answer_type") == "unknown"
+        or result.get("confidence") == "low"
+        else "INFO"
+    )
+    _kw_fields: dict = dict(
+        answer_type=result.get("answer_type", "unknown"),
+        confidence=result.get("confidence", "low"),
+        source_file=result.get("source_file", ""),
+        elapsed_ms=_elapsed,
+    )
+    if result.get("source_file") and result.get("source_url"):
+        _kw_fields["source_url"] = result["source_url"]
+    emit("keyword.result", level=_level, **_kw_fields)
+    return result
 
 
 _ROUTE_RUNNERS = {

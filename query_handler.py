@@ -8,9 +8,12 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+
+from gradcenter_logging import emit
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -480,7 +483,22 @@ def handle_query(query: str) -> dict:
         return handle_advisor_query(query)
 
     index = load_index()
+    _t0 = time.perf_counter()
     ranked = rank_files(query, index)
+    _kw_elapsed = round((time.perf_counter() - _t0) * 1000, 1)
+    _kw_top = [{"file": n, "score": s} for n, s in ranked[:MAX_FILES]]
+    _kw_fields: dict = dict(
+        num_ranked=len(ranked),
+        num_loaded=len(_kw_top),
+        top_score=ranked[0][1] if ranked else 0,
+        fallback=not bool(ranked),
+        elapsed_ms=_kw_elapsed,
+    )
+    if _kw_top:
+        _kw_fields["top_files"] = _kw_top
+    emit("keyword.retrieval",
+         level="WARNING" if not ranked else "INFO",
+         **_kw_fields)
 
     if not ranked:
         return build_fallback(query, reason="no_match")

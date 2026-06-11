@@ -323,19 +323,31 @@ def faq_rag_lookup(query: str) -> Optional[dict]:
 
     vectorstore = _get_vectorstore()
     if not vectorstore:
+        emit("faq_rag.query", level="ERROR",
+             store_available=False, found=False, num_results=0,
+             top_score=0.0, threshold_passed=False, elapsed_ms=0.0)
         return None
 
     # Retrieve top-2 chunks with cosine relevance scores in [0, 1]
     # (requires Chroma built with hnsw:space=cosine — see _build_vectorstore)
+    _t0 = time.perf_counter()
     results = vectorstore.similarity_search_with_relevance_scores(query, k=2)
+    _faq_elapsed = round((time.perf_counter() - _t0) * 1000, 1)
 
     if not results:
+        emit("faq_rag.query", level="WARNING",
+             store_available=True, found=False, num_results=0,
+             top_score=0.0, threshold_passed=False, elapsed_ms=_faq_elapsed)
         return None
 
     top_doc, top_score = results[0]
 
     # Reject weak matches (query is outside the FAQ's domain)
     if top_score < _MIN_RELEVANCE:
+        emit("faq_rag.query", level="WARNING",
+             store_available=True, found=False, num_results=len(results),
+             top_score=round(top_score, 4), threshold_passed=False,
+             elapsed_ms=_faq_elapsed)
         return None
 
     # Always use the full answer stored in metadata rather than the raw chunk.
@@ -357,6 +369,11 @@ def faq_rag_lookup(query: str) -> Optional[dict]:
 
     guidance = _format_guidance(answer_text, links)
 
+    emit("faq_rag.query", level="INFO",
+         store_available=True, found=True, num_results=len(results),
+         top_score=round(top_score, 4), threshold_passed=True,
+         matched_question=top_doc.metadata.get("question", ""),
+         elapsed_ms=_faq_elapsed)
     return {
         "guidance": guidance,
         "source":   _FAQ_URL,
