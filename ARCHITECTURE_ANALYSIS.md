@@ -1015,3 +1015,37 @@ The end state is a system with:
 - **Unified retrieval interface**
 
 That's a production-grade AI guidance system. No task manager. No progress bars. No dependency graphs. Just clean routing, good retrieval, and reliable answers.
+
+Phase 1 Observability Completed
+
+- Added structured NDJSON logging
+
+- Added request correlation IDs
+
+- Added route decision tracing
+
+- Added retrieval metrics
+
+- Added advisor matching metrics
+
+- Added tool execution metrics
+
+- Added store lifecycle events
+
+Key findings:
+
+- ChromaDB cold load ~3.9s, warm ~37ms
+
+- FAQ store cold build ~4.6s, warm ~45ms
+
+- No routing regressions detected
+
+Retrieval architecture finding:
+- Topic tools use persistent ChromaDB.
+- FAQ/start guidance uses a separate in-memory FAQ RAG store.
+- Advisor matching uses RapidFuzz, correctly avoiding vector search.
+- Guidance uses structured admissions.json.
+- Answer fallback uses JSON keyword scoring.
+- Cold starts affect ChromaDB-backed routes and FAQ RAG-backed routes, but not advisor/guidance/answer routes.
+
+

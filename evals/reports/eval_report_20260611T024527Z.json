@@ -1,0 +1,1172 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "2cd4d6a3-2988-42c4-888b-0d73517145b1",
+  "timestamp": "2026-06-11T02:45:27Z",
+  "dataset_path": "/Users/sushmithavijayakumar/Documents/ClaudeCode/GradCenterAgenticAIAssistant/evals/golden_queries.json",
+  "dataset_schema_version": "1.0.0",
+  "warmup_performed": true,
+  "summary": {
+    "total": 20,
+    "passed": 0,
+    "failed": 19,
+    "known_failed": 1,
+    "errors": 0,
+    "skipped": 0,
+    "pass_rate": 0.0,
+    "gate_pass_rate": 0.05
+  },
+  "latency_ms": {
+    "p50": 1.5,
+    "p95": 240.3,
+    "max": 4339.8,
+    "note": "snapshot only \u2014 no SLA gate in Phase 2A"
+  },
+  "cases": [
+    {
+      "id": "deadlines_001",
+      "query": "What is the application deadline for the spring semester?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 8.92,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "deadlines",
+          "actual": "deadlines",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "deadline_signal",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "deadlines",
+            "k_requested": 16,
+            "min_returned": 1
+          },
+          "actual": null,
+          "passed": false,
+          "message": "no retrieval.result for page_type='deadlines' k_requested=16"
+        },
+        {
+          "name": "fallback",
+          "expected": null,
+          "actual": null,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "deadlines_002",
+      "query": "What is the application cutoff for fall admission?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 8.87,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "deadlines",
+          "actual": "deadlines",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "deadline_signal",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "deadlines",
+            "k_requested": 16,
+            "min_returned": 1
+          },
+          "actual": null,
+          "passed": false,
+          "message": "no retrieval.result for page_type='deadlines' k_requested=16"
+        },
+        {
+          "name": "fallback",
+          "expected": null,
+          "actual": null,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "eligibility_001",
+      "query": "What GPA do I need to be eligible for graduate admission?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 9.02,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "eligibility",
+          "actual": "eligibility",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "eligibility_signal",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "eligibility",
+            "k_requested": 8,
+            "min_returned": 1
+          },
+          "actual": null,
+          "passed": false,
+          "message": "no retrieval.result for page_type='eligibility' k_requested=8"
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "eligibility_002",
+      "query": "Am I eligible to apply if I completed my undergraduate degree at an international institution?",
+      "status": "KNOWN_FAIL",
+      "known_failure": true,
+      "elapsed_ms": 9.1,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "eligibility",
+          "actual": "eligibility",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "eligibility_signal",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "eligibility",
+            "k_requested": 8,
+            "min_returned": 0
+          },
+          "actual": null,
+          "passed": false,
+          "message": "no retrieval.result for page_type='eligibility' k_requested=8"
+        },
+        {
+          "name": "fallback",
+          "expected": true,
+          "actual": false,
+          "passed": false,
+          "message": "no tool.result event had fallback_used=True"
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "application_001",
+      "query": "What are the steps to apply to the DNP nursing program?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 24.56,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "application",
+          "actual": "application",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "application_process",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "program_application",
+            "k_requested": 28,
+            "min_returned": 1
+          },
+          "actual": null,
+          "passed": false,
+          "message": "no retrieval.result for page_type='program_application' k_requested=28"
+        },
+        {
+          "name": "retrieval_events[1]",
+          "expected": {
+            "page_type": "application_process",
+            "k_requested": 6,
+            "min_returned": 0
+          },
+          "actual": null,
+          "passed": false,
+          "message": "no retrieval.result for page_type='application_process' k_requested=6"
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "application_002",
+      "query": "What are the steps to apply to a graduate program at CSULB?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 18.02,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "application",
+          "actual": "application",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "application_process",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "application_process",
+            "k_requested": 28,
+            "min_returned": 1
+          },
+          "actual": null,
+          "passed": false,
+          "message": "no retrieval.result for page_type='application_process' k_requested=28"
+        },
+        {
+          "name": "retrieval_events[1]",
+          "expected": {
+            "page_type": "application_process",
+            "k_requested": 6,
+            "min_returned": 0
+          },
+          "actual": null,
+          "passed": false,
+          "message": "no retrieval.result for page_type='application_process' k_requested=6"
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "application_003",
+      "query": "What documents do I need to submit for my graduate application?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 1.11,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "guidance",
+          "actual": "guidance",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_guidance",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "advisor_001",
+      "query": "Who is the advisor for the Computer Science program?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 0.37,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "advisor",
+          "actual": "answer",
+          "passed": false,
+          "message": "expected='advisor' actual='answer'"
+        },
+        {
+          "name": "route_reason",
+          "expected": "advisor_fuzzy_match",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "advisor_outcome",
+          "expected": "strong_match",
+          "actual": null,
+          "passed": false,
+          "message": "no advisor.match event captured"
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "advisor_002",
+      "query": "Who is the education leadership advisor?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 0.13,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "advisor",
+          "actual": "advisor",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "advisor_suggestions",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "advisor_outcome",
+          "expected": "ambiguous",
+          "actual": null,
+          "passed": false,
+          "message": "no advisor.match event captured"
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "advisor_003",
+      "query": "Who is my graduate advisor?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 0.05,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "advisor",
+          "actual": "advisor",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "advisor_intent_no_program",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "advisor_outcome",
+          "expected": "empty_normalized",
+          "actual": null,
+          "passed": false,
+          "message": "no advisor.match event captured"
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "advisor_004",
+      "query": "Who is the doctoral advisor for PhD students?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 0.11,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "advisor",
+          "actual": "advisor",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "doctoral_no_match",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "advisor_outcome",
+          "expected": "no_match",
+          "actual": null,
+          "passed": false,
+          "message": "no advisor.match event captured"
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "next_steps_001",
+      "query": "I don't know where to start with graduate school. I am completely lost.",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 4339.81,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "next_steps",
+          "actual": "next_steps",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "start_intent",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": true,
+          "passed": false,
+          "message": "(advisory) expected=False actual=True"
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": [
+          {
+            "event": "store.lifecycle",
+            "level": "WARNING",
+            "store_type": "faq_rag",
+            "lifecycle_event": "build_start",
+            "trigger": "process_start"
+          },
+          {
+            "event": "store.lifecycle",
+            "level": "WARNING",
+            "store_type": "faq_rag",
+            "lifecycle_event": "build_complete",
+            "trigger": "process_start",
+            "elapsed_ms": 4317.8,
+            "num_chunks": 193
+          }
+        ]
+      },
+      "error": null
+    },
+    {
+      "id": "next_steps_002",
+      "query": "How do I apply for a doctoral program? What are the steps?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 18.91,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "application",
+          "actual": "application",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "application_process",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "application_process",
+            "k_requested": 28,
+            "min_returned": 1
+          },
+          "actual": null,
+          "passed": false,
+          "message": "no retrieval.result for page_type='application_process' k_requested=28"
+        },
+        {
+          "name": "retrieval_events[1]",
+          "expected": {
+            "page_type": "application_process",
+            "k_requested": 6,
+            "min_returned": 0
+          },
+          "actual": null,
+          "passed": false,
+          "message": "no retrieval.result for page_type='application_process' k_requested=6"
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "next_steps_003",
+      "query": "I'm stuck trying to figure out where to begin with graduate admissions.",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 16.2,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "next_steps",
+          "actual": "next_steps",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "start_intent",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "guidance_001",
+      "query": "What should I do after being newly admitted to a graduate program?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 0.19,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "guidance",
+          "actual": "advisor",
+          "passed": false,
+          "message": "expected='guidance' actual='advisor'"
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_guidance",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "guidance_002",
+      "query": "What should I do after being accepted as an international student?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 0.46,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "guidance",
+          "actual": "guidance",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_guidance",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "answer_001",
+      "query": "What programs does the Graduate Center support?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 1.79,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "answer",
+          "actual": "answer",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_answer_default",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "answer_002",
+      "query": "Does CSULB offer graduate certificates in addition to degree programs?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 0.33,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "answer",
+          "actual": "answer",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_answer_starter",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "answer_003",
+      "query": "Can I transfer graduate credits from another university?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 0.24,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "answer",
+          "actual": "answer",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_answer_starter",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "answer_004",
+      "query": "Tell me about funding opportunities for graduate students.",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 0.78,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "answer",
+          "actual": "answer",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_answer_default",
+          "actual": null,
+          "passed": false,
+          "message": "no route.decision event captured"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    }
+  ]
+}

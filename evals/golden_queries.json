@@ -1,0 +1,343 @@
+{
+  "schema_version": "1.0.0",
+  "description": "Golden query dataset for Phase 2A evaluation harness. Asserts routing correctness, route reason, retrieval backend activation, and fallback behavior only. Does not evaluate response content or answer quality.",
+  "cases": [
+    {
+      "id": "deadlines_001",
+      "query": "What is the application deadline for the spring semester?",
+      "tags": ["route:deadlines", "backend:chroma", "scenario:happy_path"],
+      "expected": {
+        "route": "deadlines",
+        "route_reason": "deadline_signal",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "deadlines", "k_requested": 16, "min_returned": 1 }
+        ],
+        "fallback_used": null,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'deadline' is in _DEADLINE_SIGNALS. fallback_used=null because deadlines_tool has no fallback backend."
+    },
+    {
+      "id": "deadlines_002",
+      "query": "What is the application cutoff for fall admission?",
+      "tags": ["route:deadlines", "backend:chroma", "scenario:happy_path"],
+      "expected": {
+        "route": "deadlines",
+        "route_reason": "deadline_signal",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "deadlines", "k_requested": 16, "min_returned": 1 }
+        ],
+        "fallback_used": null,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "Uses 'cutoff' which is in _DEADLINE_SIGNALS. Previous version used 'When is the thesis submission window?' — 'when' and 'submission' are NOT in _DEADLINE_SIGNALS, causing that query to route to ANSWER."
+    },
+    {
+      "id": "eligibility_001",
+      "query": "What GPA do I need to be eligible for graduate admission?",
+      "tags": ["route:eligibility", "backend:chroma", "scenario:happy_path", "corpus:thin"],
+      "expected": {
+        "route": "eligibility",
+        "route_reason": "eligibility_signal",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "eligibility", "k_requested": 8, "min_returned": 1 }
+        ],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'gpa' and 'eligible' both in _ELIGIBILITY_SIGNALS. Standard query expected to hit the corpus (corpus:thin tag — only 11 eligibility chunks)."
+    },
+    {
+      "id": "eligibility_002",
+      "query": "Am I eligible to apply if I completed my undergraduate degree at an international institution?",
+      "tags": ["route:eligibility", "backend:chroma", "scenario:corpus_gap", "corpus:thin"],
+      "expected": {
+        "route": "eligibility",
+        "route_reason": "eligibility_signal",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "eligibility", "k_requested": 8, "min_returned": 0 }
+        ],
+        "fallback_used": true,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": true,
+      "notes": "'eligible' triggers eligibility_signal. International institution query is unlikely to be covered by the thin corpus. Expects ChromaDB to return 0 results and the JSON fallback to activate. Track: if this starts passing (fallback_used=false), the corpus has grown."
+    },
+    {
+      "id": "application_001",
+      "query": "What are the steps to apply to the DNP nursing program?",
+      "tags": ["route:application", "backend:chroma", "scenario:happy_path", "program:nursing_dnp"],
+      "expected": {
+        "route": "application",
+        "route_reason": "application_process",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "program_application", "k_requested": 28, "min_returned": 1 },
+          { "page_type": "application_process",  "k_requested": 6,  "min_returned": 0 }
+        ],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'steps' in _PROCESS_STEP_SIGNALS, 'apply' makes is_process_query=True, 'nursing'/'dnp' detected by _detect_program(). Two ChromaDB calls: Pass 1 (program_application, k=14→28) and supplemental (application_process, k=3→6). Previous version used 'Computer Science' which is NOT in _PROGRAM_ALIAS_LIST (doctoral only) and routed to GUIDANCE."
+    },
+    {
+      "id": "application_002",
+      "query": "What are the steps to apply to a graduate program at CSULB?",
+      "tags": ["route:application", "backend:chroma", "scenario:happy_path", "scenario:generic"],
+      "expected": {
+        "route": "application",
+        "route_reason": "application_process",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "application_process", "k_requested": 28, "min_returned": 1 },
+          { "page_type": "application_process", "k_requested": 6,  "min_returned": 0 }
+        ],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "Generic application query — no doctoral program alias detected. Both ChromaDB passes use page_type=application_process. k_requested (28 vs 6) distinguishes Pass 1 from supplemental."
+    },
+    {
+      "id": "application_003",
+      "query": "What documents do I need to submit for my graduate application?",
+      "tags": ["route:guidance", "backend:admissions_json", "scenario:routing_boundary"],
+      "expected": {
+        "route": "guidance",
+        "route_reason": "detect_route_guidance",
+        "backend": "admissions_json",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "ROUTING BOUNDARY TEST. 'application' makes is_process_query=True but _PROCESS_STEP_SIGNALS absent and no program → application gate fails. detect_route(): 'application' in _GUIDANCE_DOMAIN → Route.GUIDANCE. Documents that 'application' alone does not route to application_steps_tool."
+    },
+    {
+      "id": "advisor_001",
+      "query": "Who is the Physical Therapy advisor?",
+      "tags": ["route:advisor", "backend:rapidfuzz", "scenario:happy_path", "program:physical_therapy_dpt"],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_fuzzy_match",
+        "backend": "rapidfuzz",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": { "outcome": "strong_match" }
+      },
+      "known_failure": false,
+      "notes": "'who' and 'advisor' both in _ADVISOR_SIGNALS → bypasses topic-priority checks. Normalized query is 'physical therapy' (stop words removed). fuzz.partial_ratio('physical therapy', 'Physical Therapy (DPT)') = 100 → strong_match, no ambiguity (only one DPT program). Previous version used 'Computer Science' which is NOT in the advisor dataset (doctoral programs only) — scored 67 < SUGGESTION_THRESHOLD=70 → no_match → routed to ANSWER."
+    },
+    {
+      "id": "advisor_002",
+      "query": "Who is the education leadership advisor?",
+      "tags": ["route:advisor", "backend:rapidfuzz", "scenario:ambiguous"],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_suggestions",
+        "backend": "rapidfuzz",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": { "outcome": "ambiguous" }
+      },
+      "known_failure": false,
+      "notes": "Documented in advisor_retrieval.py comments: 'education leadership' → partial 100 for P-12, 90 for CC, best_full < 95 → ambiguous. match=None, suggestions=[...] → reason='advisor_suggestions' (not 'advisor_fuzzy_match'). Tests the ambiguous outcome path."
+    },
+    {
+      "id": "advisor_003",
+      "query": "Who is my graduate advisor?",
+      "tags": ["route:advisor", "backend:rapidfuzz", "scenario:intent_no_program"],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_intent_no_program",
+        "backend": "rapidfuzz",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": { "outcome": "empty_normalized" }
+      },
+      "known_failure": false,
+      "notes": "All tokens are stop words: 'who','is','my','graduate','advisor' → normalized=''. confidence=0, outcome='empty_normalized'. advisor_intent_no_program fires: confidence==0 AND 'advisor' in _ADVISOR_INTENT. Previous version used a query whose normalized form was NOT empty → confidence≠0 → branch never fired."
+    },
+    {
+      "id": "advisor_004",
+      "query": "Who is the doctoral advisor for PhD students?",
+      "tags": ["route:advisor", "backend:rapidfuzz", "scenario:doctoral_no_match"],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "doctoral_no_match",
+        "backend": "rapidfuzz",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": { "outcome": "no_match" }
+      },
+      "known_failure": false,
+      "notes": "'doctoral' and 'phd' both in _DOCTORAL_TOKENS. 'phd students' does not match any program → no_match. doctoral_no_match branch fires. reason='doctoral_no_match' (NOT 'advisor_doctoral_no_match' — that string does not exist; confirmed at orchestrator.py:625)."
+    },
+    {
+      "id": "next_steps_001",
+      "query": "I don't know where to start with graduate school. I am completely lost.",
+      "tags": ["route:next_steps", "backend:faq_rag", "scenario:happy_path", "intent:START"],
+      "expected": {
+        "route": "next_steps",
+        "route_reason": "start_intent",
+        "backend": "faq_rag",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'start' and 'lost' in _START_TOKENS. None of _APPLY_SPECIFIC tokens present → is_start_only=True. retrieval_events empty: faq_rag_lookup() does not emit retrieval.result in Phase 1."
+    },
+    {
+      "id": "next_steps_002",
+      "query": "How do I apply for a doctoral program? What are the steps?",
+      "tags": ["route:application", "backend:chroma", "scenario:routing_boundary", "scenario:generic"],
+      "expected": {
+        "route": "application",
+        "route_reason": "application_process",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "application_process", "k_requested": 28, "min_returned": 1 },
+          { "page_type": "application_process", "k_requested": 6,  "min_returned": 0 }
+        ],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "ROUTING BOUNDARY TEST. 'steps' in _PROCESS_STEP_SIGNALS AND 'apply' makes is_process_query=True → application gate fires before start_intent check. 'doctoral' alone is NOT in _PROGRAM_ALIAS_LIST → generic path. Previously expected route='next_steps' — wrong."
+    },
+    {
+      "id": "next_steps_003",
+      "query": "I'm stuck trying to figure out where to begin with graduate admissions.",
+      "tags": ["route:next_steps", "backend:faq_rag", "scenario:happy_path", "intent:START"],
+      "expected": {
+        "route": "next_steps",
+        "route_reason": "start_intent",
+        "backend": "faq_rag",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'stuck' and 'begin' in _START_TOKENS. None of _APPLY_SPECIFIC tokens present. is_start_only=True → start_intent fires. Previous version used 'Which doctoral program should I choose?' — 'doctoral' triggered doctoral_no_match check (line 615) before start_intent (line 698)."
+    },
+    {
+      "id": "guidance_001",
+      "query": "I don't know if I need help with orientation after admission.",
+      "tags": ["route:guidance", "backend:admissions_json", "scenario:happy_path"],
+      "expected": {
+        "route": "guidance",
+        "route_reason": "detect_route_guidance",
+        "backend": "admissions_json",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'don't know' phrase makes is_process_query=True → advisor block (if not is_process_query) is bypassed entirely regardless of fuzzy scores. 'orientation' and 'help' both in _GUIDANCE_DOMAIN → detect_route returns GUIDANCE. No _PROCESS_STEP_SIGNALS + no program → application gate fails. No _START_TOKENS → start_intent skip. Previous query ('Am I enrolled correctly for my first semester?') had is_process_query=False and 'enrolled' scored 75 against 'Aerospace Engineering' (advisor dataset contains non-doctoral M.S. programs) → advisor_suggestions → route=advisor."
+    },
+    {
+      "id": "guidance_002",
+      "query": "What should I do after being accepted as an international student?",
+      "tags": ["route:guidance", "backend:admissions_json", "scenario:happy_path"],
+      "expected": {
+        "route": "guidance",
+        "route_reason": "detect_route_guidance",
+        "backend": "admissions_json",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'accepted' and 'international' both in _GUIDANCE_DOMAIN. 'what' not in answer-starter set. No doctoral tokens. detect_route_guidance."
+    },
+    {
+      "id": "answer_001",
+      "query": "What programs does the Graduate Center support?",
+      "tags": ["route:answer", "backend:json_keyword", "scenario:happy_path"],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_default",
+        "backend": "json_keyword",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "First word 'what' is NOT in starter set {'is','are','does','do','can','will','should'}. No guidance-domain tokens → Route.ANSWER with reason='detect_route_answer_default'. Previously had reason='detect_route_answer_starter' — wrong."
+    },
+    {
+      "id": "answer_002",
+      "query": "Does CSULB offer graduate certificates in addition to degree programs?",
+      "tags": ["route:answer", "backend:json_keyword", "scenario:happy_path"],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_starter",
+        "backend": "json_keyword",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "First word 'does' IS in the answer-starter set → detect_route_answer_starter."
+    },
+    {
+      "id": "answer_003",
+      "query": "Can I transfer graduate credits from another university?",
+      "tags": ["route:answer", "backend:json_keyword", "scenario:happy_path"],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_starter",
+        "backend": "json_keyword",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'can' is in the answer-starter set → detect_route_answer_starter."
+    },
+    {
+      "id": "answer_004",
+      "query": "Tell me about funding opportunities for graduate students.",
+      "tags": ["route:answer", "backend:json_keyword", "scenario:happy_path"],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_default",
+        "backend": "json_keyword",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'tell' not in starter set. No guidance-domain tokens → detect_route_answer_default."
+    }
+  ]
+}

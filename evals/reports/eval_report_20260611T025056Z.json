@@ -1,0 +1,1870 @@
+{
+  "schema_version": "1.0.0",
+  "run_id": "57628952-5174-42ee-bd86-79bf0f6ca35e",
+  "timestamp": "2026-06-11T02:50:56Z",
+  "dataset_path": "/Users/sushmithavijayakumar/Documents/ClaudeCode/GradCenterAgenticAIAssistant/evals/golden_queries.json",
+  "dataset_schema_version": "1.0.0",
+  "warmup_performed": true,
+  "summary": {
+    "total": 20,
+    "passed": 18,
+    "failed": 1,
+    "known_failed": 1,
+    "errors": 0,
+    "skipped": 0,
+    "pass_rate": 0.9,
+    "gate_pass_rate": 0.95
+  },
+  "latency_ms": {
+    "p50": 1.0,
+    "p95": 17.6,
+    "max": 23.2,
+    "note": "snapshot only \u2014 no SLA gate in Phase 2A"
+  },
+  "cases": [
+    {
+      "id": "deadlines_001",
+      "query": "What is the application deadline for the spring semester?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 9.89,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "deadlines",
+          "actual": "deadlines",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "deadline_signal",
+          "actual": "deadline_signal",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "deadlines",
+            "k_requested": 16,
+            "min_returned": 1
+          },
+          "actual": {
+            "page_type": "deadlines",
+            "k_requested": 16,
+            "num_returned": 8
+          },
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": null,
+          "actual": null,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.113Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "eedf8c1c-334c-4006-a0a2-8589940b26eb",
+            "logger": "gradcenter",
+            "route": "deadlines",
+            "reason": "deadline_signal",
+            "is_process_query": true,
+            "has_advisor_signal": false,
+            "matched_signals": [
+              "deadline"
+            ]
+          }
+        ],
+        "retrieval.result": [
+          {
+            "ts": "2026-06-11T02:50:56.122Z",
+            "level": "INFO",
+            "event": "retrieval.result",
+            "request_id": "eedf8c1c-334c-4006-a0a2-8589940b26eb",
+            "logger": "gradcenter",
+            "num_returned": 8,
+            "top_score": 0.5977,
+            "elapsed_ms": 9.5,
+            "min_score_used": 0.25,
+            "k_requested": 16,
+            "page_type": "deadlines"
+          }
+        ],
+        "tool.result": [
+          {
+            "ts": "2026-06-11T02:50:56.123Z",
+            "level": "INFO",
+            "event": "tool.result",
+            "request_id": "eedf8c1c-334c-4006-a0a2-8589940b26eb",
+            "logger": "gradcenter",
+            "tool": "deadlines_tool",
+            "found": true,
+            "top_score": 0.5977,
+            "elapsed_ms": 9.8,
+            "num_results": 8,
+            "needs_clarification": true
+          }
+        ],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "deadlines_002",
+      "query": "What is the application cutoff for fall admission?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 7.4,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "deadlines",
+          "actual": "deadlines",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "deadline_signal",
+          "actual": "deadline_signal",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "deadlines",
+            "k_requested": 16,
+            "min_returned": 1
+          },
+          "actual": {
+            "page_type": "deadlines",
+            "k_requested": 16,
+            "num_returned": 8
+          },
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": null,
+          "actual": null,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.123Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "c53b6ded-f266-4b52-9435-5d76b7acafaf",
+            "logger": "gradcenter",
+            "route": "deadlines",
+            "reason": "deadline_signal",
+            "is_process_query": true,
+            "has_advisor_signal": false,
+            "matched_signals": [
+              "cutoff"
+            ]
+          }
+        ],
+        "retrieval.result": [
+          {
+            "ts": "2026-06-11T02:50:56.130Z",
+            "level": "INFO",
+            "event": "retrieval.result",
+            "request_id": "c53b6ded-f266-4b52-9435-5d76b7acafaf",
+            "logger": "gradcenter",
+            "num_returned": 8,
+            "top_score": 0.4382,
+            "elapsed_ms": 7.1,
+            "min_score_used": 0.25,
+            "k_requested": 16,
+            "page_type": "deadlines"
+          }
+        ],
+        "tool.result": [
+          {
+            "ts": "2026-06-11T02:50:56.130Z",
+            "level": "INFO",
+            "event": "tool.result",
+            "request_id": "c53b6ded-f266-4b52-9435-5d76b7acafaf",
+            "logger": "gradcenter",
+            "tool": "deadlines_tool",
+            "found": true,
+            "top_score": 0.4382,
+            "elapsed_ms": 7.3,
+            "num_results": 8,
+            "needs_clarification": true
+          }
+        ],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "eligibility_001",
+      "query": "What GPA do I need to be eligible for graduate admission?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 7.71,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "eligibility",
+          "actual": "eligibility",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "eligibility_signal",
+          "actual": "eligibility_signal",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "eligibility",
+            "k_requested": 8,
+            "min_returned": 1
+          },
+          "actual": {
+            "page_type": "eligibility",
+            "k_requested": 8,
+            "num_returned": 4
+          },
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.130Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "49584261-c675-479c-8a03-f4442c627f2b",
+            "logger": "gradcenter",
+            "route": "eligibility",
+            "reason": "eligibility_signal",
+            "is_process_query": false,
+            "has_advisor_signal": false,
+            "matched_signals": [
+              "eligible",
+              "gpa"
+            ]
+          }
+        ],
+        "retrieval.result": [
+          {
+            "ts": "2026-06-11T02:50:56.138Z",
+            "level": "INFO",
+            "event": "retrieval.result",
+            "request_id": "49584261-c675-479c-8a03-f4442c627f2b",
+            "logger": "gradcenter",
+            "num_returned": 4,
+            "top_score": 0.7192,
+            "elapsed_ms": 7.5,
+            "min_score_used": 0.3,
+            "k_requested": 8,
+            "page_type": "eligibility"
+          }
+        ],
+        "tool.result": [
+          {
+            "ts": "2026-06-11T02:50:56.138Z",
+            "level": "INFO",
+            "event": "tool.result",
+            "request_id": "49584261-c675-479c-8a03-f4442c627f2b",
+            "logger": "gradcenter",
+            "tool": "eligibility_tool",
+            "found": true,
+            "top_score": 0.7192,
+            "elapsed_ms": 7.6,
+            "num_results": 4
+          }
+        ],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "eligibility_002",
+      "query": "Am I eligible to apply if I completed my undergraduate degree at an international institution?",
+      "status": "KNOWN_FAIL",
+      "known_failure": true,
+      "elapsed_ms": 7.36,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "eligibility",
+          "actual": "eligibility",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "eligibility_signal",
+          "actual": "eligibility_signal",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "eligibility",
+            "k_requested": 8,
+            "min_returned": 0
+          },
+          "actual": {
+            "page_type": "eligibility",
+            "k_requested": 8,
+            "num_returned": 4
+          },
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": true,
+          "actual": false,
+          "passed": false,
+          "message": "no tool.result event had fallback_used=True"
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.138Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "d58d3f57-c907-4378-ad28-4119e0e370d4",
+            "logger": "gradcenter",
+            "route": "eligibility",
+            "reason": "eligibility_signal",
+            "is_process_query": true,
+            "has_advisor_signal": false,
+            "matched_signals": [
+              "eligible"
+            ]
+          }
+        ],
+        "retrieval.result": [
+          {
+            "ts": "2026-06-11T02:50:56.145Z",
+            "level": "INFO",
+            "event": "retrieval.result",
+            "request_id": "d58d3f57-c907-4378-ad28-4119e0e370d4",
+            "logger": "gradcenter",
+            "num_returned": 4,
+            "top_score": 0.5038,
+            "elapsed_ms": 7.1,
+            "min_score_used": 0.3,
+            "k_requested": 8,
+            "page_type": "eligibility"
+          }
+        ],
+        "tool.result": [
+          {
+            "ts": "2026-06-11T02:50:56.145Z",
+            "level": "INFO",
+            "event": "tool.result",
+            "request_id": "d58d3f57-c907-4378-ad28-4119e0e370d4",
+            "logger": "gradcenter",
+            "tool": "eligibility_tool",
+            "found": true,
+            "top_score": 0.5038,
+            "elapsed_ms": 7.3,
+            "num_results": 4
+          }
+        ],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "application_001",
+      "query": "What are the steps to apply to the DNP nursing program?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 23.21,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "application",
+          "actual": "application",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "application_process",
+          "actual": "application_process",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "program_application",
+            "k_requested": 28,
+            "min_returned": 1
+          },
+          "actual": {
+            "page_type": "program_application",
+            "k_requested": 28,
+            "num_returned": 14
+          },
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events[1]",
+          "expected": {
+            "page_type": "application_process",
+            "k_requested": 6,
+            "min_returned": 0
+          },
+          "actual": {
+            "page_type": "application_process",
+            "k_requested": 6,
+            "num_returned": 3
+          },
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.145Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "c09c8144-05fb-4f00-a3bb-5cd693347c23",
+            "logger": "gradcenter",
+            "route": "application",
+            "reason": "application_process",
+            "is_process_query": true,
+            "has_advisor_signal": false,
+            "program_detected": "Nursing (D.N.P.)"
+          }
+        ],
+        "retrieval.result": [
+          {
+            "ts": "2026-06-11T02:50:56.156Z",
+            "level": "INFO",
+            "event": "retrieval.result",
+            "request_id": "c09c8144-05fb-4f00-a3bb-5cd693347c23",
+            "logger": "gradcenter",
+            "num_returned": 14,
+            "top_score": 0.7539,
+            "elapsed_ms": 10.4,
+            "min_score_used": 0.3,
+            "k_requested": 28,
+            "page_type": "program_application",
+            "program_name": "Nursing (D.N.P.)"
+          },
+          {
+            "ts": "2026-06-11T02:50:56.163Z",
+            "level": "INFO",
+            "event": "retrieval.result",
+            "request_id": "c09c8144-05fb-4f00-a3bb-5cd693347c23",
+            "logger": "gradcenter",
+            "num_returned": 3,
+            "top_score": 0.3838,
+            "elapsed_ms": 6.8,
+            "min_score_used": 0.3,
+            "k_requested": 6,
+            "page_type": "application_process"
+          }
+        ],
+        "tool.result": [
+          {
+            "ts": "2026-06-11T02:50:56.169Z",
+            "level": "INFO",
+            "event": "tool.result",
+            "request_id": "c09c8144-05fb-4f00-a3bb-5cd693347c23",
+            "logger": "gradcenter",
+            "tool": "application_steps_tool",
+            "found": true,
+            "top_score": 0.7539,
+            "elapsed_ms": 23.1,
+            "num_results": 14,
+            "program_name": "Nursing (D.N.P.)",
+            "program_specific": true
+          }
+        ],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "application_002",
+      "query": "What are the steps to apply to a graduate program at CSULB?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 17.33,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "application",
+          "actual": "application",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "application_process",
+          "actual": "application_process",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "application_process",
+            "k_requested": 28,
+            "min_returned": 1
+          },
+          "actual": {
+            "page_type": "application_process",
+            "k_requested": 28,
+            "num_returned": 14
+          },
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events[1]",
+          "expected": {
+            "page_type": "application_process",
+            "k_requested": 6,
+            "min_returned": 0
+          },
+          "actual": {
+            "page_type": "application_process",
+            "k_requested": 6,
+            "num_returned": 3
+          },
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.169Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "609d05fa-cad7-42e2-9f02-3b1e05292d31",
+            "logger": "gradcenter",
+            "route": "application",
+            "reason": "application_process",
+            "is_process_query": true,
+            "has_advisor_signal": false,
+            "program_detected": ""
+          }
+        ],
+        "retrieval.result": [
+          {
+            "ts": "2026-06-11T02:50:56.177Z",
+            "level": "INFO",
+            "event": "retrieval.result",
+            "request_id": "609d05fa-cad7-42e2-9f02-3b1e05292d31",
+            "logger": "gradcenter",
+            "num_returned": 14,
+            "top_score": 0.7707,
+            "elapsed_ms": 8.6,
+            "min_score_used": 0.3,
+            "k_requested": 28,
+            "page_type": "application_process"
+          },
+          {
+            "ts": "2026-06-11T02:50:56.185Z",
+            "level": "INFO",
+            "event": "retrieval.result",
+            "request_id": "609d05fa-cad7-42e2-9f02-3b1e05292d31",
+            "logger": "gradcenter",
+            "num_returned": 3,
+            "top_score": 0.5294,
+            "elapsed_ms": 7.4,
+            "min_score_used": 0.3,
+            "k_requested": 6,
+            "page_type": "application_process"
+          }
+        ],
+        "tool.result": [
+          {
+            "ts": "2026-06-11T02:50:56.186Z",
+            "level": "INFO",
+            "event": "tool.result",
+            "request_id": "609d05fa-cad7-42e2-9f02-3b1e05292d31",
+            "logger": "gradcenter",
+            "tool": "application_steps_tool",
+            "found": true,
+            "top_score": 0.7707,
+            "elapsed_ms": 17.2,
+            "num_results": 14,
+            "program_specific": false
+          }
+        ],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "application_003",
+      "query": "What documents do I need to submit for my graduate application?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 0.77,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "guidance",
+          "actual": "guidance",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_guidance",
+          "actual": "detect_route_guidance",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.186Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "d65ef12c-8c63-42d2-ad46-48b82fe1dd05",
+            "logger": "gradcenter",
+            "route": "guidance",
+            "reason": "detect_route_guidance",
+            "is_process_query": true,
+            "has_advisor_signal": false
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.186Z",
+            "level": "INFO",
+            "event": "advisor.match",
+            "request_id": "d65ef12c-8c63-42d2-ad46-48b82fe1dd05",
+            "logger": "gradcenter",
+            "outcome": "no_match",
+            "best_partial": 66.66666666666667,
+            "best_full": 11.111111111111116,
+            "matched_program": "Educational Leadership - P-12 Specialization (Ed.D.)",
+            "normalized_query": "documents need submit application",
+            "num_suggestions": 0
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "advisor_001",
+      "query": "Who is the Physical Therapy advisor?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 0.22,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "advisor",
+          "actual": "advisor",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "advisor_fuzzy_match",
+          "actual": "advisor_fuzzy_match",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "advisor_outcome",
+          "expected": "strong_match",
+          "actual": "strong_match",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.187Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "f7d62eaa-6591-4c5e-9f44-e265e0ba32ae",
+            "logger": "gradcenter",
+            "route": "advisor",
+            "reason": "advisor_fuzzy_match",
+            "is_process_query": false,
+            "has_advisor_signal": true,
+            "advisor_score": 100.0
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.187Z",
+            "level": "INFO",
+            "event": "advisor.match",
+            "request_id": "f7d62eaa-6591-4c5e-9f44-e265e0ba32ae",
+            "logger": "gradcenter",
+            "outcome": "strong_match",
+            "best_partial": 100.0,
+            "best_full": 86.48648648648648,
+            "matched_program": "Physical Therapy (DPT)",
+            "normalized_query": "physical therapy"
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "advisor_002",
+      "query": "Who is the education leadership advisor?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 0.15,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "advisor",
+          "actual": "advisor",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "advisor_suggestions",
+          "actual": "advisor_suggestions",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "advisor_outcome",
+          "expected": "ambiguous",
+          "actual": "ambiguous",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.187Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "f5894f01-85af-41bb-b6f1-775094e10fa4",
+            "logger": "gradcenter",
+            "route": "advisor",
+            "reason": "advisor_suggestions",
+            "is_process_query": false,
+            "has_advisor_signal": true,
+            "advisor_score": 100.0
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.187Z",
+            "level": "WARNING",
+            "event": "advisor.match",
+            "request_id": "f5894f01-85af-41bb-b6f1-775094e10fa4",
+            "logger": "gradcenter",
+            "outcome": "ambiguous",
+            "best_partial": 100.0,
+            "best_full": 90.9090909090909,
+            "matched_program": "Educational Leadership - P-12 Specialization (Ed.D.)",
+            "normalized_query": "education leadership",
+            "num_ambiguous": 2
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "advisor_003",
+      "query": "Who is my graduate advisor?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 0.06,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "advisor",
+          "actual": "advisor",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "advisor_intent_no_program",
+          "actual": "advisor_intent_no_program",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "advisor_outcome",
+          "expected": "empty_normalized",
+          "actual": "empty_normalized",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.187Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "b19dcc8c-0de1-488f-a019-c563e57ccd79",
+            "logger": "gradcenter",
+            "route": "advisor",
+            "reason": "advisor_intent_no_program",
+            "is_process_query": false,
+            "has_advisor_signal": true,
+            "advisor_score": 0
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.187Z",
+            "level": "WARNING",
+            "event": "advisor.match",
+            "request_id": "b19dcc8c-0de1-488f-a019-c563e57ccd79",
+            "logger": "gradcenter",
+            "outcome": "empty_normalized",
+            "best_partial": 0,
+            "best_full": 0,
+            "matched_program": ""
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "advisor_004",
+      "query": "Who is the doctoral advisor for PhD students?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 0.13,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "advisor",
+          "actual": "advisor",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "doctoral_no_match",
+          "actual": "doctoral_no_match",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "advisor_outcome",
+          "expected": "no_match",
+          "actual": "no_match",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.187Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "7848a6c3-83e9-46a0-9b4b-f27f15d5504b",
+            "logger": "gradcenter",
+            "route": "advisor",
+            "reason": "doctoral_no_match",
+            "is_process_query": false,
+            "has_advisor_signal": true,
+            "advisor_score": 66.66666666666667
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.187Z",
+            "level": "INFO",
+            "event": "advisor.match",
+            "request_id": "7848a6c3-83e9-46a0-9b4b-f27f15d5504b",
+            "logger": "gradcenter",
+            "outcome": "no_match",
+            "best_partial": 66.66666666666667,
+            "best_full": 44.44444444444444,
+            "matched_program": "Engineering & Computational Mathematics (Ph.D.)",
+            "normalized_query": "phd students",
+            "num_suggestions": 0
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "next_steps_001",
+      "query": "I don't know where to start with graduate school. I am completely lost.",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 13.55,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "next_steps",
+          "actual": "next_steps",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "start_intent",
+          "actual": "start_intent",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.201Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "b709df75-d96a-4756-aba5-1c8f21aab83a",
+            "logger": "gradcenter",
+            "route": "next_steps",
+            "reason": "start_intent",
+            "is_process_query": true,
+            "has_advisor_signal": false
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.188Z",
+            "level": "INFO",
+            "event": "advisor.match",
+            "request_id": "b709df75-d96a-4756-aba5-1c8f21aab83a",
+            "logger": "gradcenter",
+            "outcome": "no_match",
+            "best_partial": 66.66666666666667,
+            "best_full": 13.33333333333333,
+            "matched_program": "Nursing (D.N.P.)",
+            "normalized_query": "don t know start school am completely lost",
+            "num_suggestions": 0
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "next_steps_002",
+      "query": "How do I apply for a doctoral program? What are the steps?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 16.86,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "application",
+          "actual": "application",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "application_process",
+          "actual": "application_process",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events[0]",
+          "expected": {
+            "page_type": "application_process",
+            "k_requested": 28,
+            "min_returned": 1
+          },
+          "actual": {
+            "page_type": "application_process",
+            "k_requested": 28,
+            "num_returned": 8
+          },
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events[1]",
+          "expected": {
+            "page_type": "application_process",
+            "k_requested": 6,
+            "min_returned": 0
+          },
+          "actual": {
+            "page_type": "application_process",
+            "k_requested": 6,
+            "num_returned": 3
+          },
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.201Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "ba1137ba-490c-43b3-9228-98c0ee570aaa",
+            "logger": "gradcenter",
+            "route": "application",
+            "reason": "application_process",
+            "is_process_query": true,
+            "has_advisor_signal": false,
+            "program_detected": ""
+          }
+        ],
+        "retrieval.result": [
+          {
+            "ts": "2026-06-11T02:50:56.209Z",
+            "level": "INFO",
+            "event": "retrieval.result",
+            "request_id": "ba1137ba-490c-43b3-9228-98c0ee570aaa",
+            "logger": "gradcenter",
+            "num_returned": 8,
+            "top_score": 0.5641,
+            "elapsed_ms": 8.3,
+            "min_score_used": 0.3,
+            "k_requested": 28,
+            "page_type": "application_process"
+          },
+          {
+            "ts": "2026-06-11T02:50:56.217Z",
+            "level": "INFO",
+            "event": "retrieval.result",
+            "request_id": "ba1137ba-490c-43b3-9228-98c0ee570aaa",
+            "logger": "gradcenter",
+            "num_returned": 3,
+            "top_score": 0.5294,
+            "elapsed_ms": 7.3,
+            "min_score_used": 0.3,
+            "k_requested": 6,
+            "page_type": "application_process"
+          }
+        ],
+        "tool.result": [
+          {
+            "ts": "2026-06-11T02:50:56.218Z",
+            "level": "INFO",
+            "event": "tool.result",
+            "request_id": "ba1137ba-490c-43b3-9228-98c0ee570aaa",
+            "logger": "gradcenter",
+            "tool": "application_steps_tool",
+            "found": true,
+            "top_score": 0.5641,
+            "elapsed_ms": 16.7,
+            "num_results": 8,
+            "program_specific": false
+          }
+        ],
+        "advisor.match": [],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "next_steps_003",
+      "query": "I'm stuck trying to figure out where to begin with graduate admissions.",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 14.32,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "next_steps",
+          "actual": "next_steps",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "start_intent",
+          "actual": "start_intent",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.232Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "83c2d323-95ac-48b5-9ef5-149c2a9d11ce",
+            "logger": "gradcenter",
+            "route": "next_steps",
+            "reason": "start_intent",
+            "is_process_query": true,
+            "has_advisor_signal": false
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.218Z",
+            "level": "INFO",
+            "event": "advisor.match",
+            "request_id": "83c2d323-95ac-48b5-9ef5-149c2a9d11ce",
+            "logger": "gradcenter",
+            "outcome": "no_match",
+            "best_partial": 58.33333333333333,
+            "best_full": 37.03703703703704,
+            "matched_program": "Nursing (D.N.P.)",
+            "normalized_query": "m stuck trying figure out begin admissions",
+            "num_suggestions": 0
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "guidance_001",
+      "query": "Am I enrolled correctly for my first semester?",
+      "status": "FAIL",
+      "known_failure": false,
+      "elapsed_ms": 0.2,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "guidance",
+          "actual": "advisor",
+          "passed": false,
+          "message": "expected='guidance' actual='advisor'"
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_guidance",
+          "actual": "advisor_suggestions",
+          "passed": false,
+          "message": "expected='detect_route_guidance' actual='advisor_suggestions'"
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.233Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "deef6c72-0e04-484f-b808-1d4afa32a049",
+            "logger": "gradcenter",
+            "route": "advisor",
+            "reason": "advisor_suggestions",
+            "is_process_query": false,
+            "has_advisor_signal": false,
+            "advisor_score": 75.0
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.232Z",
+            "level": "INFO",
+            "event": "advisor.match",
+            "request_id": "deef6c72-0e04-484f-b808-1d4afa32a049",
+            "logger": "gradcenter",
+            "outcome": "suggestions",
+            "best_partial": 75.0,
+            "best_full": 19.999999999999996,
+            "matched_program": "Aerospace Engineering",
+            "normalized_query": "am enrolled correctly first semester",
+            "num_suggestions": 3
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "guidance_002",
+      "query": "What should I do after being accepted as an international student?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 0.46,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "guidance",
+          "actual": "guidance",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_guidance",
+          "actual": "detect_route_guidance",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.233Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "059baf1b-443a-430d-b4da-04c4ea8aaa9b",
+            "logger": "gradcenter",
+            "route": "guidance",
+            "reason": "detect_route_guidance",
+            "is_process_query": false,
+            "has_advisor_signal": false
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.233Z",
+            "level": "INFO",
+            "event": "advisor.match",
+            "request_id": "059baf1b-443a-430d-b4da-04c4ea8aaa9b",
+            "logger": "gradcenter",
+            "outcome": "no_match",
+            "best_partial": 66.66666666666667,
+            "best_full": 12.5,
+            "matched_program": "Educational Leadership - P-12 Specialization (Ed.D.)",
+            "normalized_query": "after being accepted as international student",
+            "num_suggestions": 0
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "answer_001",
+      "query": "What programs does the Graduate Center support?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 1.17,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "answer",
+          "actual": "answer",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_answer_default",
+          "actual": "detect_route_answer_default",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.233Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "088e59f2-73c1-417c-a87d-b150b35be330",
+            "logger": "gradcenter",
+            "route": "answer",
+            "reason": "detect_route_answer_default",
+            "is_process_query": false,
+            "has_advisor_signal": false
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.233Z",
+            "level": "INFO",
+            "event": "advisor.match",
+            "request_id": "088e59f2-73c1-417c-a87d-b150b35be330",
+            "logger": "gradcenter",
+            "outcome": "no_match",
+            "best_partial": 53.84615384615385,
+            "best_full": 43.75,
+            "matched_program": "Educational Leadership - P-12 Specialization (Ed.D.)",
+            "normalized_query": "does center support",
+            "num_suggestions": 0
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "answer_002",
+      "query": "Does CSULB offer graduate certificates in addition to degree programs?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 0.4,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "answer",
+          "actual": "answer",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_answer_starter",
+          "actual": "detect_route_answer_starter",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.234Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "ede18c4d-5748-45df-9623-bfca21bdb458",
+            "logger": "gradcenter",
+            "route": "answer",
+            "reason": "detect_route_answer_starter",
+            "is_process_query": false,
+            "has_advisor_signal": false
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.234Z",
+            "level": "INFO",
+            "event": "advisor.match",
+            "request_id": "ede18c4d-5748-45df-9623-bfca21bdb458",
+            "logger": "gradcenter",
+            "outcome": "no_match",
+            "best_partial": 66.66666666666667,
+            "best_full": 13.33333333333333,
+            "matched_program": "Educational Leadership - P-12 Specialization (Ed.D.)",
+            "normalized_query": "does offer certificates in addition degree",
+            "num_suggestions": 0
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "answer_003",
+      "query": "Can I transfer graduate credits from another university?",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 0.24,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "answer",
+          "actual": "answer",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_answer_starter",
+          "actual": "detect_route_answer_starter",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.235Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "47870a1a-3bc0-4f4a-a98a-d18c5d75b5ab",
+            "logger": "gradcenter",
+            "route": "answer",
+            "reason": "detect_route_answer_starter",
+            "is_process_query": false,
+            "has_advisor_signal": false
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.235Z",
+            "level": "INFO",
+            "event": "advisor.match",
+            "request_id": "47870a1a-3bc0-4f4a-a98a-d18c5d75b5ab",
+            "logger": "gradcenter",
+            "outcome": "no_match",
+            "best_partial": 66.66666666666667,
+            "best_full": 36.8421052631579,
+            "matched_program": "Engineering & Computational Mathematics (Ph.D.)",
+            "normalized_query": "transfer credits from another",
+            "num_suggestions": 0
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    },
+    {
+      "id": "answer_004",
+      "query": "Tell me about funding opportunities for graduate students.",
+      "status": "PASS",
+      "known_failure": false,
+      "elapsed_ms": 0.76,
+      "assertions": [
+        {
+          "name": "route",
+          "expected": "answer",
+          "actual": "answer",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "route_reason",
+          "expected": "detect_route_answer_default",
+          "actual": "detect_route_answer_default",
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "retrieval_events_empty",
+          "expected": 0,
+          "actual": 0,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "fallback",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        },
+        {
+          "name": "store_rebuild_advisory",
+          "expected": false,
+          "actual": false,
+          "passed": true,
+          "message": ""
+        }
+      ],
+      "captured_events": {
+        "route.decision": [
+          {
+            "ts": "2026-06-11T02:50:56.235Z",
+            "level": "INFO",
+            "event": "route.decision",
+            "request_id": "88305b4b-6f37-4f2a-94c6-da663dfe4b8b",
+            "logger": "gradcenter",
+            "route": "answer",
+            "reason": "detect_route_answer_default",
+            "is_process_query": false,
+            "has_advisor_signal": false
+          }
+        ],
+        "retrieval.result": [],
+        "tool.result": [],
+        "advisor.match": [
+          {
+            "ts": "2026-06-11T02:50:56.235Z",
+            "level": "INFO",
+            "event": "advisor.match",
+            "request_id": "88305b4b-6f37-4f2a-94c6-da663dfe4b8b",
+            "logger": "gradcenter",
+            "outcome": "no_match",
+            "best_partial": 66.66666666666667,
+            "best_full": 18.181818181818176,
+            "matched_program": "Nursing (D.N.P.)",
+            "normalized_query": "funding opportunities students",
+            "num_suggestions": 0
+          }
+        ],
+        "store.lifecycle": []
+      },
+      "error": null
+    }
+  ]
+}
