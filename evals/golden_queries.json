@@ -338,6 +338,247 @@
       },
       "known_failure": false,
       "notes": "'tell' not in starter set. No guidance-domain tokens → detect_route_answer_default."
+    },
+    {
+      "id": "advisor_005",
+      "query": "Who is the ed leadership community college advisor this semester?",
+      "tags": ["route:advisor", "backend:rapidfuzz", "scenario:unambiguous_by_token"],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_fuzzy_match",
+        "backend": "rapidfuzz",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": { "outcome": "unambiguous_by_token" }
+      },
+      "known_failure": false,
+      "notes": "'who' in _ADVISOR_SIGNALS → skip topic checks. Normalized query 'ed leadership community college this semester' is NOT an exact alias (best_full < NEAR_EXACT_THRESHOLD=95), so ambiguity check fires: both CC Ed.D. and P-12 Ed.D. score ≥89 partial. Unique-token disambiguation: 'community' and 'college' appear exclusively in the CC Ed.D. name/aliases and are present in the query → unambiguous_by_token → match returned → reason='advisor_fuzzy_match'. Exact alias 'ed leadership community college' (without extra words) would produce full_ratio=100 and skip to strong_match instead — the extra word 'semester' prevents the exact-alias bypass."
+    },
+    {
+      "id": "deadlines_003",
+      "query": "When is the fall deadline for the DNP program?",
+      "tags": ["route:deadlines", "backend:chroma", "scenario:program_specific"],
+      "expected": {
+        "route": "deadlines",
+        "route_reason": "deadline_signal",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "deadlines", "k_requested": 16, "min_returned": 1 }
+        ],
+        "fallback_used": null,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'deadline' in _DEADLINE_SIGNALS; no advisor signal → deadlines route fires. 'dnp' in the query triggers _query_matches_program() inside deadlines_tool → deadline_card is parsed for Nursing (D.N.P.). This is the program-specific path that the two existing generic deadline cases never reach. fallback_used=null: deadlines_tool has no JSON fallback by design (stale deadline data is worse than a low-confidence RAG result)."
+    },
+    {
+      "id": "advisor_006",
+      "query": "Who is eligible for the nursing program?",
+      "tags": ["route:advisor", "backend:rapidfuzz", "scenario:signal_bypass"],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_suggestions",
+        "backend": "rapidfuzz",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": { "outcome": "suggestions" }
+      },
+      "known_failure": false,
+      "notes": "ROUTING BOUNDARY TEST. 'eligible' is in _ELIGIBILITY_SIGNALS, but 'who' is in _ADVISOR_SIGNALS → _has_advisor_signal=True → the eligibility check (and all topic-tool checks) are skipped entirely. find_advisor normalizes to 'eligible nursing'; Nursing (D.N.P.) scores partial=73.6 — above SUGGESTION_THRESHOLD=70 but below FUZZY_THRESHOLD=90 → outcome=suggestions. is_process_query=False (no process keywords) → advisor block fires → route=advisor. A student asking about eligibility gets advisor suggestions instead of eligibility requirements because 'who' has higher priority."
+    },
+    {
+      "id": "answer_005",
+      "query": "Is orientation mandatory for all new graduate students?",
+      "tags": ["route:answer", "backend:json_keyword", "scenario:routing_boundary"],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_starter",
+        "backend": "json_keyword",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "ROUTING BOUNDARY TEST. 'orientation' is in _GUIDANCE_DOMAIN, which would normally produce route=guidance. But detect_route() checks first_word BEFORE checking _GUIDANCE_DOMAIN: first_word='is' is in the starter set {'is','are','does','do','can','will','should'} → Route.ANSWER short-circuits before the guidance-domain intersection runs. No topic-tool signals present; find_advisor returns no_match (orientation does not score against any program). Route terminates at detect_route_answer_starter, not detect_route_guidance."
+    },
+    {
+      "id": "application_004",
+      "query": "What are the steps to apply to the Ed.D. program?",
+      "tags": ["route:application", "backend:chroma", "scenario:happy_path", "program:educational_leadership_edd"],
+      "expected": {
+        "route": "application",
+        "route_reason": "application_process",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "program_application", "k_requested": 28, "min_returned": 1 },
+          { "page_type": "application_process", "k_requested": 6,  "min_returned": 0 }
+        ],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'steps' in _PROCESS_STEP_SIGNALS + is_process_query=True; 'ed.d' alias in _PROGRAM_ALIAS_LIST normalizes to 'ed d' (dots → spaces) which matches 'ed d' in the normalized query → detected_program='Educational Leadership (Ed.D.)'. Pass 1 retrieves page_type=program_application with program_name='Educational Leadership (Ed.D.)' (108 chunks in store). Ed.D. uses the MyCED department portal (content_category=department_application), producing _DISCLAIMER_DEPT. Supplemental probe always runs alongside the program-specific pass (page_type=application_process, k=3→fetch_k=6)."
+    },
+    {
+      "id": "application_005",
+      "query": "What are the steps to apply to the Public Health doctoral program?",
+      "tags": ["route:application", "backend:chroma", "scenario:happy_path", "program:public_health_drph"],
+      "expected": {
+        "route": "application",
+        "route_reason": "application_process",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "program_application", "k_requested": 28, "min_returned": 1 },
+          { "page_type": "application_process", "k_requested": 6,  "min_returned": 0 }
+        ],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'steps' + 'public health' alias match → detected_program='Public Health (DR.P.H.)'. Public Health has the largest program_application corpus (226 chunks — 5× larger than DNP). 'doctoral' in the query is in _DOCTORAL_TOKENS but the application gate fires first (is_process_query=True + _PROCESS_STEP_SIGNALS present) so doctoral_no_match is never reached. Pass 1 retrieves page_type=program_application, program_name='Public Health (DR.P.H.)', k=14→fetch_k=28."
+    },
+    {
+      "id": "eligibility_003",
+      "query": "Do all doctoral programs have the same GPA requirement?",
+      "tags": ["route:eligibility", "backend:chroma", "scenario:routing_boundary", "corpus:thin"],
+      "expected": {
+        "route": "eligibility",
+        "route_reason": "eligibility_signal",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "eligibility", "k_requested": 8, "min_returned": 1 }
+        ],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "ROUTING BOUNDARY TEST. 'do' is in the answer-starter set {'is','are','does','do','can','will','should'}, which normally produces detect_route_answer_starter when detect_route() is reached. However, 'gpa' is in _ELIGIBILITY_SIGNALS, and eligibility_signal check fires BEFORE detect_route() in the orchestrator priority chain. Topic-tool signals (eligibility, deadline) override the starter-set short-circuit because they are evaluated earlier in run(). Runtime confirmed: route=eligibility, reason=eligibility_signal, 4 chunks returned."
+    },
+    {
+      "id": "deadlines_004",
+      "query": "Are there any spring admission deadlines?",
+      "tags": ["route:deadlines", "backend:chroma", "scenario:routing_boundary"],
+      "expected": {
+        "route": "deadlines",
+        "route_reason": "deadline_signal",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "deadlines", "k_requested": 16, "min_returned": 1 }
+        ],
+        "fallback_used": null,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "ROUTING BOUNDARY TEST. 'are' is in the answer-starter set, which would produce detect_route_answer_starter if detect_route() were reached. But 'deadlines' is in _DEADLINE_SIGNALS, and the deadline check fires BEFORE detect_route() in the priority chain. Documents that deadline signals override the starter-set, the same way eligibility_003 documents eligibility signals doing so. fallback_used=null: deadlines_tool has no JSON fallback by design."
+    },
+    {
+      "id": "answer_006",
+      "query": "Will my transfer credits count toward the degree?",
+      "tags": ["route:answer", "backend:json_keyword", "scenario:happy_path"],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_starter",
+        "backend": "json_keyword",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'will' is in the answer-starter set. No topic signals (no deadline/eligibility/application keywords). No advisor signal. detect_route(): first_word='will' → Route.ANSWER. Extends starter-set coverage beyond 'does' (answer_002), 'can' (answer_003), and 'is' (answer_005)."
+    },
+    {
+      "id": "answer_007",
+      "query": "Should I apply to multiple graduate programs?",
+      "tags": ["route:answer", "backend:json_keyword", "scenario:routing_boundary"],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_starter",
+        "backend": "json_keyword",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "ROUTING BOUNDARY TEST. 'apply' makes is_process_query=True AND is in _GUIDANCE_DOMAIN. 'should' is in the answer-starter set. The starter-set check in detect_route() runs BEFORE the _GUIDANCE_DOMAIN intersection, so first_word='should' → Route.ANSWER short-circuits before GUIDANCE would be returned. Also: no program detected → application gate fails; is_process_query=True → advisor block suppressed. Documents that the starter set takes precedence over _GUIDANCE_DOMAIN even when a guidance-domain token is also present."
+    },
+    {
+      "id": "guidance_003",
+      "query": "How do I apply and who is the advisor?",
+      "tags": ["route:guidance", "backend:admissions_json", "scenario:routing_boundary"],
+      "expected": {
+        "route": "guidance",
+        "route_reason": "detect_route_guidance",
+        "backend": "admissions_json",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": { "outcome": "suggestions" }
+      },
+      "known_failure": false,
+      "notes": "ROUTING BOUNDARY TEST. Both bypass mechanisms are active simultaneously: 'who' in _ADVISOR_SIGNALS → _has_advisor_signal=True → all topic-tool checks (deadline, eligibility, application) are skipped. 'apply' in _PROCESS_KEYWORDS → is_process_query=True → advisor block (if not is_process_query) is suppressed. find_advisor runs and returns suggestions (normalized='and'; some programs score between 70–89 partial), but the suggestions do not trigger the advisor route because is_process_query=True. Falls through to detect_route(): 'apply' in _GUIDANCE_DOMAIN → Route.GUIDANCE. The only path to guidance when an advisor signal is present: the process keyword must also be active."
+    },
+    {
+      "id": "advisor_007",
+      "query": "Who is the accounting advisor?",
+      "tags": ["route:advisor", "backend:rapidfuzz", "scenario:happy_path", "program:accountancy"],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_fuzzy_match",
+        "backend": "rapidfuzz",
+        "retrieval_events": [],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": { "outcome": "strong_match" }
+      },
+      "known_failure": false,
+      "notes": "Non-doctoral M.S. program coverage. Accountancy is in advisors_extracted.json but NOT in _PROGRAM_ALIAS_LIST (application_steps_tool only lists doctoral programs). The only accessible path for Accountancy queries is advisor fuzzy matching. Normalized query 'accounting' scores partial_ratio=100 against the Accountancy program/alias → strong_match. Documents that non-doctoral programs (Accountancy, Aerospace Engineering, Anthropology etc.) can be reached via the advisor path even though they have no application-steps route."
+    },
+    {
+      "id": "application_006",
+      "query": "What are the steps to apply to the Physical Therapy DPT program?",
+      "tags": ["route:application", "backend:chroma", "scenario:happy_path", "program:physical_therapy_dpt"],
+      "expected": {
+        "route": "application",
+        "route_reason": "application_process",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "program_application", "k_requested": 28, "min_returned": 1 },
+          { "page_type": "application_process",  "k_requested": 6,  "min_returned": 0 }
+        ],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'steps' in _PROCESS_STEP_SIGNALS + is_process_query=True; 'physical' or 'dpt' alias in _PROGRAM_ALIAS_LIST → detected_program='Physical Therapy (DPT)'. Pass 1 retrieves page_type=program_application for Physical Therapy (94 chunks). DPT uses an external portal (PTCAS — content_category=department_application), producing _DISCLAIMER_DEPT. Adds Physical Therapy as the 4th program corpus tested (alongside DNP, Ed.D., and Public Health), and the first to use the PTCAS external portal path. Runtime confirmed: n=14 for program_application, n=3 for application_process."
+    },
+    {
+      "id": "eligibility_004",
+      "query": "What are the minimum requirements for doctoral admission?",
+      "tags": ["route:eligibility", "backend:chroma", "scenario:happy_path", "corpus:thin"],
+      "expected": {
+        "route": "eligibility",
+        "route_reason": "eligibility_signal",
+        "backend": "chroma",
+        "retrieval_events": [
+          { "page_type": "eligibility", "k_requested": 8, "min_returned": 1 }
+        ],
+        "fallback_used": false,
+        "store_rebuild": false,
+        "advisor": null
+      },
+      "known_failure": false,
+      "notes": "'minimum' is in _ELIGIBILITY_SIGNALS (single signal — distinct from eligibility_001 which relies on both 'gpa' and 'eligible'). 'what' is NOT in the answer-starter set, so detect_route would return GUIDANCE or ANSWER-default if reached. The eligibility signal check fires first, before detect_route, routing directly to the eligibility tool. Runtime confirmed: route=eligibility, reason=eligibility_signal, 4 chunks returned (corpus:thin — only 11 eligibility chunks total)."
     }
   ]
 }

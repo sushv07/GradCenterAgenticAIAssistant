@@ -1048,4 +1048,12 @@ Retrieval architecture finding:
 - Answer fallback uses JSON keyword scoring.
 - Cold starts affect ChromaDB-backed routes and FAQ RAG-backed routes, but not advisor/guidance/answer routes.
 
-
+Phase 2A completed:
+- Added golden query dataset
+- Added routing evaluation harness
+- Evaluates route, reason, retrieval event structure, fallback behavior, advisor outcome
+- Produces JSON reports
+- Baseline: 19 PASS / 0 FAIL / 1 KNOWN_FAIL
+- gate_pass_rate: 100%
+- p50 latency: 0.9ms
+- p95 latency: 17.1ms

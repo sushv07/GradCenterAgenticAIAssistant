@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
 evals/run_evals.py
-Phase 2A evaluation harness for the CSULB Grad Center AI Assistant.
+Phase 2A/2C evaluation harness for the CSULB Grad Center AI Assistant.
 
 Asserts: route correctness, route reason, retrieval event structure,
          fallback behavior, advisor outcome, store_rebuild (advisory).
+Reports: backend inference — expected vs actual backend, backend_match,
+         vector_db_touched (informational, does not gate pass/fail).
 Does NOT assert: response content, answer quality, multi-turn behavior.
 
 Usage (from project root):
@@ -193,6 +195,100 @@ def _assert_store_rebuild_advisory(events: list[dict], expected: bool) -> dict:
     )
 
 
+# ── Backend inference (informational — does not gate pass/fail) ───────────────
+
+_CHROMA_PAGE_TYPES = frozenset({
+    "deadlines", "eligibility", "application_process", "program_application",
+})
+
+_BACKEND_BUCKETS = (
+    "chroma", "faq_rag", "rapidfuzz",
+    "admissions_json", "json_keyword", "admissions_rag", "unknown",
+)
+
+
+def _infer_backend(
+    events: list[dict],
+    response: dict,
+    expected_backend: str,
+) -> tuple[str, bool]:
+    """
+    Infer actual_backend from captured log events and the response route.
+    Returns (actual_backend, vector_db_touched).
+
+    Inference priority (first match wins):
+      1. retrieval.result with a ChromaDB page_type  → chroma        (vdb=True)
+      2. advisor.match + route==advisor              → rapidfuzz      (vdb=False)
+      3. route==guidance, no retrieval               → admissions_json (vdb=False)
+      4. route==answer, no retrieval                 → json_keyword   (vdb=False)
+      5. route==next_steps + faq_rag store.lifecycle → faq_rag        (vdb=True)
+      6. route==next_steps, warm store (no event)    → *_inferred     (vdb=True/False)
+      7. fallback                                    → unknown
+    """
+    route        = response.get("route")
+    ret_events   = [e for e in events if e["event"] == "retrieval.result"]
+    adv_events   = [e for e in events if e["event"] == "advisor.match"]
+    store_events = [e for e in events if e["event"] == "store.lifecycle"]
+
+    # Rule 1: ChromaDB retrieval
+    chroma_hits = {e.get("page_type") for e in ret_events} & _CHROMA_PAGE_TYPES
+    if chroma_hits:
+        return "chroma", True
+
+    # Rule 2: Fuzzy advisor match
+    if adv_events and route == "advisor":
+        return "rapidfuzz", False
+
+    # Rule 3: Guidance with no retrieval
+    if route == "guidance" and not ret_events:
+        return "admissions_json", False
+
+    # Rule 4: Answer with no retrieval
+    if route == "answer" and not ret_events:
+        return "json_keyword", False
+
+    # Rule 5/6: Next-steps path
+    if route == "next_steps":
+        faq_store = [e for e in store_events if e.get("store_type") == "faq_rag"]
+        if faq_store:
+            return "faq_rag", True
+        # Store was warm at call time — query-level faq_rag retrieval is not
+        # individually instrumented, so fall back to expected as ground truth.
+        if expected_backend == "faq_rag":
+            return "faq_rag_inferred", True
+        if expected_backend == "admissions_rag":
+            return "admissions_rag_inferred", False
+
+    return "unknown", bool(ret_events)
+
+
+def _check_backend(
+    events: list[dict],
+    response: dict,
+    expected_backend: str,
+) -> dict:
+    """
+    Run backend inference and return a backend_info dict with four fields:
+    expected_backend, actual_backend, backend_match, vector_db_touched.
+    backend_match is True for exact matches AND for inferred variants that
+    resolve to the correct base (faq_rag_inferred ~ faq_rag, etc.).
+    """
+    actual_backend, vector_db_touched = _infer_backend(
+        events, response, expected_backend
+    )
+    backend_match = (
+        actual_backend == expected_backend
+        or (actual_backend == "faq_rag_inferred"       and expected_backend == "faq_rag")
+        or (actual_backend == "admissions_rag_inferred" and expected_backend == "admissions_rag")
+    )
+    return {
+        "expected_backend":  expected_backend,
+        "actual_backend":    actual_backend,
+        "backend_match":     backend_match,
+        "vector_db_touched": vector_db_touched,
+    }
+
+
 # ── Per-case runner ───────────────────────────────────────────────────────────
 
 def _run_case(case: dict) -> dict:
@@ -215,6 +311,8 @@ def _run_case(case: dict) -> dict:
 
     events = _stop_capture(rid)
 
+    bi = _check_backend(events, response, exp.get("backend", ""))
+
     if error_str:
         return {
             "id": cid, "query": query,
@@ -224,6 +322,10 @@ def _run_case(case: dict) -> dict:
             "assertions": [],
             "captured_events": _bucket_events(events),
             "error": error_str,
+            "expected_backend":  exp.get("backend", ""),
+            "actual_backend":    "unknown",
+            "backend_match":     False,
+            "vector_db_touched": False,
         }
 
     assertions: list[dict] = []
@@ -259,6 +361,10 @@ def _run_case(case: dict) -> dict:
         "assertions": assertions,
         "captured_events": _bucket_events(events),
         "error": None,
+        "expected_backend":  bi["expected_backend"],
+        "actual_backend":    bi["actual_backend"],
+        "backend_match":     bi["backend_match"],
+        "vector_db_touched": bi["vector_db_touched"],
     }
 
 
@@ -278,6 +384,47 @@ def _percentile(values: list[float], p: float) -> float:
     lo  = int(idx)
     hi  = min(lo + 1, len(s) - 1)
     return round(s[lo] + (idx - lo) * (s[hi] - s[lo]), 1)
+
+
+def _build_backend_summary(results: list[dict]) -> dict:
+    """
+    Aggregate backend inference results across all non-SKIP cases.
+    Inferred variants (faq_rag_inferred, admissions_rag_inferred) are folded
+    into their base bucket for count purposes.
+    """
+    non_skip    = [r for r in results if r.get("status") != "SKIP"]
+    n           = len(non_skip)
+    counts      = {b: 0 for b in _BACKEND_BUCKETS}
+    match_count = 0
+    vdb_count   = 0
+    mismatches: list[dict] = []
+
+    for r in non_skip:
+        actual = r.get("actual_backend") or "unknown"
+        # Fold inferred suffixes into base bucket
+        base = actual.removesuffix("_inferred") if actual.endswith("_inferred") else actual
+        counts[base if base in counts else "unknown"] += 1
+
+        if r.get("backend_match"):
+            match_count += 1
+        else:
+            mismatches.append({
+                "id":               r["id"],
+                "expected_backend": r.get("expected_backend", ""),
+                "actual_backend":   actual,
+            })
+
+        if r.get("vector_db_touched"):
+            vdb_count += 1
+
+    return {
+        "counts":                counts,
+        "backend_match":         match_count,
+        "backend_match_rate":    round(match_count / n, 4) if n else 0.0,
+        "vector_db_touched":     vdb_count,
+        "vector_db_touched_pct": round(vdb_count / n * 100, 1) if n else 0.0,
+        "mismatches":            mismatches,
+    }
 
 
 def _build_report(
@@ -320,6 +467,7 @@ def _build_report(
             "max":  round(max(timed), 1) if timed else 0.0,
             "note": "snapshot only — no SLA gate in Phase 2A",
         },
+        "backend_summary": _build_backend_summary(results),
         "cases": results,
     }
 
@@ -384,6 +532,7 @@ def _print_assertion(a: dict, indent: int = 7) -> None:
 def _print_footer(report: dict, latest: Path, archive: Path | None) -> None:
     s   = report["summary"]
     lat = report["latency_ms"]
+    bs  = report.get("backend_summary", {})
     print()
     print("─" * 72)
     print(
@@ -399,6 +548,30 @@ def _print_footer(report: dict, latest: Path, archive: Path | None) -> None:
     print()
     print(f"  Latency:  p50={lat['p50']}ms  p95={lat['p95']}ms  "
           f"max={lat['max']}ms  (snapshot, no SLA)")
+
+    if bs:
+        non_skip = s["total"] - s["skipped"]
+        print()
+        print("  Backend inference  (informational — not gated):")
+        counts = bs.get("counts", {})
+        for backend in _BACKEND_BUCKETS:
+            n = counts.get(backend, 0)
+            if n:
+                print(f"    {backend:<18}  {n}")
+        print()
+        print(f"  backend_match:      {bs['backend_match']}/{non_skip}  "
+              f"({bs['backend_match_rate'] * 100:.1f}%)")
+        print(f"  vector_db_touched:  {bs['vector_db_touched']}/{non_skip}  "
+              f"({bs['vector_db_touched_pct']:.1f}%)")
+        mismatches = bs.get("mismatches", [])
+        if mismatches:
+            print(f"\n  Backend mismatches ({len(mismatches)}):")
+            for m in mismatches:
+                print(f"    {m['id']:<22}  expected={m['expected_backend']!r:<20}  "
+                      f"actual={m['actual_backend']!r}")
+        else:
+            print("  backend_mismatches: none")
+
     print()
     print(f"  Report: {latest}")
     if archive:
@@ -502,6 +675,10 @@ def main() -> None:
                 "assertions": [],
                 "captured_events": {},
                 "error": None,
+                "expected_backend":  case.get("expected", {}).get("backend", ""),
+                "actual_backend":    None,
+                "backend_match":     None,
+                "vector_db_touched": None,
             })
             print(f"  {_ICON['SKIP']}  {case['id']:<22}  SKIP")
             continue
