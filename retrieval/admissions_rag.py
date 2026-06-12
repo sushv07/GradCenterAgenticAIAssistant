@@ -19,6 +19,8 @@ from typing import Optional
 import requests
 from bs4 import BeautifulSoup
 
+from gradcenter_logging import emit
+
 
 # ---------------------------------------------------------------------------
 # Doctoral source URLs (sub-pages under csulb.edu/admissions)
@@ -50,19 +52,43 @@ def _fetch_text(url: str) -> str:
     if url in _PAGE_CACHE:
         text, fetched_at = _PAGE_CACHE[url]
         if now - fetched_at < _CACHE_TTL:
+            emit("admissions_rag.fetch", url=url, cache_hit=True, elapsed_ms=0.0)
             return text
 
     try:
         resp = requests.get(url, timeout=8, headers={"User-Agent": "CSULB-GradAssistant/1.0"})
-        resp.raise_for_status()
+        elapsed_ms = round((time.monotonic() - now) * 1000, 2)
+
+        if not resp.ok:
+            emit(
+                "admissions_rag.fetch", level="WARNING",
+                url=url, cache_hit=False,
+                status_code=resp.status_code, elapsed_ms=elapsed_ms,
+            )
+            return ""
+
         soup = BeautifulSoup(resp.text, "html.parser")
         # Drop nav / footer / script noise
         for tag in soup(["script", "style", "nav", "footer", "header"]):
             tag.decompose()
         text = soup.get_text(separator=" ", strip=True)
         _PAGE_CACHE[url] = (text, now)
+
+        level = "INFO" if text else "WARNING"
+        emit(
+            "admissions_rag.fetch", level=level,
+            url=url, cache_hit=False,
+            status_code=resp.status_code, elapsed_ms=elapsed_ms,
+        )
         return text
-    except Exception:
+
+    except Exception as exc:
+        elapsed_ms = round((time.monotonic() - now) * 1000, 2)
+        emit(
+            "admissions_rag.fetch", level="ERROR",
+            url=url, cache_hit=False,
+            elapsed_ms=elapsed_ms, error=str(exc),
+        )
         return ""
 
 
@@ -203,20 +229,39 @@ def admissions_rag_lookup(query: str) -> Optional[dict]:
     if not query or not query.strip():
         return None
 
+    t0 = time.monotonic()
+
     # 1. Fetch doctoral pages (cached after first call)
     page_texts = [_fetch_text(url) for url in _DOCTORAL_URLS]
 
-    # 2. Verify at least one page has real doctoral content
+    # 2. Pre-compute token set and top snippet score (used in all emit paths)
+    query_tokens = _tokenize(query)
+    top_score = max((_score_snippet(s, query_tokens) for s in _SNIPPET_CATALOG), default=0)
+
+    # 3. Verify at least one page has real doctoral content
     if not any(_page_has_doctoral_content(t) for t in page_texts):
+        elapsed_ms = round((time.monotonic() - t0) * 1000, 2)
+        emit(
+            "admissions_rag.result", level="WARNING",
+            found=False, num_snippets=0, top_score=top_score, elapsed_ms=elapsed_ms,
+        )
         return None
 
-    # 3. Match snippets against the query
-    query_tokens = _tokenize(query)
+    # 4. Match snippets against the query
     snippets = _select_snippets(query_tokens)
 
+    elapsed_ms = round((time.monotonic() - t0) * 1000, 2)
     if not snippets:
+        emit(
+            "admissions_rag.result", level="WARNING",
+            found=False, num_snippets=0, top_score=top_score, elapsed_ms=elapsed_ms,
+        )
         return None
 
+    emit(
+        "admissions_rag.result", level="INFO",
+        found=True, num_snippets=len(snippets), top_score=top_score, elapsed_ms=elapsed_ms,
+    )
     return {
         "snippets": snippets,
         "source":   _SOURCE_LABEL,
