@@ -1121,3 +1121,21 @@ Some backends are still partially unobserved:
 - FAQ RAG query-level retrieval
 
 These should be instrumented before deeper answer-quality evaluation.
+
+Phase 3A — Backend Observability
+
+Added:
+- faq_rag.query
+- keyword.retrieval
+- keyword.result
+
+Coverage:
+- FAQ retrieval visibility
+- Keyword retrieval visibility
+- Answer extraction visibility
+
+Status:
+- 34/34 gate pass
+- backend_match 100%
+- no behavior changes
+

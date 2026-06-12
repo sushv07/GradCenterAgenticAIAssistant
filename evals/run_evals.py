@@ -217,13 +217,14 @@ def _infer_backend(
     Returns (actual_backend, vector_db_touched).
 
     Inference priority (first match wins):
-      1. retrieval.result with a ChromaDB page_type  → chroma        (vdb=True)
-      2. advisor.match + route==advisor              → rapidfuzz      (vdb=False)
+      1. retrieval.result with a ChromaDB page_type  → chroma         (vdb=True)
+      2. advisor.match + route==advisor              → rapidfuzz       (vdb=False)
       3. route==guidance, no retrieval               → admissions_json (vdb=False)
-      4. route==answer, no retrieval                 → json_keyword   (vdb=False)
-      5. route==next_steps + faq_rag store.lifecycle → faq_rag        (vdb=True)
-      6. route==next_steps, warm store (no event)    → *_inferred     (vdb=True/False)
-      7. fallback                                    → unknown
+      4. route==answer, no retrieval                 → json_keyword    (vdb=False)
+      5. route==next_steps + faq_rag.query event     → faq_rag         (vdb=True)
+      6. route==next_steps + faq_rag store.lifecycle → faq_rag         (vdb=True)
+      7. route==next_steps, warm store (no event)    → *_inferred      (vdb=True/False)
+      8. fallback                                    → unknown
     """
     route        = response.get("route")
     ret_events   = [e for e in events if e["event"] == "retrieval.result"]
@@ -247,13 +248,17 @@ def _infer_backend(
     if route == "answer" and not ret_events:
         return "json_keyword", False
 
-    # Rule 5/6: Next-steps path
+    # Rule 5/6/7: Next-steps path
     if route == "next_steps":
+        # Rule 5: per-query faq_rag.query event present (Phase 3A instrumentation)
+        faq_query_events = [e for e in events if e["event"] == "faq_rag.query"]
+        if faq_query_events:
+            return "faq_rag", True
+        # Rule 6: store.lifecycle build event (first request, store was cold)
         faq_store = [e for e in store_events if e.get("store_type") == "faq_rag"]
         if faq_store:
             return "faq_rag", True
-        # Store was warm at call time — query-level faq_rag retrieval is not
-        # individually instrumented, so fall back to expected as ground truth.
+        # Rule 7: warm store, no per-query event — fall back to expected as ground truth.
         if expected_backend == "faq_rag":
             return "faq_rag_inferred", True
         if expected_backend == "admissions_rag":
@@ -370,7 +375,8 @@ def _run_case(case: dict) -> dict:
 
 def _bucket_events(events: list[dict]) -> dict:
     names = ("route.decision", "retrieval.result", "tool.result",
-             "advisor.match", "store.lifecycle")
+             "advisor.match", "store.lifecycle",
+             "faq_rag.query", "keyword.retrieval", "keyword.result")
     return {n: [e for e in events if e["event"] == n] for n in names}
 
 
