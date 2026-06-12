@@ -1231,4 +1231,39 @@ Improved final answer quality after Phase 6A showed that some queries routed cor
 - Transfer-credit answer quality still needs a source-data improvement in `admissions.json`.
 - Accept-offer/application-step questions need a separate `_extract_steps` selection improvement.
 
+### Phase 7A — Typed Response Contracts
 
+- Added lightweight `TypedDict` contracts for orchestrator response shapes.
+
+- Introduced `OrchestratorResponse` union for all route response types.
+
+- Annotated `orchestrator.run()` and `_build_topic_response()`.
+
+- Documented distinct response shapes for guidance, answer, advisor, topic, next_steps, and welcome responses.
+
+- No runtime behavior changes.
+
+- Eval gates remain green: 0 FAIL, 0 ERROR, 100% gate pass rate.
+
+### Phase 7B — Router Extraction
+
+- Extracted routing decision logic from `orchestrator.py` into `router.py`.
+- Added `RouteDecision` dataclass to represent routing outcomes and route-specific payloads.
+- Moved route signal constants, `Route` enum, and `detect_route()` into the router layer.
+- Reduced `orchestrator.py` from ~900 lines to ~712 lines.
+- `orchestrator.run()` is now a thin wrapper: normalize query → `decide_route()` → dispatch response.
+- Added 26 router unit tests covering all routing branches and reason codes.
+- Preserved route outcomes, route reasons, response schemas, and `route.decision` log fields.
+- Full eval suite remains green: 0 FAIL, 0 ERROR, 100% gate pass rate, 100% backend match.
+
+### Phase 7C — Golden Route Assertions
+
+- Added a declarative route-level golden dataset in `evals/golden_routes.json`.
+- Added `test_golden_routes.py` to validate `router.decide_route()` directly.
+- Covered all route/reason combinations, including the `welcome` empty-query path.
+- Tests mock advisor lookup, program detection, and next-step detection to avoid retrieval/tool execution.
+- Added route-level protection independent of Chroma, answer generation, and backend execution.
+- Validation:
+  - `test_golden_routes.py`: 30/30 passed
+  - `test_router.py`: 26/26 passed
+  - full eval suite remains green with 100% gate pass and 100% backend match.

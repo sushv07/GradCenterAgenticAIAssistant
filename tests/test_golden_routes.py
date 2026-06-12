@@ -16,6 +16,11 @@ Run from the project root:
 """
 from __future__ import annotations
 
+import sys as _sys
+from pathlib import Path as _Path
+_sys.path.insert(0, str(_Path(__file__).parent.parent))
+
+
 import json
 import sys
 from pathlib import Path
@@ -106,7 +111,7 @@ def _run_case(case: dict) -> tuple[bool, str]:
 # ---------------------------------------------------------------------------
 
 def run_golden_routes(verbose: bool = True) -> bool:
-    dataset_path = Path(__file__).parent / "evals" / "golden_routes.json"
+    dataset_path = Path(__file__).parent.parent / "evals" / "golden_routes.json"
     with dataset_path.open() as fh:
         dataset = json.load(fh)
 
