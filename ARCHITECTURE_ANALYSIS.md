@@ -1145,5 +1145,51 @@ Phase 3B
 - next_steps cases now report actual_backend=faq_rag instead of faq_rag_inferred.
 - No production behavior changes.
 
+### Phase 4A — FAQ RAG Double-Call Removal
+
+- Removed duplicate `faq_rag_lookup()` call from the `start_intent` path in `orchestrator.py`.
+- `next_steps.get_next_steps()` now owns FAQ retrieval for next-step guidance.
+- Reduced FAQ RAG calls from 2 to 1 per `next_steps` request.
+- Preserved response behavior and schema.
+- Eval gates remain green: 0 FAIL, 0 ERROR, 100% gate pass rate.
+
+### Phase 4B — Transfer Credit Keyword Coverage
+
+- Fixed an answer-route quality gap for transfer-credit questions.
+- Added minimal keyword coverage for `transfer` and `credits` in `data/index.json`.
+- Routed transfer-credit queries to `admissions.json`, which contains the transfer-credit policy.
+- Eliminated fallback behavior for `answer_003` and `answer_006`.
+- Before: `answer_type=unknown`, `confidence=low`.
+- After: `answer_type=list/direct`, `confidence=medium/high`.
+- Eval gates remain green: 0 FAIL, 0 ERROR, 100% gate pass rate.
+### Current Status
+
+- 34 eval cases
+
+- 100% gate pass rate
+
+- 100% backend match rate
+
+- End-to-end backend observability
+
+### Phase 5B — Keyword Coverage Expansion
+
+- Added minimal keyword mappings for common graduate advising terms:
+  - admission
+  - admitted
+  - register
+  - activate
+  - account
+  - assistantship / assistantships
+  - requirements
+  - appeal
+- Fixed 8 previously-fallbacking queries.
+- Before: `fallback=True`, `answer_type=unknown`, `confidence=low`.
+- After: `fallback=False`, `answer_type=direct/faq/list`, `confidence=medium/high`.
+- No code, routing, or extraction changes.
+- Eval gates remain green: 0 FAIL, 0 ERROR, 100% gate pass rate.
+
+
+
 
 

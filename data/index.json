@@ -145,6 +145,15 @@
     "career":        ["student_resources.json"],
     "beach edge":    ["programs.json"],
     "transfer":      ["admissions.json"],
-    "credits":       ["admissions.json"]
+    "credits":       ["admissions.json"],
+    "admission":     ["admissions.json", "faqs.json"],
+    "admitted":      ["admissions.json"],
+    "register":      ["faqs.json", "admissions.json"],
+    "activate":      ["admissions.json"],
+    "account":       ["admissions.json"],
+    "assistantship":  ["funding.json"],
+    "assistantships": ["funding.json"],
+    "requirements":  ["admissions.json", "milestones_thesis.json"],
+    "appeal":        ["admissions.json", "faqs.json"]
   }
 }
