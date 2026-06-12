@@ -29,7 +29,8 @@
         "application fee", "deadlines", "newly admitted students",
         "conditional admission", "provisional admission",
         "international students", "orientation", "accept offer",
-        "enrollment deposit", "immunization", "activate account"
+        "enrollment deposit", "immunization", "activate account",
+        "transfer credits", "transfer"
       ]
     },
     {
@@ -142,6 +143,8 @@
     "ranking":       ["why_csulb.json", "programs.json"],
     "campus":        ["student_resources.json"],
     "career":        ["student_resources.json"],
-    "beach edge":    ["programs.json"]
+    "beach edge":    ["programs.json"],
+    "transfer":      ["admissions.json"],
+    "credits":       ["admissions.json"]
   }
 }
