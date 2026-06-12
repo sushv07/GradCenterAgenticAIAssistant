@@ -1139,3 +1139,11 @@ Status:
 - backend_match 100%
 - no behavior changes
 
+Phase 3B
+- Added faq_rag.query, keyword.retrieval, and keyword.result to eval report capture.
+- Backend inference now uses faq_rag.query as direct evidence.
+- next_steps cases now report actual_backend=faq_rag instead of faq_rag_inferred.
+- No production behavior changes.
+
+
+

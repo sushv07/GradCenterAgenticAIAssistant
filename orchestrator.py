@@ -716,19 +716,14 @@ def run(query: str, session_id: str = "default") -> dict[str, Any]:
 
     if is_start_only:
         from next_steps import get_next_steps
-        from faq_rag_module import faq_rag_lookup
         next_steps_result = get_next_steps(query)
         if next_steps_result:
             extra     = next_steps_result.get("extra_guidance") or ""
-            faq_data  = faq_rag_lookup(query) or {}
-            # Links are embedded as [text](url) markdown inside guidance; no separate list needed
-            resources = faq_data.get("links", [])   # always [] — kept for schema consistency
+            resources = []
             summary   = (
                 "Not sure where to begin? Here are some ways to get started with graduate admissions at CSULB."
             )
-            # guidance already has markdown [text](url) links embedded — render-ready
-            guidance_text = faq_data.get("guidance", "")
-            primary = guidance_text or extra or "Request a free appointment with a Graduate Center Coordinator."
+            primary = extra or "Request a free appointment with a Graduate Center Coordinator."
             emit("route.decision", level="INFO",
                  route="next_steps", reason="start_intent",
                  is_process_query=is_process_query,
