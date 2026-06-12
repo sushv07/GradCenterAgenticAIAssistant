@@ -173,7 +173,7 @@ def _extract_amounts(result_block: dict, query_tokens: set[str]) -> tuple[Any, s
 
 def _extract_eligibility(result_block: dict, query_tokens: set[str]) -> tuple[Any, str] | None:
     """Return eligibility criteria when the query is about requirements."""
-    eligibility_triggers = {"eligible", "eligibility", "qualify", "requirement", "require", "gpa", "who", "can"}
+    eligibility_triggers = {"eligible", "eligibility", "qualify", "requirement", "require", "gpa", "who"}
     if not (eligibility_triggers & query_tokens):
         return None
 
