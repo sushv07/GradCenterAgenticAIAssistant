@@ -19,7 +19,6 @@ import json
 import re
 import sys
 import time
-from enum import Enum
 from typing import Any
 
 from gradcenter_logging import emit
@@ -27,19 +26,13 @@ from gradcenter_logging import emit
 from query_handler import handle_query
 from answer_agent import answer
 from guidance_agent import guide_from_file
-from advisor_retrieval import find_advisor, format_advisor_result, advisors
-from tools.application_steps_tool import _detect_program as _tool_detect_program
+from router import Route, RouteDecision, decide_route, detect_route
 from response_types import OrchestratorResponse, TopicResponse
 
 
 # ---------------------------------------------------------------------------
-# Route definitions
+# Route definitions  (Route enum is defined in router.py and imported above)
 # ---------------------------------------------------------------------------
-
-class Route(str, Enum):
-    GUIDANCE  = "guidance"
-    ANSWER    = "answer"
-
 
 _ROUTE_SIGNALS: list[tuple[Route, set[str]]] = [
     (
@@ -68,79 +61,11 @@ _STOP_WORDS = {
 }
 
 
-# ---------------------------------------------------------------------------
-# Intent-priority routing signals
-# ---------------------------------------------------------------------------
-# Used in run() BEFORE find_advisor() so program aliases ("dnp", "nursing")
-# cannot hijack deadline / eligibility / application-steps queries.
-#
-# Priority order inside run():
-#   1. Advisor signals  → always show advisor card first
-#   2. Deadline signals → deadlines_tool
-#   3. Eligibility signals → eligibility_tool
-#   4. Process + steps signals (when also is_process_query) → application_steps_tool
-#   5. Everything else  → existing advisor → detect_route() flow
-
-# Words that definitively mean "I want advisor/contact info"
-_ADVISOR_SIGNALS = frozenset({
-    "advisor", "advisors", "adviser", "advisers",
-    "contact", "who", "advising",
-})
-
-# Words that signal a deadline query
-_DEADLINE_SIGNALS = frozenset({
-    "deadline", "deadlines", "due", "cutoff",
-})
-
-# Words that signal an eligibility query
-_ELIGIBILITY_SIGNALS = frozenset({
-    "eligibility", "eligible", "gpa", "requirement", "requirements",
-    "qualify", "qualification", "minimum", "qualified",
-})
-
-# Words that (combined with is_process_query) route to application_steps_tool
-# "apply" / "application" alone stay on the GUIDANCE path for generic queries;
-# "steps" / "process" / "procedure" signals the user wants an ordered list.
-_PROCESS_STEP_SIGNALS = frozenset({
-    "steps", "process", "procedure",
-})
-
-
 def _tokenize(text: str) -> set[str]:
     return set(re.findall(r"[a-z0-9]+", text.lower())) - _STOP_WORDS
 
 
-# ---------------------------------------------------------------------------
-# Tracking command parsing  (removed — checklist tracking is no longer a feature)
-# ---------------------------------------------------------------------------
-
-_GUIDANCE_DOMAIN = {
-    "apply", "applying", "applied", "application",
-    "admitted", "accepted", "enrolled", "newly",
-    "international", "eligibility", "eligible",
-    "orientation", "steps", "process", "procedure",
-    "start", "begin", "started", "beginning", "confused", "stuck", "help",
-}
-
-
-def detect_route(query: str) -> Route:
-    """
-    Routing precedence:
-      1. GUIDANCE    — any guidance domain word (apply / steps / admitted / …)
-      2. ANSWER      — yes/no question-starter (is / are / does / …)
-      3. ANSWER (default) — fallback for everything else
-    """
-    tokens = set(re.findall(r"[a-z0-9]+", query.lower()))
-
-    # Yes/no question-starters → ANSWER (factual lookup) even if domain words appear
-    first_word = next(iter(re.findall(r"[a-z]+", query.lower())), "")
-    if first_word in {"is", "are", "does", "do", "can", "will", "should"}:
-        return Route.ANSWER
-
-    if _GUIDANCE_DOMAIN & tokens:
-        return Route.GUIDANCE
-
-    return Route.ANSWER
+# Signal constants, _GUIDANCE_DOMAIN, and detect_route() live in router.py.
 
 
 # ---------------------------------------------------------------------------
@@ -481,182 +406,26 @@ def _build_topic_response(topic: str, query: str, session_id: str) -> TopicRespo
 
 
 # ---------------------------------------------------------------------------
-# Public API
+# Response builders for advisor and next_steps routes
+# (these were inline in run(); extracted here now that routing is separate)
 # ---------------------------------------------------------------------------
 
-def run(query: str, session_id: str = "default") -> OrchestratorResponse:
-    """Route the query, run the agent, and return a user-friendly response."""
-    query = (query or "").strip()
+def _build_advisor_response(decision: RouteDecision) -> dict:
+    """Build the advisor response from a pre-routed RouteDecision."""
+    advisor_result = decision.advisor_result or {}
 
-    if not query:
+    if decision.reason == "doctoral_no_match":
         return {
-            "route":          None,
-            "session_id":     session_id,
-            "summary":        "Welcome to the Grad Center. What can I help you with today?",
-            "primary_action": "Ask me about admissions, your program, or any step in the process — or pick a starting point below.",
-            "next_actions": [
-                "How do I apply to a graduate program?",
-                "What are the GPA requirements for admission?",
-                "Who do I contact about thesis submission?",
-            ],
-        }
-
-    # ── Detect process intent — these queries bypass the advisor card ────────
-    # "apply", "application", "steps", "process", "start" signal that the user
-    # wants guidance on HOW to apply, not WHO to contact.  Skip the advisor card
-    # so "I want to apply for a PhD" routes to next-steps, not a program card.
-    _q = query.lower()
-    _PROCESS_KEYWORDS = {
-        "apply", "application", "steps", "process", "start",
-        "begin", "beginning", "confused", "stuck", "where to start",
-        "where to begin", "don't know",
-    }
-    is_process_query = any(k in _q for k in _PROCESS_KEYWORDS)
-
-    # ── Topic-priority routing (BEFORE find_advisor) ──────────────────────────
-    # Program aliases like "dnp" / "nursing" fuzzy-match advisors at high
-    # confidence, so without this check, "deadlines for dnp" would silently
-    # return an advisor card instead of deadline information.
-    #
-    # Rule: if a topic-specific keyword is present AND no advisor-intent word
-    # ("who", "advisor", "contact", …) is present, route straight to the tool.
-    _raw_toks = set(re.findall(r"[a-z]+", query.lower()))
-
-    _has_advisor_signal = bool(_raw_toks & _ADVISOR_SIGNALS)
-
-    if not _has_advisor_signal:
-        if _raw_toks & _DEADLINE_SIGNALS:
-            emit("route.decision", level="INFO",
-                 route="deadlines", reason="deadline_signal",
-                 is_process_query=is_process_query,
-                 has_advisor_signal=_has_advisor_signal,
-                 matched_signals=sorted(_raw_toks & _DEADLINE_SIGNALS))
-            return _build_topic_response("deadlines", query, session_id)
-        if _raw_toks & _ELIGIBILITY_SIGNALS:
-            emit("route.decision", level="INFO",
-                 route="eligibility", reason="eligibility_signal",
-                 is_process_query=is_process_query,
-                 has_advisor_signal=_has_advisor_signal,
-                 matched_signals=sorted(_raw_toks & _ELIGIBILITY_SIGNALS))
-            return _build_topic_response("eligibility", query, session_id)
-        # Application-steps: trigger when either:
-        #   (a) explicit step/process/procedure signals present, OR
-        #   (b) a specific program is named (e.g. "edd", "dpt", "dnp") — these
-        #       always want program-specific RAG, not the generic 8-step guidance.
-        # Generic "how do I apply?" without a named program keeps GUIDANCE path.
-        _detected_program = _tool_detect_program(query)   # capture name for logging
-        _has_program_signal = bool(_detected_program)
-        if is_process_query and ((_raw_toks & _PROCESS_STEP_SIGNALS) or _has_program_signal):
-            emit("route.decision", level="INFO",
-                 route="application", reason="application_process",
-                 is_process_query=is_process_query,
-                 has_advisor_signal=_has_advisor_signal,
-                 program_detected=_detected_program or "")
-            return _build_topic_response("application", query, session_id)
-
-    # ── Advisor retrieval ──────────────────────────────────────────────────────
-    # find_advisor() uses fuzzy matching + stop-word normalisation so it handles
-    # abbreviations ("dnp"), aliases ("applied anthro"), and conversational
-    # phrasing ("who do I contact for nursing") reliably.  Returning early here
-    # means words like "applied" or "advisor" can never hijack the route.
-    advisor_result = find_advisor(query)
-    if not is_process_query and (advisor_result["match"] or advisor_result["suggestions"]):
-        match      = advisor_result["match"]
-        source_url = (match or {}).get("source", "https://www.csulb.edu/graduate-center")
-        primary    = (
-            f"Email {match['email']} to schedule an advising appointment."
-            if match and match.get("email")
-            else "Contact GraduateCenter@csulb.edu for advisor information."
-        )
-
-        advisor_response = {
-            "query":          query,
+            "query":          decision.query,
             "route":          "advisor",
-            "session_id":     session_id,
-            "summary":        (
-                f"I found a {'Strong' if advisor_result['confidence'] >= 90 else 'Good'} "
-                "match for your query."
-            ) if match else "I couldn't find an exact match.",
-            "primary_action": primary,
-            "advisor_data":   advisor_result,
-            "source":         {"file": "", "url": source_url},
-            "next_actions": [
-                "Show me the application steps",
-                "What are the GPA requirements?",
-                "When is the application deadline?",
-            ],
-        }
-
-        # Auto-generate email draft when a specific advisor was matched.
-        # The draft is included in the payload; the UI renders a preview and
-        # an "Open in Outlook" button — Outlook is NEVER opened automatically.
-        if match and match.get("advisor_name") and match.get("email"):
-            from tools.email_tool import (
-                draft_email      as _draft_email,
-                build_outlook_url as _build_outlook_url,
-            )
-            _draft = _draft_email(
-                advisor_name  = match["advisor_name"],
-                advisor_email = match["email"],
-                program       = match.get("program", ""),
-                context       = "",   # user fills in "[Your Name]" placeholders
-            )
-            _outlook = (
-                _build_outlook_url(
-                    to_email = _draft.get("to", ""),
-                    subject  = _draft.get("subject", ""),
-                    body     = _draft.get("body", ""),
-                )
-                if _draft["found"]
-                else {"found": False, "outlook_url": ""}
-            )
-            advisor_response["email_draft"] = {
-                "found":       _draft["found"] and _outlook["found"],
-                "subject":     _draft.get("subject", ""),
-                "body":        _draft.get("body", ""),
-                "to":          _draft.get("to", ""),
-                "outlook_url": _outlook.get("outlook_url", ""),
-            }
-
-        _adv_reason = "advisor_fuzzy_match" if advisor_result["match"] else "advisor_suggestions"
-        emit("route.decision", level="INFO",
-             route="advisor", reason=_adv_reason,
-             is_process_query=is_process_query,
-             has_advisor_signal=_has_advisor_signal,
-             advisor_score=advisor_result["confidence"])
-        return advisor_response
-
-    # ── PhD / doctoral query with no match → list available doctoral programs ─
-    # e.g. "business phd csulb" — the user is looking for a doctoral program that
-    # doesn't exist in the dataset.  Give a natural "not found" answer with the
-    # full list of doctoral/professional programs we do have.
-    _DOCTORAL_TOKENS = {"phd", "ph", "doctorate", "doctoral", "doctor", "edd", "dpt", "dnp"}
-    raw_tokens = set(re.findall(r"[a-z]+", query.lower()))
-    if raw_tokens & _DOCTORAL_TOKENS and not (advisor_result["match"] or advisor_result["suggestions"]):
-        doctoral_programs = [
-            a for a in advisors
-            if any(
-                kw in (a.get("program") or "").lower()
-                for kw in ["ph.d", "phd", "ed.d", "dpt", "d.n.p", "dr.p.h", "dnp"]
-            )
-        ]
-        prog_names = [a["program"] for a in doctoral_programs if a.get("program")]
-        emit("route.decision", level="INFO",
-             route="advisor", reason="doctoral_no_match",
-             is_process_query=is_process_query,
-             has_advisor_signal=_has_advisor_signal,
-             advisor_score=advisor_result["confidence"])
-        return {
-            "query":          query,
-            "route":          "advisor",
-            "session_id":     session_id,
+            "session_id":     decision.session_id,
             "summary":        "There's no doctoral program matching that at CSULB — but here are the doctoral and professional programs we do have advisor information for.",
             "primary_action": "Pick the closest program below and I can show you the advisor contact and application steps.",
             "advisor_data":   {
-                "match": None,
-                "confidence": advisor_result["confidence"],
-                "suggestions": [],
-                "known_programs": prog_names,
+                "match":          None,
+                "confidence":     advisor_result.get("confidence", 0),
+                "suggestions":    [],
+                "known_programs": decision.known_programs,
             },
             "source":         {"file": "", "url": "https://www.csulb.edu/graduate-center"},
             "next_actions": [
@@ -666,25 +435,19 @@ def run(query: str, session_id: str = "default") -> OrchestratorResponse:
             ],
         }
 
-    # ── Advisor-intent with no program name ──────────────────────────────────
-    # e.g. "who should I contact" — stop-word normalisation stripped the whole
-    # query, but the raw tokens signal the user is looking for an advisor.
-    # Return a prompt asking for the program name instead of a generic answer.
-    _ADVISOR_INTENT = {"contact", "advisor", "adviser", "advising", "talk", "speak", "email", "reach"}
-    if advisor_result["confidence"] == 0 and raw_tokens & _ADVISOR_INTENT:
-        known = [a["program"] for a in advisors if a.get("program")]
-        emit("route.decision", level="INFO",
-             route="advisor", reason="advisor_intent_no_program",
-             is_process_query=is_process_query,
-             has_advisor_signal=_has_advisor_signal,
-             advisor_score=0)
+    if decision.reason == "advisor_intent_no_program":
         return {
-            "query":          query,
+            "query":          decision.query,
             "route":          "advisor",
-            "session_id":     session_id,
+            "session_id":     decision.session_id,
             "summary":        "It looks like you're looking for an advisor — I just need the program name.",
             "primary_action": "Try something like: \"nursing advisor\", \"dnp advisor\", or \"engineering phd advisor\".",
-            "advisor_data":   {"match": None, "confidence": 0, "suggestions": [], "known_programs": known},
+            "advisor_data":   {
+                "match":          None,
+                "confidence":     0,
+                "suggestions":    [],
+                "known_programs": decision.known_programs,
+            },
             "source":         {"file": "", "url": "https://www.csulb.edu/graduate-center"},
             "next_actions": [
                 "Nursing advisor",
@@ -693,80 +456,130 @@ def run(query: str, session_id: str = "default") -> OrchestratorResponse:
             ],
         }
 
-    # ── START-intent intercept ────────────────────────────────────────────────
-    # Queries like "I don't know where to start" / "I'm confused" / "help me begin"
-    # carry NO specific program or application keyword.  detect_route() maps them
-    # to GUIDANCE, which calls guide_from_file() → detect_intent() matches "start"
-    # to application_process and dumps the full general 7-step flow — wrong.
-    #
-    # Instead, detect START intent here (before detect_route) and route through
-    # get_next_steps(), which returns the FAQ-enriched orientation response.
-    # Token-based matching (not substring) so typos like "don;t" still match.
-    # Only triggers when NO apply/doctoral keyword is also present, so
-    # "I want to apply and don't know where to start" still goes to GUIDANCE.
-    _START_TOKENS   = {"confused", "stuck", "lost", "overwhelmed",
-                       "start", "begin", "beginning", "started"}
-    _APPLY_SPECIFIC = {"apply", "application", "steps", "process",
-                       "phd", "doctorate", "doctoral", "dnp", "dpt", "edd"}
-    raw_tokens      = set(re.findall(r"[a-z]+", query.lower()))
-
-    is_start_only = (
-        bool(raw_tokens & _START_TOKENS)
-        and not bool(raw_tokens & _APPLY_SPECIFIC)
+    # reason is "advisor_fuzzy_match" or "advisor_suggestions"
+    match      = advisor_result.get("match")
+    source_url = (match or {}).get("source", "https://www.csulb.edu/graduate-center")
+    primary    = (
+        f"Email {match['email']} to schedule an advising appointment."
+        if match and match.get("email")
+        else "Contact GraduateCenter@csulb.edu for advisor information."
     )
 
-    if is_start_only:
-        from next_steps import get_next_steps
-        next_steps_result = get_next_steps(query)
-        if next_steps_result:
-            extra     = next_steps_result.get("extra_guidance") or ""
-            resources = []
-            summary   = (
-                "Not sure where to begin? Here are some ways to get started with graduate admissions at CSULB."
+    advisor_response: dict = {
+        "query":          decision.query,
+        "route":          "advisor",
+        "session_id":     decision.session_id,
+        "summary":        (
+            f"I found a {'Strong' if advisor_result.get('confidence', 0) >= 90 else 'Good'} "
+            "match for your query."
+        ) if match else "I couldn't find an exact match.",
+        "primary_action": primary,
+        "advisor_data":   advisor_result,
+        "source":         {"file": "", "url": source_url},
+        "next_actions": [
+            "Show me the application steps",
+            "What are the GPA requirements?",
+            "When is the application deadline?",
+        ],
+    }
+
+    if match and match.get("advisor_name") and match.get("email"):
+        from tools.email_tool import (
+            draft_email       as _draft_email,
+            build_outlook_url as _build_outlook_url,
+        )
+        _draft = _draft_email(
+            advisor_name  = match["advisor_name"],
+            advisor_email = match["email"],
+            program       = match.get("program", ""),
+            context       = "",
+        )
+        _outlook = (
+            _build_outlook_url(
+                to_email = _draft.get("to", ""),
+                subject  = _draft.get("subject", ""),
+                body     = _draft.get("body", ""),
             )
-            primary = extra or "Request a free appointment with a Graduate Center Coordinator."
-            emit("route.decision", level="INFO",
-                 route="next_steps", reason="start_intent",
-                 is_process_query=is_process_query,
-                 has_advisor_signal=_has_advisor_signal)
-            return {
-                "query":          query,
-                "route":          "next_steps",
-                "session_id":     session_id,
-                "summary":        summary,
-                "primary_action": primary,
-                "steps":          [
-                    {"number": i + 1, "do": s}
-                    for i, s in enumerate(next_steps_result.get("steps", []))
-                ],
-                "resources":      resources,
-                "source":         {"file": "", "url": "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs"},
-                "next_actions": [
-                    "Show me the application steps",
-                    "Find my program advisor",
-                    "What are the GPA requirements?",
-                ],
-            }
+            if _draft["found"]
+            else {"found": False, "outlook_url": ""}
+        )
+        advisor_response["email_draft"] = {
+            "found":       _draft["found"] and _outlook["found"],
+            "subject":     _draft.get("subject", ""),
+            "body":        _draft.get("body", ""),
+            "to":          _draft.get("to", ""),
+            "outlook_url": _outlook.get("outlook_url", ""),
+        }
 
-    route = detect_route(query)
+    return advisor_response
 
-    # Derive reason code from detect_route() outcome (mirrors detect_route()'s logic)
-    _dr_first = next(iter(re.findall(r"[a-z]+", query.lower())), "")
-    if route == Route.GUIDANCE:
-        _dr_reason = "detect_route_guidance"
-    elif _dr_first in {"is", "are", "does", "do", "can", "will", "should"}:
-        _dr_reason = "detect_route_answer_starter"
-    else:
-        _dr_reason = "detect_route_answer_default"
-    emit("route.decision", level="INFO",
-         route=route.value, reason=_dr_reason,
-         is_process_query=is_process_query,
-         has_advisor_signal=_has_advisor_signal)
 
-    raw      = _ROUTE_RUNNERS[route](query, session_id)
-    response = _format_response(query, route, raw)
-    response["session_id"] = session_id
+def _build_next_steps_response(decision: RouteDecision) -> dict:
+    """Build the next_steps response from a pre-routed RouteDecision."""
+    nsr     = decision.next_steps_result or {}
+    extra   = nsr.get("extra_guidance") or ""
+    primary = extra or "Request a free appointment with a Graduate Center Coordinator."
+    return {
+        "query":          decision.query,
+        "route":          "next_steps",
+        "session_id":     decision.session_id,
+        "summary":        "Not sure where to begin? Here are some ways to get started with graduate admissions at CSULB.",
+        "primary_action": primary,
+        "steps":          [
+            {"number": i + 1, "do": s}
+            for i, s in enumerate(nsr.get("steps", []))
+        ],
+        "resources":      [],
+        "source":         {"file": "", "url": "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs"},
+        "next_actions": [
+            "Show me the application steps",
+            "Find my program advisor",
+            "What are the GPA requirements?",
+        ],
+    }
+
+
+def _dispatch(decision: RouteDecision) -> OrchestratorResponse:
+    """Map a RouteDecision to the appropriate response builder."""
+    if decision.route == "welcome":
+        return {
+            "route":          None,
+            "session_id":     decision.session_id,
+            "summary":        "Welcome to the Grad Center. What can I help you with today?",
+            "primary_action": "Ask me about admissions, your program, or any step in the process — or pick a starting point below.",
+            "next_actions": [
+                "How do I apply to a graduate program?",
+                "What are the GPA requirements for admission?",
+                "Who do I contact about thesis submission?",
+            ],
+        }
+
+    if decision.route in ("deadlines", "eligibility", "application"):
+        return _build_topic_response(decision.route, decision.query, decision.session_id)
+
+    if decision.route == "advisor":
+        return _build_advisor_response(decision)
+
+    if decision.route == "next_steps":
+        return _build_next_steps_response(decision)
+
+    # "guidance" | "answer"
+    route_enum = Route(decision.route)
+    raw        = _ROUTE_RUNNERS[route_enum](decision.query, decision.session_id)
+    response   = _format_response(decision.query, route_enum, raw)
+    response["session_id"] = decision.session_id
     return response
+
+
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+def run(query: str, session_id: str = "default") -> OrchestratorResponse:
+    """Route the query, run the agent, and return a user-friendly response."""
+    query    = (query or "").strip()
+    decision = decide_route(query, session_id)
+    return _dispatch(decision)
 
 
 # ---------------------------------------------------------------------------
