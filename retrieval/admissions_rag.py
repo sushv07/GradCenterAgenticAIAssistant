@@ -12,7 +12,6 @@ Usage:
 
 from __future__ import annotations
 
-import re
 import time
 from typing import Optional
 
@@ -20,6 +19,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from gradcenter_logging import emit
+from retrieval.utils import tokenize
 
 
 # ---------------------------------------------------------------------------
@@ -159,20 +159,16 @@ _SNIPPET_CATALOG: list[dict] = [
 
 
 # ---------------------------------------------------------------------------
-# Query tokenizer (mirrors the project's existing _tokenize style)
+# Stop words — tokens stripped from queries before snippet matching
 # ---------------------------------------------------------------------------
 
-_STOP = {
+_STOP = frozenset({
     "a", "an", "the", "i", "me", "my", "is", "are", "do", "does",
     "for", "to", "of", "in", "on", "at", "by", "with", "and", "or",
     "it", "its", "as", "so", "if", "up", "be", "was", "can", "will",
     "what", "how", "who", "where", "when", "which", "this", "that",
     "doctoral", "doctorate", "phd", "graduate", "grad", "csulb",
-}
-
-
-def _tokenize(text: str) -> set[str]:
-    return set(re.findall(r"[a-z0-9]+", text.lower())) - _STOP
+})
 
 
 # ---------------------------------------------------------------------------
@@ -235,7 +231,7 @@ def admissions_rag_lookup(query: str) -> Optional[dict]:
     page_texts = [_fetch_text(url) for url in _DOCTORAL_URLS]
 
     # 2. Pre-compute token set and top snippet score (used in all emit paths)
-    query_tokens = _tokenize(query)
+    query_tokens = tokenize(query, _STOP)
     top_score = max((_score_snippet(s, query_tokens) for s in _SNIPPET_CATALOG), default=0)
 
     # 3. Verify at least one page has real doctoral content

@@ -7,13 +7,13 @@ the most relevant structured content from matching files.
 from __future__ import annotations
 
 import json
-import re
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from gradcenter_logging import emit
+from retrieval.utils import tokenize
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -64,11 +64,6 @@ def load_index() -> dict:
 # Scoring
 # ---------------------------------------------------------------------------
 
-def _tokenize(text: str) -> set[str]:
-    """Lowercase and split text into word tokens."""
-    return set(re.findall(r"[a-z0-9]+", text.lower()))
-
-
 def _score_file_entry(query_tokens: set[str], query_raw: str, entry: dict) -> int:
     """
     Score a single index entry against the query.
@@ -98,7 +93,7 @@ def rank_files(query: str, index: dict) -> list[tuple[str, int]]:
     Return data filenames sorted by relevance score (descending).
     Combines topic scoring with keyword_to_file_map boosting.
     """
-    query_tokens = _tokenize(query)
+    query_tokens = tokenize(query)
     query_lower = query.lower()
 
     scores: dict[str, int] = {}
@@ -149,7 +144,7 @@ def extract_relevant_sections(query: str, data: dict) -> dict[str, Any]:
     keys or string values contain at least one query token.
     Falls back to the full data if nothing matches.
     """
-    query_tokens = _tokenize(query)
+    query_tokens = tokenize(query)
     query_lower = query.lower()
 
     # Fields that are metadata, not content
@@ -158,7 +153,7 @@ def extract_relevant_sections(query: str, data: dict) -> dict[str, Any]:
                  "id", "schema"}
 
     def _section_matches(key: str, value: Any) -> bool:
-        key_tokens = _tokenize(key)
+        key_tokens = tokenize(key)
         if key_tokens & query_tokens:
             return True
         if isinstance(value, str) and any(t in value.lower() for t in query_tokens):
@@ -199,7 +194,7 @@ def extract_relevant_sections(query: str, data: dict) -> dict[str, Any]:
 
 def extract_faq_matches(query: str, faq_data: dict) -> list[dict]:
     """Return FAQ Q&A pairs whose question or answer contains query tokens."""
-    query_tokens = _tokenize(query)
+    query_tokens = tokenize(query)
     matches = []
 
     # v2 schema wraps categories under "content"; fall back to legacy top-level
@@ -210,7 +205,7 @@ def extract_faq_matches(query: str, faq_data: dict) -> list[dict]:
         for item in items:
             q = item.get("q", "")
             a = item.get("a", "")
-            combined_tokens = _tokenize(q) | _tokenize(a)
+            combined_tokens = tokenize(q) | tokenize(a)
             if combined_tokens & query_tokens:
                 matches.append({
                     "category": category,
@@ -247,7 +242,7 @@ _PROGRAM_ALIASES: dict[str, str] = {
 def is_advisor_query(query: str) -> bool:
     """Return True if the query is asking about an advisor or contact info."""
     query_lower = query.lower()
-    query_tokens = _tokenize(query)
+    query_tokens = tokenize(query)
     # Check single-word triggers against token set
     single = {t for t in _ADVISOR_TRIGGERS if " " not in t}
     multi  = {t for t in _ADVISOR_TRIGGERS if " " in t}
@@ -389,7 +384,7 @@ _NEXT_STEP_RULES: list[tuple[set[str], list[str]]] = [
 
 def suggest_next_steps(query: str) -> list[str]:
     """Return contextual next steps based on query tokens."""
-    query_tokens = _tokenize(query)
+    query_tokens = tokenize(query)
     for trigger_tokens, steps in _NEXT_STEP_RULES:
         if trigger_tokens & query_tokens:
             return steps

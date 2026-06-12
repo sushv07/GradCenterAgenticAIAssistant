@@ -13,7 +13,8 @@ import sys
 from dataclasses import dataclass, field
 from typing import Any
 
-from retrieval.query_handler import handle_query, _tokenize
+from retrieval.query_handler import handle_query
+from retrieval.utils import tokenize
 
 
 # ---------------------------------------------------------------------------
@@ -68,14 +69,14 @@ def _extract_faq(result_block: dict, query_tokens: set[str]) -> tuple[Any, str] 
         return None
 
     def _faq_score(faq: dict) -> int:
-        q_content = _tokenize(faq.get("question", "")) - _FAQ_STOPWORDS
-        a_content = _tokenize(faq.get("answer", "")) - _FAQ_STOPWORDS
+        q_content = tokenize(faq.get("question", "")) - _FAQ_STOPWORDS
+        a_content = tokenize(faq.get("answer", "")) - _FAQ_STOPWORDS
         return len(q_content & content_tokens) * 3 + len(a_content & content_tokens)
 
     best = max(faqs, key=_faq_score)
     # Require ≥ 2 content-word matches in the FAQ question — a single shared
     # content word (e.g. "admission") is too ambiguous to trust.
-    q_best_content = _tokenize(best.get("question", "")) - _FAQ_STOPWORDS
+    q_best_content = tokenize(best.get("question", "")) - _FAQ_STOPWORDS
     if len(q_best_content & content_tokens) < 2:
         return None
 
@@ -250,7 +251,7 @@ def _extract_generic(result_block: dict, query_tokens: set[str]) -> tuple[Any, s
 
     def _score_leaf(value: Any) -> int:
         if isinstance(value, str):
-            return len(_tokenize(value) & query_tokens)
+            return len(tokenize(value) & query_tokens)
         if isinstance(value, list):
             return sum(_score_leaf(i) for i in value)
         if isinstance(value, dict):
@@ -260,7 +261,7 @@ def _extract_generic(result_block: dict, query_tokens: set[str]) -> tuple[Any, s
     def _score_key(key: str) -> int:
         # Sections named after the query topic beat verbose neighbours whose
         # body text incidentally matches more tokens.
-        return len(_tokenize(key.replace("_", " ")) & query_tokens) * 5
+        return len(tokenize(key.replace("_", " ")) & query_tokens) * 5
 
     scored = {}
     for k, v in result_block.items():
@@ -313,7 +314,7 @@ def _score_confidence(answer: Any, answer_type: str, query_tokens: set[str]) -> 
     if answer_type in ("table", "list") and isinstance(answer, list) and answer:
         return "high"
     if answer_type == "direct":
-        content_tokens = _tokenize(json.dumps(answer))
+        content_tokens = tokenize(json.dumps(answer))
         overlap = len(content_tokens & query_tokens)
         return "high" if overlap >= 3 else "medium" if overlap >= 1 else "low"
     if answer_type == "unknown" or (isinstance(answer, str) and "don't know" in answer):
@@ -377,7 +378,7 @@ def answer(query: str, retrieved: dict) -> dict:
             next_steps=["Contact GraduateCenter@csulb.edu for assistance"],
         ).to_dict()
 
-    query_tokens = _tokenize(query)
+    query_tokens = tokenize(query)
 
     # Pass 1: scan every result block for FAQ matches (highest precision)
     for block in results:
