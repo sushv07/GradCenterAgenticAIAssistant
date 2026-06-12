@@ -228,7 +228,7 @@ def extract_faq_matches(query: str, faq_data: dict) -> list[dict]:
 
 # Keywords that signal an advisor-related query
 _ADVISOR_TRIGGERS: set[str] = {
-    "advisor", "adviser", "advising", "contact",
+    "advisor", "adviser", "contact",
     "email", "office", "reach", "talk", "speak",
     "program advisor", "graduate advisor", "academic advisor",
 }
