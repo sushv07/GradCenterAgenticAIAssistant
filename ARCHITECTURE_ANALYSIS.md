@@ -1190,6 +1190,45 @@ Phase 3B
 - Eval gates remain green: 0 FAIL, 0 ERROR, 100% gate pass rate.
 
 
+### Phase 5C — Advising Query Classification Fix
 
+- Removed `advising` from the legacy advisor trigger set in `query_handler.py`.
+- Fixed a false-positive advisor fallback for general Grad Center advising-service questions.
+- Example fixed query: “Does the Graduate Center provide academic advising?”
+- Before: `answer_type=unknown`, `confidence=low`.
+- After: `answer_type=direct`, `confidence=high`.
+- No routing changes; orchestrator behavior unchanged.
+- Eval gates remain green: 0 FAIL, 0 ERROR, 100% gate pass rate.
+
+### Phase 6B — Answer Extraction Quality Improvements
+
+Improved final answer quality after Phase 6A showed that some queries routed correctly and used the right backend, but still produced weak or wrong final answers.
+
+#### Phase 6B-1 — Eligibility Trigger Narrowing
+- Removed the overbroad `can` trigger from `_extract_eligibility`.
+- Prevented general yes/no questions like “Can I transfer credits?” from incorrectly returning eligibility/GPA-style answers.
+- No routing, backend, or index changes.
+
+#### Phase 6B-2 — FAQ Scoring Relevance
+- Improved FAQ answer selection by reducing the impact of common question words.
+- Added content-focused FAQ scoring with stronger weighting for meaningful FAQ question-token overlap.
+- Prevented unrelated FAQ entries from winning due to overlap on words like “how”, “do”, “I”, or “my”.
+- Preserved existing strong FAQ matches.
+
+#### Phase 6B-3 — Generic Extraction Section-Key Relevance
+- Updated `_extract_generic` to consider section key names in addition to section body text.
+- Added a section-key relevance bonus so sections like `advising` and `fellowships_and_scholarships` can win when the user query directly matches those concepts.
+- Avoided broad density normalization after audit showed it did not fix target cases and risked regressions.
+
+#### Validation
+- Full eval suite remains green.
+- `0 FAIL`
+- `0 ERROR`
+- `100% gate pass rate`
+- `100% backend match rate`
+
+#### Deferred
+- Transfer-credit answer quality still needs a source-data improvement in `admissions.json`.
+- Accept-offer/application-step questions need a separate `_extract_steps` selection improvement.
 
 
