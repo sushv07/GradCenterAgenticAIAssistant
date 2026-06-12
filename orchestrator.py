@@ -29,6 +29,7 @@ from answer_agent import answer
 from guidance_agent import guide_from_file
 from advisor_retrieval import find_advisor, format_advisor_result, advisors
 from tools.application_steps_tool import _detect_program as _tool_detect_program
+from response_types import OrchestratorResponse, TopicResponse
 
 
 # ---------------------------------------------------------------------------
@@ -386,7 +387,7 @@ def _emit_tool_result(tool_name: str, result: dict, elapsed_ms: float) -> None:
 # Topic-tool response builder
 # ---------------------------------------------------------------------------
 
-def _build_topic_response(topic: str, query: str, session_id: str) -> dict:
+def _build_topic_response(topic: str, query: str, session_id: str) -> TopicResponse:
     """
     Call the appropriate Phase-2 tool and return a formatted orchestrator response.
 
@@ -483,7 +484,7 @@ def _build_topic_response(topic: str, query: str, session_id: str) -> dict:
 # Public API
 # ---------------------------------------------------------------------------
 
-def run(query: str, session_id: str = "default") -> dict[str, Any]:
+def run(query: str, session_id: str = "default") -> OrchestratorResponse:
     """Route the query, run the agent, and return a user-friendly response."""
     query = (query or "").strip()
 
