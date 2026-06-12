@@ -46,18 +46,39 @@ class Answer:
 # Extractors – each returns (value, answer_type) or None
 # ---------------------------------------------------------------------------
 
+_FAQ_STOPWORDS = frozenset({
+    "how", "do", "i", "my", "what", "when", "where", "who",
+    "can", "is", "are", "the", "a", "an", "to", "in", "of",
+    "for", "at", "get", "have", "does", "will", "should",
+})
+
+
 def _extract_faq(result_block: dict, query_tokens: set[str]) -> tuple[Any, str] | None:
     """Pick the single best-matching FAQ entry."""
     faqs = result_block.get("faqs", [])
     if not faqs:
         return None
 
-    # Score on both question and answer tokens so semantically rich answers rank higher
+    # Score only on content tokens — common question words ("how", "do", "i",
+    # "my") appear in nearly every FAQ question and inflate scores based on
+    # phrasing rather than topic. Question overlap is weighted 3× over answer
+    # overlap; answer tokens serve as tiebreakers only.
+    content_tokens = query_tokens - _FAQ_STOPWORDS
+    if not content_tokens:
+        return None
+
     def _faq_score(faq: dict) -> int:
-        combined = _tokenize(faq.get("question", "")) | _tokenize(faq.get("answer", ""))
-        return len(combined & query_tokens)
+        q_content = _tokenize(faq.get("question", "")) - _FAQ_STOPWORDS
+        a_content = _tokenize(faq.get("answer", "")) - _FAQ_STOPWORDS
+        return len(q_content & content_tokens) * 3 + len(a_content & content_tokens)
 
     best = max(faqs, key=_faq_score)
+    # Require ≥ 2 content-word matches in the FAQ question — a single shared
+    # content word (e.g. "admission") is too ambiguous to trust.
+    q_best_content = _tokenize(best.get("question", "")) - _FAQ_STOPWORDS
+    if len(q_best_content & content_tokens) < 2:
+        return None
+
     return {"question": best["question"], "answer": best["answer"]}, "faq"
 
 
@@ -236,11 +257,19 @@ def _extract_generic(result_block: dict, query_tokens: set[str]) -> tuple[Any, s
             return sum(_score_leaf(v) for v in value.values())
         return 0
 
-    scored = {
-        k: (v, _score_leaf(v))
-        for k, v in result_block.items()
-        if k not in skip and _score_leaf(v) > 0
-    }
+    def _score_key(key: str) -> int:
+        # Sections named after the query topic beat verbose neighbours whose
+        # body text incidentally matches more tokens.
+        return len(_tokenize(key.replace("_", " ")) & query_tokens) * 5
+
+    scored = {}
+    for k, v in result_block.items():
+        if k in skip:
+            continue
+        body  = _score_leaf(v)
+        total = body + _score_key(k)
+        if total > 0:
+            scored[k] = (v, total)
 
     if not scored:
         # Return whatever non-metadata keys exist
