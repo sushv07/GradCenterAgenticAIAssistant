@@ -16,10 +16,8 @@ Routes:
 from __future__ import annotations
 
 import json
-import re
 import sys
 import time
-from typing import Any
 
 from gradcenter_logging import emit
 
@@ -29,43 +27,6 @@ from agents.guidance_agent import guide_from_file
 from routing.router import Route, RouteDecision, decide_route, detect_route
 from contracts.response_types import OrchestratorResponse, TopicResponse
 
-
-# ---------------------------------------------------------------------------
-# Route definitions  (Route enum is defined in router.py and imported above)
-# ---------------------------------------------------------------------------
-
-_ROUTE_SIGNALS: list[tuple[Route, set[str]]] = [
-    (
-        Route.GUIDANCE,
-        {
-            "apply", "applying", "applied", "application", "steps", "process",
-            "admitted", "accepted", "enrolled", "international", "eligibility",
-            "eligible", "orientation", "newly", "procedure",
-            "start", "begin", "started", "beginning", "confused", "stuck", "help",
-        },
-    ),
-    (
-        Route.ANSWER,
-        {
-            "who", "what", "when", "where", "which", "why", "how",
-            "is", "are", "does", "do", "can", "will",
-            "much", "many", "long", "tell", "explain", "describe", "show",
-        },
-    ),
-]
-
-_STOP_WORDS = {
-    "a", "an", "the", "i", "me", "my", "we", "you", "your",
-    "it", "its", "to", "of", "in", "on", "at", "for", "by",
-    "with", "from", "and", "or", "but", "so", "as",
-}
-
-
-def _tokenize(text: str) -> set[str]:
-    return set(re.findall(r"[a-z0-9]+", text.lower())) - _STOP_WORDS
-
-
-# Signal constants, _GUIDANCE_DOMAIN, and detect_route() live in router.py.
 
 
 # ---------------------------------------------------------------------------
@@ -116,23 +77,6 @@ _INTENT_LABELS = {
     "international":       "international student admission",
     "orientation":         "graduate student orientation",
 }
-
-
-def _dedupe_suggestions(items: list[str]) -> list[str]:
-    """Case-insensitive dedup, preserving first occurrence and original casing."""
-    seen: set[str] = set()
-    result: list[str] = []
-    for item in items:
-        key = item.lower().strip()
-        if key and key not in seen:
-            seen.add(key)
-            result.append(item)
-    return result
-
-
-def _truncate(text: str, n: int = 90) -> str:
-    text = text or ""
-    return text if len(text) <= n else text[: n - 1].rstrip() + "…"
 
 
 def _strip_dash_tail(text: str) -> str:

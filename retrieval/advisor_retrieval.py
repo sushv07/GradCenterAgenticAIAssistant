@@ -253,18 +253,6 @@ def _val(record: dict, key: str) -> str:
     return str(v).strip() if v else "Not available"
 
 
-def format_result(record: dict) -> str:
-    lines = [
-        f"  Program:  {_val(record, 'program')}",
-        f"  Advisor:  {_val(record, 'advisor_name')}",
-        f"  Email:    {_val(record, 'email')}",
-        f"  Phone:    {_val(record, 'phone')}",
-    ]
-    if record.get("office"):
-        lines.append(f"  Office:   {record['office']}")
-    return "\n".join(lines)
-
-
 def format_advisor_result(result_dict: dict) -> str:
     """
     Format a find_advisor() result dict into a human-readable string.

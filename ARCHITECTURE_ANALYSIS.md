@@ -1267,3 +1267,51 @@ Improved final answer quality after Phase 6A showed that some queries routed cor
   - `test_golden_routes.py`: 30/30 passed
   - `test_router.py`: 26/26 passed
   - full eval suite remains green with 100% gate pass and 100% backend match.
+
+  ### Phase 8A — Folder Restructure
+
+- Reorganized modules by responsibility:
+  - `routing/`
+  - `contracts/`
+  - `agents/`
+  - `retrieval/`
+  - `tests/`
+- Kept `app.py`, `orchestrator.py`, and `gradcenter_logging.py` at the project root to preserve compatibility and minimize risk.
+- Added root-level compatibility shims for moved modules.
+- Updated internal imports and file path resolution for moved modules.
+- Preserved `next_steps.get_next_steps` as a root shim patch target for tests.
+- Added test package copies under `tests/`.
+- No behavior changes.
+- Validation:
+  - router tests pass
+  - golden route tests pass
+  - full eval suite remains green with 100% gate pass rate and 100% backend match.
+
+
+  ### Phase 8B — Import and Shim Cleanup
+
+- Removed temporary root-level compatibility shims after the Phase 8A module restructure.
+- Updated production imports to use package paths directly.
+- Updated tests and mock patch targets to package paths.
+- Removed duplicate root-level test files.
+- Kept `gradcenter_logging.py` at root for now.
+- Legacy imports under `_legacy/` remain deferred to Phase 8C.
+- Validation:
+  - router tests pass
+  - golden route tests pass
+  - full eval suite remains green
+  - 0 FAIL, 0 ERROR, 100% gate pass rate, 100% backend match.
+
+  ### Phase 8C — Dead Code Cleanup
+
+- Removed the `_legacy/` directory after confirming no live imports.
+- Removed unused route-signal helpers and dead suggestion utilities from `orchestrator.py`.
+- Removed unused `format_result()` from `retrieval/advisor_retrieval.py`.
+- Reduced codebase size by ~1,500 lines.
+- No behavior changes.
+- Validation:
+  - router tests pass
+  - golden route tests pass
+  - full eval suite remains green
+  - 0 FAIL, 0 ERROR, 100% gate pass rate, 100% backend match.
+- Deferred: `query_handler.py` legacy advisor-routing subsystem remains until separately audited.
