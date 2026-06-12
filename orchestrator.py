@@ -23,11 +23,11 @@ from typing import Any
 
 from gradcenter_logging import emit
 
-from query_handler import handle_query
-from answer_agent import answer
-from guidance_agent import guide_from_file
-from router import Route, RouteDecision, decide_route, detect_route
-from response_types import OrchestratorResponse, TopicResponse
+from retrieval.query_handler import handle_query
+from agents.answer_agent import answer
+from agents.guidance_agent import guide_from_file
+from routing.router import Route, RouteDecision, decide_route, detect_route
+from contracts.response_types import OrchestratorResponse, TopicResponse
 
 
 # ---------------------------------------------------------------------------

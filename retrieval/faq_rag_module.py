@@ -8,7 +8,7 @@ No intents, no hardcoded answers — the embedding model finds the closest
 FAQ card for any query.
 
 Usage:
-    from faq_rag_module import faq_rag_lookup
+    from retrieval.faq_rag_module import faq_rag_lookup
     result = faq_rag_lookup("I don't know where to start")
     # {"guidance": "- You can [request an appointment](url)...", "source": "..."}
 """

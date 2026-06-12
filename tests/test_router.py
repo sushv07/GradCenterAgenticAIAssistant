@@ -23,7 +23,7 @@ _sys.path.insert(0, str(_Path(__file__).parent.parent))
 import sys
 from unittest.mock import patch
 
-from router import decide_route, RouteDecision
+from routing.router import decide_route, RouteDecision
 
 # ---------------------------------------------------------------------------
 # Mock fixtures
@@ -67,7 +67,7 @@ def _route(
     with (
         patch("routing.router.find_advisor", return_value=advisor),
         patch("routing.router._tool_detect_program", return_value=program),
-        patch("next_steps.get_next_steps", return_value=next_steps),
+        patch("agents.next_steps.get_next_steps", return_value=next_steps),
     ):
         return decide_route(query, session_id)
 

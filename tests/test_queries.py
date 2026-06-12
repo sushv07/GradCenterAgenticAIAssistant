@@ -11,7 +11,7 @@ from pathlib import Path as _Path
 _sys.path.insert(0, str(_Path(__file__).parent.parent))
 
 
-from advisor_retrieval import handle_query
+from retrieval.advisor_retrieval import handle_query
 
 # ---------------------------------------------------------------------------
 # Test queries

@@ -8,7 +8,7 @@ apply queries.  The enriched doctoral steps (steps 2, 5, 8 links etc.)
 live in guidance_agent.py and are not affected by this module.
 
 Usage:
-    from next_steps import get_next_steps
+    from agents.next_steps import get_next_steps
     result = get_next_steps("I want to apply for a phd, where do I begin?")
 """
 

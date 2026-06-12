@@ -6,7 +6,7 @@ Fetches content from the CSULB Admissions pages, filters to doctoral-specific
 sections, and returns short actionable snippets relevant to the user's query.
 
 Usage:
-    from admissions_rag import admissions_rag_lookup
+    from retrieval.admissions_rag import admissions_rag_lookup
     result = admissions_rag_lookup("what are the gpa requirements for doctoral")
 """
 

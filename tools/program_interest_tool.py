@@ -34,7 +34,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
-from advisor_retrieval import find_advisor
+from retrieval.advisor_retrieval import find_advisor
 
 # ---------------------------------------------------------------------------
 # Constants

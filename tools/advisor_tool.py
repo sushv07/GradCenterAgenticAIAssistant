@@ -29,7 +29,7 @@ Output schema:
 
 from __future__ import annotations
 
-from advisor_retrieval import advisors, find_advisor
+from retrieval.advisor_retrieval import advisors, find_advisor
 
 
 # ---------------------------------------------------------------------------

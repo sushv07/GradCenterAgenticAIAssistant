@@ -26,7 +26,7 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-from router import decide_route, RouteDecision
+from routing.router import decide_route, RouteDecision
 
 # ---------------------------------------------------------------------------
 # Mock fixtures
@@ -86,7 +86,7 @@ def _run_case(case: dict) -> tuple[bool, str]:
     with (
         patch("routing.router.find_advisor",        return_value=advisor_rv),
         patch("routing.router._tool_detect_program", return_value=prog_val),
-        patch("next_steps.get_next_steps",   return_value=next_steps_rv),
+        patch("agents.next_steps.get_next_steps",   return_value=next_steps_rv),
     ):
         decision: RouteDecision = decide_route(query, session_id="golden_route_test")
 

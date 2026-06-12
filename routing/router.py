@@ -306,7 +306,7 @@ def decide_route(query: str, session_id: str) -> RouteDecision:
         and not bool(raw_toks & _APPLY_SPECIFIC)
     )
     if is_start_only:
-        from next_steps import get_next_steps  # shim → agents.next_steps; patch("next_steps.get_next_steps") stays valid in Phase 8A
+        from agents.next_steps import get_next_steps
         next_steps_result = get_next_steps(query)
         if next_steps_result:
             emit("route.decision", level="INFO",
