@@ -1315,3 +1315,58 @@ Improved final answer quality after Phase 6A showed that some queries routed cor
   - full eval suite remains green
   - 0 FAIL, 0 ERROR, 100% gate pass rate, 100% backend match.
 - Deferred: `query_handler.py` legacy advisor-routing subsystem remains until separately audited.
+
+### Phase 9A — Admissions RAG Observability
+
+- Added structured logging to `retrieval/admissions_rag.py`.
+- Added `admissions_rag.fetch` events for HTTP/cache behavior.
+- Added `admissions_rag.result` events for snippet retrieval results.
+- Preserved return values, caching behavior, snippet scoring, and routing behavior.
+- Made the previously invisible admissions RAG backend observable.
+- Validation:
+  - compile checks passed
+  - router tests passed
+  - golden route tests passed
+  - full eval suite remained green
+  - smoke test confirmed fetch/result events are emitted.
+
+  ### Phase 9B — Shared Retrieval Tokenizer
+
+- Added `retrieval/utils.py` with a shared `tokenize()` helper.
+- Replaced duplicate tokenization logic in `query_handler.py` and `admissions_rag.py`.
+- Updated `answer_agent.py` to import the shared tokenizer directly instead of relying on `query_handler._tokenize`.
+- Preserved module-specific stop-word behavior.
+- No scoring, routing, answer extraction, or retrieval behavior changes.
+- Validation:
+  - parity checks passed
+  - router tests passed
+  - golden route tests passed
+  - full eval suite remains green
+  - 0 FAIL, 0 ERROR, 100% gate pass rate, 100% backend match.
+
+  ### Phase 9C — Retrieval Result Type Contracts
+
+- Added lightweight `TypedDict` contracts for retrieval backend result shapes.
+- Introduced a base `RetrievalResult` plus backend-specific result contracts:
+  - `FaqRagResult`
+  - `AdmissionsRagResult`
+  - `AdvisorRetrievalResult`
+  - `KeywordRetrievalResult`
+- Annotated safe retrieval functions without changing runtime behavior.
+- Preserved backend-specific meanings of `source` and `confidence`.
+- Left `query_handler.handle_query()` unannotated because it returns multiple incompatible shapes.
+- No behavior, routing, scoring, or response schema changes.
+- Validation remains green: router tests, golden route tests, full eval suite.
+
+### Phase 9D — Confidence Normalization Audit
+
+- Audited all confidence and score fields across retrieval and answer backends.
+- Found multiple incompatible scoring systems:
+  - cosine similarity scores
+  - RapidFuzz string-match scores
+  - keyword overlap counts
+  - admissions snippet overlap scores
+  - answer confidence labels
+- Decided not to introduce a universal `normalized_confidence` field.
+- Reason: it would create misleading apples-to-oranges comparisons across backends.
+- Deferred possible future addition of `retrieval_score_pct` only for true 0–1 similarity scores such as FAQ RAG and Chroma tool results, if a real consumer needs it.
