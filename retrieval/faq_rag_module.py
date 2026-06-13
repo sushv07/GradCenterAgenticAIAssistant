@@ -18,7 +18,10 @@ from __future__ import annotations
 import json
 import re
 import time
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from contracts.response_types import FaqRagResult
 from urllib.parse import urljoin
 
 import requests
@@ -304,7 +307,7 @@ def _format_guidance(answer_text: str, links: list[dict[str, str]]) -> str:
 # 5. Public API
 # ---------------------------------------------------------------------------
 
-def faq_rag_lookup(query: str) -> Optional[dict]:
+def faq_rag_lookup(query: str) -> Optional[FaqRagResult]:
     """
     Semantic FAQ lookup using vector similarity (no hardcoded intents).
 

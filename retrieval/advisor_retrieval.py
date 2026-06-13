@@ -6,10 +6,16 @@ Usage:
     python advisor_retrieval.py
 """
 
+from __future__ import annotations
+
 import json
 import re
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from contracts.response_types import AdvisorRetrievalResult
 
 from rapidfuzz import fuzz
 
@@ -117,7 +123,7 @@ def _emit_advisor_match(
          **_kw)
 
 
-def find_advisor(query: str) -> dict:
+def find_advisor(query: str) -> AdvisorRetrievalResult:
     """
     Fuzzy match query against each program's name and aliases list.
     Primary sort: partial_ratio (catches abbreviations / substrings).

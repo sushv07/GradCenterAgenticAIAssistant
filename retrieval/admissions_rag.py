@@ -13,7 +13,10 @@ Usage:
 from __future__ import annotations
 
 import time
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from contracts.response_types import AdmissionsRagResult
 
 import requests
 from bs4 import BeautifulSoup
@@ -210,7 +213,7 @@ def _select_snippets(query_tokens: set[str], top_n: int = 3) -> list[str]:
 # Public API
 # ---------------------------------------------------------------------------
 
-def admissions_rag_lookup(query: str) -> Optional[dict]:
+def admissions_rag_lookup(query: str) -> Optional[AdmissionsRagResult]:
     """
     Fetch the CSULB doctoral admissions pages and return short actionable
     snippets relevant to the query.

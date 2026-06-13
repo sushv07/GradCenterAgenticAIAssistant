@@ -62,6 +62,44 @@ class EmailDraft(TypedDict):
 
 
 # ---------------------------------------------------------------------------
+# Retrieval result contracts
+# ---------------------------------------------------------------------------
+
+class RetrievalResult(TypedDict, total=False):
+    """
+    Annotation-only base for retrieval backend return shapes.
+    All fields optional (total=False) — backends fill what they have.
+    Do NOT add confidence here until Phase 9D normalizes scores across all backends.
+    """
+    backend:    str   # "faq_rag" | "admissions" | "advisor" | "keyword"
+    source_url: str   # canonical source page URL
+    found:      bool  # True if backend returned usable content
+
+
+class FaqRagResult(RetrievalResult, total=False):
+    guidance: str  # markdown bullets with embedded [text](url) links
+    source:   str  # URL alias for source_url — value IS a URL here
+
+
+class AdmissionsRagResult(RetrievalResult, total=False):
+    snippets: list[str]  # 1–3 actionable snippet strings
+    source:   str        # literal label "admissions" — NOT a URL
+
+
+class AdvisorRetrievalResult(RetrievalResult, total=False):
+    match:       dict | None  # full advisor record or None
+    confidence:  int          # RapidFuzz partial_ratio score 0–100
+    suggestions: list[str]    # top-3 program names when no match found
+
+
+class KeywordRetrievalResult(RetrievalResult, total=False):
+    query:         str        # echoed user query
+    matched_files: list[str]  # scored data file basenames
+    results:       list[dict] # extracted section dicts from data files
+    next_steps:    list[str]  # contextual next-step suggestions
+
+
+# ---------------------------------------------------------------------------
 # Base response — fields present on every non-empty response
 # ---------------------------------------------------------------------------
 
