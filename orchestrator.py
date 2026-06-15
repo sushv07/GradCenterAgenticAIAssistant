@@ -41,6 +41,20 @@ def _run_answer(query: str, session_id: str) -> dict:
     retrieved = handle_query(query)
     _t0 = time.perf_counter()
     result = answer(query, retrieved)
+    from agents.llm_synthesizer import synthesize_answer as _synth
+    _llm = _synth(
+        query,
+        retrieved,
+        source_file=result.get("source_file", ""),
+        source_url=result.get("source_url"),
+    )
+    if _llm is not None:
+        result = {
+            **result,
+            "answer":      _llm["answer"],
+            "confidence":  _llm["confidence"],
+            "answer_type": "llm_synthesized",
+        }
     _elapsed = round((time.perf_counter() - _t0) * 1000, 1)
     _level = (
         "WARNING"

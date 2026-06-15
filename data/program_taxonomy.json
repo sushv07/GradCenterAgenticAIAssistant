@@ -1,0 +1,477 @@
+{
+  "_schema_version": "1.0",
+  "_scope": "doctoral",
+  "_last_updated": "2026-06-15",
+  "_notes": "Doctoral-first taxonomy. Six doctoral programs confirmed from live CSULB doctoral index and programs.json. Master's programs added in Phase B without schema changes. advisors_extracted.json reconciliation: DrPH source URL in advisors_extracted.json incorrectly points to the DNP page — program_url in this file is the canonical source for each program.",
+  "_null_contract": {
+    "null_not_applicable": "null + data_status: 'not_applicable' — field does not apply to this program",
+    "null_unknown": "null + data_status: 'unknown' — field applies; not yet researched",
+    "null_source_missing": "null + data_status: 'source_missing' — field applies; source does not contain the information",
+    "null_manual_required": "null + data_status: 'manual_required' — field applies; requires expert input or department outreach",
+    "empty_array_available": "[] + data_status: 'available' — confirmed empty (concentrations only)",
+    "value_available": "value + data_status: 'available' — populated from published authoritative source",
+    "value_manual_curated": "value + data_status: 'manual_curated' — populated by curator judgment; source_notes required",
+    "NEVER_EMPTY_ARRAY": "interest_tags, career_goal_tags, and academic_background_tags must never be []. Use null + appropriate data_status."
+  },
+  "programs": [
+    {
+      "program_id": "drph-public-health",
+      "canonical_name": "Public Health",
+      "degree_level": "doctoral",
+      "degree_type": "DrPH",
+      "college": "college_of_health_human_services",
+      "department": "health_science",
+      "program_url": "https://www.csulb.edu/college-of-health-human-services/health-science/doctor-of-public-health-drph",
+      "description": "3-year professional doctoral program preparing advanced public health leaders for careers in administration, applied research, and policy at local, state, national, and international levels. Three concentration tracks. Designed for working professionals with individualized scheduling. CEPH accredited. Launched Fall 2025.",
+      "orientation": "applied",
+      "concentrations": [
+        "Public Health Informatics and Technology",
+        "Global Health",
+        "Community Health and Policy"
+      ],
+      "interest_tags": [
+        "public_health",
+        "global_health",
+        "community_health",
+        "health_policy",
+        "health_informatics"
+      ],
+      "career_goal_tags": [
+        "public_health_leader",
+        "policy_maker",
+        "applied_researcher",
+        "university_educator"
+      ],
+      "academic_background_tags": [
+        "public_health",
+        "biology",
+        "social_sciences",
+        "healthcare",
+        "nursing"
+      ],
+      "advisor": {
+        "name": "Dr. Lucy Huckabay",
+        "email": "Lucy.Huckabay@csulb.edu",
+        "phone": "(562) 985-4057",
+        "notes": null,
+        "_source": "programs.json"
+      },
+      "deadlines": {
+        "fall": "February 15",
+        "spring": null,
+        "spring_status": "not_accepting",
+        "accept_decline": "March 1",
+        "notes": "Shortest accept/decline window of the 6 doctoral programs — 14 days from application deadline.",
+        "_source": "programs.json"
+      },
+      "funding_signals": {
+        "has_assistantships": null,
+        "has_fellowships": null,
+        "csulb_programs": [
+          "Graduate Travel Fellowship",
+          "Graduate Equity Fellowship",
+          "Chancellor's Doctoral Incentive Program (CDIP)",
+          "State University Grant (SUG)"
+        ],
+        "status": "partial",
+        "notes": "New program (Fall 2025). No program-specific assistantships or fellowships documented on any program page. CSULB-wide programs listed are confirmed open to doctoral students generally; program-specific eligibility not verified."
+      },
+      "admissions_fit": {
+        "degree_requirement": null,
+        "gpa_minimum": null,
+        "license_required": false,
+        "background_tags": null,
+        "status": "source_missing",
+        "notes": "Admission requirements not yet published. Program launched Fall 2025. Contact Dr. Lucy Huckabay at Lucy.Huckabay@csulb.edu or (562) 985-4057."
+      },
+      "data_status": {
+        "description": "available",
+        "concentrations": "available",
+        "interest_tags": "manual_curated",
+        "career_goal_tags": "available",
+        "academic_background_tags": "manual_curated",
+        "funding_signals": "partial",
+        "admissions_fit": "source_missing"
+      },
+      "coverage_status": "partial",
+      "manual_review_required": true,
+      "source_notes": "Career outcomes and concentrations from program page. Career goal tags are a direct mapping of stated program outcomes ('public health leaders', 'applied researchers', 'policy makers', 'university educators'). Interest tags manually curated from concentration descriptions and program mission — no authoritative interest-to-program mapping exists. Academic background tags inferred from field conventions for DrPH programs nationally; not sourced from published CSULB admissions criteria. Admission requirements absent from all published pages as of last_verified date (new program).",
+      "last_verified": "2026-06-15"
+    },
+
+    {
+      "program_id": "dnp-nursing",
+      "canonical_name": "Nursing",
+      "degree_level": "doctoral",
+      "degree_type": "DNP",
+      "college": "college_of_health_human_services",
+      "department": "school_of_nursing",
+      "program_url": "https://www.csulb.edu/college-of-health-human-services/school-of-nursing/bsn-dnp-program",
+      "description": "72-unit, 3-year professional doctorate preparing advanced practice nurses across five nurse practitioner specialization tracks. Hybrid delivery (synchronous and asynchronous online). Requires 1,000 clinical hours and current RN employment at time of application. Best-documented admission requirements of the 6 doctoral programs.",
+      "orientation": "clinical",
+      "concentrations": [
+        "Adult-Gerontology Primary Care",
+        "Adult-Gerontology Acute Care",
+        "Family Practice",
+        "Pediatric Primary Care",
+        "Psychiatric-Mental Health Across the Life Span"
+      ],
+      "interest_tags": [
+        "nursing",
+        "patient_care",
+        "mental_health",
+        "pediatric_care",
+        "gerontology",
+        "healthcare_leadership"
+      ],
+      "career_goal_tags": [
+        "nurse_practitioner",
+        "clinical_leader",
+        "university_educator"
+      ],
+      "academic_background_tags": [
+        "nursing",
+        "healthcare"
+      ],
+      "advisor": {
+        "name": "Dr. Cleddhy Arellano",
+        "email": "cleddhy.arellano@csulb.edu",
+        "phone": "(562) 985-2335",
+        "notes": "Additional contacts: dnp@csulb.edu or (562) 985-4463. Mandatory pre-application information session must be attended before submitting application.",
+        "_source": "programs.json"
+      },
+      "deadlines": {
+        "fall": "January 15",
+        "spring": null,
+        "spring_status": "not_accepting",
+        "accept_decline": "April 20",
+        "notes": "Cal State Apply is the sole application portal. PTCAS is NOT required for DNP (differs from DPT).",
+        "_source": "programs.json"
+      },
+      "funding_signals": {
+        "has_assistantships": null,
+        "has_fellowships": null,
+        "csulb_programs": [
+          "Graduate Travel Fellowship",
+          "Graduate Equity Fellowship",
+          "Chancellor's Doctoral Incentive Program (CDIP)",
+          "State University Grant (SUG)"
+        ],
+        "status": "partial",
+        "notes": "No program-specific assistantships or fellowships documented on program pages. Clinical placement model makes traditional academic assistantships unlikely, though not explicitly ruled out. HRSA Nurse Corps scholarships and loan repayment programs exist nationally for advanced nursing students — external programs not CSULB-administered; eligibility requires direct verification."
+      },
+      "admissions_fit": {
+        "degree_requirement": "BSN",
+        "gpa_minimum": 3.0,
+        "license_required": true,
+        "background_tags": [
+          "nursing",
+          "healthcare"
+        ],
+        "status": "available",
+        "notes": "Requires: BSN from accredited program (minimum 3.0 GPA), active unencumbered California RN license, college-level Statistics course, minimum 1 year clinical RN experience, current RN employment at time of application, three professional references, personal statement. Mandatory pre-application information session attendance. Interview required for selected applicants."
+      },
+      "data_status": {
+        "description": "available",
+        "concentrations": "available",
+        "interest_tags": "manual_curated",
+        "career_goal_tags": "available",
+        "academic_background_tags": "available",
+        "funding_signals": "partial",
+        "admissions_fit": "available"
+      },
+      "coverage_status": "partial",
+      "manual_review_required": true,
+      "source_notes": "Concentrations, career outcomes, and admission requirements sourced from bsn-dnp-program page. Career goal tags map directly to stated program outcomes ('nurse practitioner roles', 'clinical leadership', 'university educator'). Interest tags manually curated from concentration track names and clinical focus areas. academic_background_tags set to 'available' because BSN and active CA RN license are explicit admission requirements, directly confirming background. manual_review_required=true because interest_tags are manual_curated.",
+      "last_verified": "2026-06-15"
+    },
+
+    {
+      "program_id": "dpt-physical-therapy",
+      "canonical_name": "Physical Therapy",
+      "degree_level": "doctoral",
+      "degree_type": "DPT",
+      "college": "college_of_health_human_services",
+      "department": "physical_therapy",
+      "program_url": "https://www.csulb.edu/college-of-health-human-services/physical-therapy/applying-to-the-dpt-program",
+      "description": "Entry-level clinical doctoral program training physical therapists through 7 active research laboratories covering balance, biomechanics, electrophysiology, pathokinesiology, and spine research. CAPTE accredited. Prepares graduates for board specialty certification through ABPTS. Requires dual application via PTCAS and Cal State Apply.",
+      "orientation": "clinical",
+      "concentrations": [],
+      "interest_tags": [
+        "physical_therapy",
+        "rehabilitation",
+        "movement_science",
+        "biomechanics",
+        "patient_care"
+      ],
+      "career_goal_tags": [
+        "physical_therapist",
+        "clinical_leader"
+      ],
+      "academic_background_tags": null,
+      "advisor": {
+        "name": "Dr. Jeff Rodrigues",
+        "email": "CHHS-PT@csulb.edu",
+        "phone": null,
+        "notes": "Departmental inbox. No direct advisor phone listed in programs.json. For program questions, use CHHS-PT@csulb.edu.",
+        "_source": "programs.json"
+      },
+      "deadlines": {
+        "fall": "January 15",
+        "spring": null,
+        "spring_status": "not_accepting",
+        "accept_decline": "April 30",
+        "notes": "Dual application required: (1) PTCAS application closes November 1. (2) Cal State Apply closes January 15. Both must be submitted. GRE required — PTCAS institution code 4389.",
+        "_source": "programs.json"
+      },
+      "funding_signals": {
+        "has_assistantships": null,
+        "has_fellowships": null,
+        "csulb_programs": [
+          "Graduate Travel Fellowship",
+          "Graduate Equity Fellowship",
+          "Chancellor's Doctoral Incentive Program (CDIP)",
+          "State University Grant (SUG)"
+        ],
+        "status": "partial",
+        "notes": "No program-specific assistantships or fellowships documented. DPT is an entry-level clinical degree; traditional academic assistantships are uncommon in clinical PT programs. CDIP applicable for students targeting CSU faculty career in physical therapy education."
+      },
+      "admissions_fit": {
+        "degree_requirement": null,
+        "gpa_minimum": null,
+        "license_required": false,
+        "background_tags": null,
+        "status": "source_missing",
+        "notes": "Entry-level program — no prior clinical license required. Prerequisite coursework (typically biology, chemistry, physics, anatomy, physiology, psychology) documented through PTCAS, not CSULB program pages. GRE required (PTCAS code 4389). For CSULB-specific admissions questions contact CHHS-PT@csulb.edu."
+      },
+      "data_status": {
+        "description": "available",
+        "concentrations": "available",
+        "interest_tags": "manual_curated",
+        "career_goal_tags": "available",
+        "academic_background_tags": "source_missing",
+        "funding_signals": "partial",
+        "admissions_fit": "source_missing"
+      },
+      "coverage_status": "partial",
+      "manual_review_required": true,
+      "source_notes": "Career outcomes (ABPTS board specialty certifications in Orthopedics, Neurology, Geriatrics, Pediatrics, Sports) from physical therapy department page. Research lab names (Balance & Prevention of Falls, CMPL, CRAB, Electrophysiological Measurement, Pathokinesiology, Spine Research, THRIVE) from department page — used to curate interest_tags. Concentrations set to [] confirmed: DPT is a single cohort curriculum with no student-selected specialization tracks; post-graduation board certifications are not program concentrations. Prerequisite coursework explicitly redirects to PTCAS — not documented on any CSULB page.",
+      "last_verified": "2026-06-15"
+    },
+
+    {
+      "program_id": "edd-educational-leadership-cc",
+      "canonical_name": "Educational Leadership – Community College Higher Ed Specialization",
+      "degree_level": "doctoral",
+      "degree_type": "EdD",
+      "college": "college_of_education",
+      "department": "educational_leadership",
+      "program_url": "https://www.csulb.edu/college-of-education/educational-doctorate-educational-leadership",
+      "description": "3-year professional doctoral program in a cohort model preparing working administrators for leadership in community colleges and higher education institutions. Evening and weekend format; 60 units. Annual tuition approximately $22,782 — among the lowest-cost doctoral programs in Southern California. 87% graduation rate.",
+      "orientation": "professional",
+      "concentrations": [],
+      "interest_tags": [
+        "higher_education",
+        "education_leadership",
+        "community_college",
+        "student_affairs",
+        "institutional_leadership"
+      ],
+      "career_goal_tags": [
+        "college_administrator"
+      ],
+      "academic_background_tags": [
+        "education",
+        "social_sciences",
+        "business"
+      ],
+      "advisor": {
+        "name": "Kimberly Word",
+        "email": "eddinfo@csulb.edu",
+        "phone": "(562) 985-4998",
+        "notes": "Shared advisor and inbox with Ed.D. P-12 Specialization. eddinfo@csulb.edu is the program inbox for both Ed.D. specializations.",
+        "_source": "programs.json"
+      },
+      "deadlines": {
+        "fall": "January 15",
+        "spring": null,
+        "spring_status": "not_accepting",
+        "accept_decline": "April 20",
+        "notes": "CC Specialization fall deadline (January 15) is 30 days earlier than the P-12 Specialization (February 15) despite sharing the same advisor and program contact.",
+        "_source": "programs.json"
+      },
+      "funding_signals": {
+        "has_assistantships": null,
+        "has_fellowships": null,
+        "csulb_programs": [
+          "Graduate Travel Fellowship",
+          "Graduate Equity Fellowship",
+          "Chancellor's Doctoral Incentive Program (CDIP)",
+          "State University Grant (SUG)"
+        ],
+        "status": "partial",
+        "notes": "Annual tuition approximately $22,782 — described on program page as 'one of the least costly doctoral programs in Southern California.' No program-specific assistantships or fellowships documented. Professional cohort model; students are typically employed administrators, reducing assistantship relevance."
+      },
+      "admissions_fit": {
+        "degree_requirement": null,
+        "gpa_minimum": null,
+        "license_required": false,
+        "background_tags": null,
+        "status": "partial",
+        "notes": "No explicit GPA or degree prerequisites published on program page. Cohort model and program framing strongly imply current administrative or leadership professional experience, but this is not explicitly stated as a requirement. Contact eddinfo@csulb.edu for admissions criteria."
+      },
+      "data_status": {
+        "description": "available",
+        "concentrations": "available",
+        "interest_tags": "manual_curated",
+        "career_goal_tags": "manual_curated",
+        "academic_background_tags": "manual_curated",
+        "funding_signals": "partial",
+        "admissions_fit": "partial"
+      },
+      "coverage_status": "partial",
+      "manual_review_required": true,
+      "source_notes": "Description from Ed.D. program page — this page covers both CC and P-12 specializations without separate sections per specialization. Career outcomes for this entry manually curated from the CC specialization name and program context; the source page lists combined outcomes for both specializations including college presidents, superintendents, and principals. CC-specific outcomes (community college presidents, VPs, deans) inferred. Interest tags manually curated. Concentrations set to [] confirmed: no sub-tracks exist within the CC specialization. program_url is identical to edd-educational-leadership-p12 — both specializations share a single CSULB page.",
+      "last_verified": "2026-06-15"
+    },
+
+    {
+      "program_id": "edd-educational-leadership-p12",
+      "canonical_name": "Educational Leadership – P-12 Specialization",
+      "degree_level": "doctoral",
+      "degree_type": "EdD",
+      "college": "college_of_education",
+      "department": "educational_leadership",
+      "program_url": "https://www.csulb.edu/college-of-education/educational-doctorate-educational-leadership",
+      "description": "3-year professional doctoral program in a cohort model preparing working administrators for P-12 school system leadership. Evening and weekend format; 60 units. Prepares school superintendents, principals, and district-level administrators. Annual tuition approximately $22,782.",
+      "orientation": "professional",
+      "concentrations": [],
+      "interest_tags": [
+        "education_leadership",
+        "k12_education",
+        "school_reform",
+        "education_policy",
+        "curriculum_instruction"
+      ],
+      "career_goal_tags": [
+        "school_administrator"
+      ],
+      "academic_background_tags": [
+        "education",
+        "social_sciences"
+      ],
+      "advisor": {
+        "name": "Kimberly Word",
+        "email": "eddinfo@csulb.edu",
+        "phone": "(562) 985-4998",
+        "notes": "Shared advisor and inbox with Ed.D. Community College Higher Ed Specialization. eddinfo@csulb.edu is the program inbox for both Ed.D. specializations.",
+        "_source": "programs.json"
+      },
+      "deadlines": {
+        "fall": "February 15",
+        "spring": null,
+        "spring_status": "not_accepting",
+        "accept_decline": "April 20",
+        "notes": "P-12 Specialization fall deadline (February 15) is 30 days later than the CC Specialization (January 15) despite sharing the same advisor and program contact.",
+        "_source": "programs.json"
+      },
+      "funding_signals": {
+        "has_assistantships": null,
+        "has_fellowships": null,
+        "csulb_programs": [
+          "Graduate Travel Fellowship",
+          "Graduate Equity Fellowship",
+          "Chancellor's Doctoral Incentive Program (CDIP)",
+          "State University Grant (SUG)"
+        ],
+        "status": "partial",
+        "notes": "Annual tuition approximately $22,782. No program-specific assistantships or fellowships documented. Professional cohort model; students are typically employed administrators."
+      },
+      "admissions_fit": {
+        "degree_requirement": null,
+        "gpa_minimum": null,
+        "license_required": false,
+        "background_tags": null,
+        "status": "partial",
+        "notes": "No explicit GPA or degree prerequisites published on program page. Cohort model implies current P-12 administrative or leadership professional experience, but this is not explicitly stated as a requirement. Contact eddinfo@csulb.edu for admissions criteria."
+      },
+      "data_status": {
+        "description": "available",
+        "concentrations": "available",
+        "interest_tags": "manual_curated",
+        "career_goal_tags": "manual_curated",
+        "academic_background_tags": "manual_curated",
+        "funding_signals": "partial",
+        "admissions_fit": "partial"
+      },
+      "coverage_status": "partial",
+      "manual_review_required": true,
+      "source_notes": "Description from Ed.D. program page — this page covers both CC and P-12 specializations without separate sections per specialization. Career outcomes for this entry manually curated from the P-12 specialization name and program context; the source page lists combined outcomes for both specializations. P-12-specific outcomes (school superintendents, principals, district administrators) inferred from specialization scope. Interest tags manually curated. Concentrations set to [] confirmed: no sub-tracks exist within the P-12 specialization. program_url is identical to edd-educational-leadership-cc — both specializations share a single CSULB page. Note: P-12 fall deadline (Feb 15) differs from CC specialization (Jan 15).",
+      "last_verified": "2026-06-15"
+    },
+
+    {
+      "program_id": "phd-engineering-computational-math",
+      "canonical_name": "Engineering & Computational Mathematics",
+      "degree_level": "doctoral",
+      "degree_type": "PhD",
+      "college": "college_of_engineering",
+      "department": null,
+      "program_url": "https://www.csulb.edu/college-of-engineering/engineering-doctoral-studies",
+      "description": "Joint doctoral program with Claremont Graduate University (established 1987), integrating advanced engineering disciplines with computational mathematics. CSULB handles engineering coursework; CGU handles mathematics components. Only research-oriented doctoral program at CSULB. Accepts both fall and spring applicants.",
+      "orientation": "research",
+      "concentrations": null,
+      "interest_tags": null,
+      "career_goal_tags": null,
+      "academic_background_tags": null,
+      "advisor": {
+        "name": "Dr. Kerop Janoyan",
+        "email": "kerop.janoyan@csulb.edu",
+        "phone": "(562) 985-8032",
+        "notes": "Associate Dean, College of Engineering. Office: ECS-617. Joint program — CGU faculty also involved in doctoral committee.",
+        "_source": "programs.json"
+      },
+      "deadlines": {
+        "fall": "April 1",
+        "spring": "October 1",
+        "spring_status": "accepting",
+        "accept_decline": "Fall: July 15; Spring: December 13",
+        "notes": "Only doctoral program at CSULB accepting spring admission — two complete admission cycles per year.",
+        "_source": "programs.json"
+      },
+      "funding_signals": {
+        "has_assistantships": null,
+        "has_fellowships": null,
+        "csulb_programs": [
+          "Graduate Travel Fellowship",
+          "Graduate Equity Fellowship",
+          "Chancellor's Doctoral Incentive Program (CDIP)",
+          "State University Grant (SUG)"
+        ],
+        "status": "partial",
+        "notes": "Graduate Research Assistant positions exist within the College of Engineering (Civil Engineering and Transportation Engineering noted in departmental job postings). No formal RA program, stipend amounts, or application process documented on program pages. NSF Graduate Research Fellowships and NDSEG Fellowships are relevant external funding for STEM doctoral students — not CSULB-administered; contact Dr. Janoyan for internal funding opportunities."
+      },
+      "admissions_fit": {
+        "degree_requirement": null,
+        "gpa_minimum": null,
+        "license_required": false,
+        "background_tags": null,
+        "status": "source_missing",
+        "notes": "GPA minimum, GRE requirement, and prerequisite coursework absent from all CSULB program pages. Joint PhD Program Handbook referenced on department page but not publicly accessible. Contact Dr. Kerop Janoyan at kerop.janoyan@csulb.edu or (562) 985-8032, Office ECS-617."
+      },
+      "data_status": {
+        "description": "available",
+        "concentrations": "source_missing",
+        "interest_tags": "manual_required",
+        "career_goal_tags": "manual_required",
+        "academic_background_tags": "manual_required",
+        "funding_signals": "partial",
+        "admissions_fit": "source_missing"
+      },
+      "coverage_status": "minimal",
+      "manual_review_required": true,
+      "source_notes": "Description from program page. Research areas, concentrations, career outcomes, and all tag fields require manual enrichment from Engineering faculty pages, the Joint PhD Program Handbook (not publicly accessible), or direct contact with Dr. Kerop Janoyan (kerop.janoyan@csulb.edu). This entry must NOT be used for interest-based recommendations until coverage_status is promoted to 'partial' at minimum. Named-program queries (e.g., 'engineering PhD', 'computational math doctorate') should route to program_interest_tool for advisor and deadline information only.",
+      "last_verified": "2026-06-15"
+    }
+  ]
+}
