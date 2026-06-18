@@ -17,6 +17,7 @@ Route → TypedDict mapping
   "application"       → TopicResponse
   "advisor"           → AdvisorResponse
   "next_steps"        → NextStepsResponse
+  "discovery"         → DiscoveryResponse
 """
 
 from __future__ import annotations
@@ -150,6 +151,18 @@ class NextStepsResponse(BaseResponse):
     resources: list   # always [] currently; reserved for future use
 
 
+class _DiscoveryBase(BaseResponse):
+    """Required fields for every discovery response."""
+    recommended_programs: list[str]  # program_ids from program_taxonomy.json; [] when behavior="clarify"
+    confidence:           str        # "high" | "medium" | "low" | "none"
+    behavior:             str        # "recommend" | "multi_recommend" | "clarify" | "redirect" | "partial_match_with_caveat"
+
+
+class DiscoveryResponse(_DiscoveryBase, total=False):
+    # Present only when behavior="clarify" — the question to pose to the student next.
+    clarification_question: str
+
+
 # ---------------------------------------------------------------------------
 # Welcome response — returned when query is empty.
 # route=None and query/session_id are absent on this shape only.
@@ -173,4 +186,5 @@ OrchestratorResponse = (
     | TopicResponse
     | AdvisorResponse
     | NextStepsResponse
+    | DiscoveryResponse
 )

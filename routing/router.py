@@ -101,6 +101,22 @@ _GUIDANCE_DOMAIN = {
     "start", "begin", "started", "beginning", "confused", "stuck", "help",
 }
 
+# Multi-word phrases that signal a student exploring which program to pursue.
+# Checked via substring match on the lowercased query (not token intersection)
+# because the meaningful signal is the full phrase, not individual tokens.
+# Branch 1.5 — fires after advisor-signal check, before topic routing (branches 2–4).
+_DISCOVERY_SIGNALS = frozenset({
+    "interested in",
+    "which program",
+    "help me choose",
+    "want to become",
+    "looking for a doctoral",
+    "what programs",
+    "recommend a program",
+    "career in",
+    "i want to study",
+})
+
 
 # ---------------------------------------------------------------------------
 # RouteDecision dataclass
@@ -172,6 +188,29 @@ def decide_route(query: str, session_id: str) -> RouteDecision:
     is_process_query = any(k in _q for k in _PROCESS_KEYWORDS)
     raw_toks         = set(re.findall(r"[a-z]+", query.lower()))
     has_advisor_signal = bool(raw_toks & _ADVISOR_SIGNALS)
+
+    # ── Branch 1.5: discovery intent signals ─────────────────────────────────
+    # Fires when the student is exploring which program to pursue.
+    # Guarded by has_advisor_signal and explicit topic signals (deadlines,
+    # eligibility) so "deadlines for the program I'm interested in" still
+    # routes to deadlines rather than discovery.
+    if not has_advisor_signal and not (
+        (raw_toks & _DEADLINE_SIGNALS) or (raw_toks & _ELIGIBILITY_SIGNALS)
+    ):
+        matched_disc = sorted(p for p in _DISCOVERY_SIGNALS if p in _q)
+        if matched_disc:
+            emit("route.decision", level="INFO",
+                 route="discovery", reason="discovery_signal",
+                 is_process_query=is_process_query,
+                 has_advisor_signal=has_advisor_signal,
+                 matched_signals=matched_disc)
+            return RouteDecision(
+                route="discovery", reason="discovery_signal",
+                query=query, session_id=session_id,
+                is_process_query=is_process_query,
+                has_advisor_signal=has_advisor_signal,
+                matched_signals=matched_disc,
+            )
 
     # ── Branches 2–4: topic-priority routing (BEFORE find_advisor) ───────────
     # Program aliases like "dnp" / "nursing" fuzzy-match advisors at high

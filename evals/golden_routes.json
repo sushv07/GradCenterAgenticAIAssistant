@@ -5,272 +5,652 @@
     {
       "id": "rt_001",
       "query": "",
-      "tags": ["route:welcome"],
-      "expected": {"route": "welcome", "route_reason": "empty_query"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:welcome"
+      ],
+      "expected": {
+        "route": "welcome",
+        "route_reason": "empty_query"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "Empty query (post-strip). Branch 1."
     },
     {
       "id": "rt_002",
       "query": "when is the application deadline",
-      "tags": ["route:deadlines"],
-      "expected": {"route": "deadlines", "route_reason": "deadline_signal"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:deadlines"
+      ],
+      "expected": {
+        "route": "deadlines",
+        "route_reason": "deadline_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "Plain deadline signal. Branch 2."
     },
     {
       "id": "rt_003",
       "query": "deadlines for dnp",
-      "tags": ["route:deadlines"],
-      "expected": {"route": "deadlines", "route_reason": "deadline_signal"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:deadlines"
+      ],
+      "expected": {
+        "route": "deadlines",
+        "route_reason": "deadline_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "Deadline fires before doctoral/advisor checks because no advisor signal. Branch 2."
     },
     {
       "id": "rt_004",
       "query": "are there spring admission deadlines",
-      "tags": ["route:deadlines"],
-      "expected": {"route": "deadlines", "route_reason": "deadline_signal"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:deadlines"
+      ],
+      "expected": {
+        "route": "deadlines",
+        "route_reason": "deadline_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "Deadline fires even when first-word 'are' would otherwise become answer_starter. Branch 2 beats detect_route."
     },
     {
       "id": "rt_005",
       "query": "what are the gpa requirements",
-      "tags": ["route:eligibility"],
-      "expected": {"route": "eligibility", "route_reason": "eligibility_signal"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:eligibility"
+      ],
+      "expected": {
+        "route": "eligibility",
+        "route_reason": "eligibility_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "Two eligibility signals: gpa + requirements. Branch 3."
     },
     {
       "id": "rt_006",
       "query": "eligibility for dnp",
-      "tags": ["route:eligibility"],
-      "expected": {"route": "eligibility", "route_reason": "eligibility_signal"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:eligibility"
+      ],
+      "expected": {
+        "route": "eligibility",
+        "route_reason": "eligibility_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "Eligibility fires before doctoral/advisor because no advisor signal. Branch 3."
     },
     {
       "id": "rt_007",
       "query": "do all doctoral programs have the same gpa",
-      "tags": ["route:eligibility"],
-      "expected": {"route": "eligibility", "route_reason": "eligibility_signal"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:eligibility"
+      ],
+      "expected": {
+        "route": "eligibility",
+        "route_reason": "eligibility_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "gpa fires eligibility (branch 3) before doctoral_no_match (branch 6), despite 'doctoral' token."
     },
     {
       "id": "rt_008",
       "query": "what are the steps to apply for dnp",
-      "tags": ["route:application"],
-      "expected": {"route": "application", "route_reason": "application_process"},
-      "mock_overrides": {"advisor": "no_match", "program": "dnp", "next_steps": "none"},
+      "tags": [
+        "route:application"
+      ],
+      "expected": {
+        "route": "application",
+        "route_reason": "application_process"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": "dnp",
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "is_process_query=True (apply) + detected_program=dnp. Branch 4."
     },
     {
       "id": "rt_009",
       "query": "what are the steps to apply",
-      "tags": ["route:application"],
-      "expected": {"route": "application", "route_reason": "application_process"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:application"
+      ],
+      "expected": {
+        "route": "application",
+        "route_reason": "application_process"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "is_process_query=True (apply) + PROCESS_STEP_SIGNAL (steps). No program needed. Branch 4."
     },
     {
       "id": "rt_010",
       "query": "how do I apply",
-      "tags": ["route:guidance"],
-      "expected": {"route": "guidance", "route_reason": "detect_route_guidance"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:guidance"
+      ],
+      "expected": {
+        "route": "guidance",
+        "route_reason": "detect_route_guidance"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
-      "notes": "apply in GUIDANCE_DOMAIN but no step/process signal and no program — falls to detect_route. Branch 9."
+      "notes": "apply in GUIDANCE_DOMAIN but no step/process signal and no program \u2014 falls to detect_route. Branch 9."
     },
     {
       "id": "rt_011",
       "query": "who is the physical therapy advisor",
-      "tags": ["route:advisor"],
-      "expected": {"route": "advisor", "route_reason": "advisor_fuzzy_match"},
-      "mock_overrides": {"advisor": "match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:advisor"
+      ],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_fuzzy_match"
+      },
+      "mock_overrides": {
+        "advisor": "match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "advisor signal ('who', 'advisor') blocks branches 2-4. find_advisor returns match. Branch 5."
     },
     {
       "id": "rt_012",
       "query": "nursing dnp advisor",
-      "tags": ["route:advisor"],
-      "expected": {"route": "advisor", "route_reason": "advisor_fuzzy_match"},
-      "mock_overrides": {"advisor": "match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:advisor"
+      ],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_fuzzy_match"
+      },
+      "mock_overrides": {
+        "advisor": "match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
-      "notes": "advisor signal blocks branches 2-4. Match returned by mock. not is_process_query → branch 5."
+      "notes": "advisor signal blocks branches 2-4. Match returned by mock. not is_process_query \u2192 branch 5."
     },
     {
       "id": "rt_013",
       "query": "who is the education leadership advisor",
-      "tags": ["route:advisor"],
-      "expected": {"route": "advisor", "route_reason": "advisor_suggestions"},
-      "mock_overrides": {"advisor": "suggestions", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:advisor"
+      ],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_suggestions"
+      },
+      "mock_overrides": {
+        "advisor": "suggestions",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "No match but suggestions present. adv_reason = advisor_suggestions. Branch 5."
     },
     {
       "id": "rt_014",
       "query": "who is eligible for the nursing program",
-      "tags": ["route:advisor"],
-      "expected": {"route": "advisor", "route_reason": "advisor_suggestions"},
-      "mock_overrides": {"advisor": "suggestions", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:advisor"
+      ],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_suggestions"
+      },
+      "mock_overrides": {
+        "advisor": "suggestions",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
-      "notes": "Boundary: 'who' is an advisor signal → branches 2-4 skipped, so eligibility (branch 3) is bypassed. Branch 5."
+      "notes": "Boundary: 'who' is an advisor signal \u2192 branches 2-4 skipped, so eligibility (branch 3) is bypassed. Branch 5."
     },
     {
       "id": "rt_015",
       "query": "business phd csulb",
-      "tags": ["route:advisor", "route:doctoral"],
-      "expected": {"route": "advisor", "route_reason": "doctoral_no_match"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:advisor",
+        "route:doctoral"
+      ],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "doctoral_no_match"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
-      "notes": "phd token + no advisor signal + no match/suggestions → doctoral_no_match. Branch 6."
+      "notes": "phd token + no advisor signal + no match/suggestions \u2192 doctoral_no_match. Branch 6."
     },
     {
       "id": "rt_016",
       "query": "edd program for computer science",
-      "tags": ["route:advisor", "route:doctoral"],
-      "expected": {"route": "advisor", "route_reason": "doctoral_no_match"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:advisor",
+        "route:doctoral"
+      ],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "doctoral_no_match"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "edd token triggers doctoral_no_match. Branch 6."
     },
     {
       "id": "rt_017",
       "query": "who should I contact",
-      "tags": ["route:advisor"],
-      "expected": {"route": "advisor", "route_reason": "advisor_intent_no_program"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:advisor"
+      ],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_intent_no_program"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "confidence=0 + 'contact' in ADVISOR_INTENT. Branch 7."
     },
     {
       "id": "rt_018",
       "query": "how do I reach an advisor",
-      "tags": ["route:advisor"],
-      "expected": {"route": "advisor", "route_reason": "advisor_intent_no_program"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:advisor"
+      ],
+      "expected": {
+        "route": "advisor",
+        "route_reason": "advisor_intent_no_program"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "confidence=0 + 'reach' and 'advisor' in ADVISOR_INTENT. Branch 7."
     },
     {
       "id": "rt_019",
       "query": "I am confused and don't know where to begin",
-      "tags": ["route:next_steps"],
-      "expected": {"route": "next_steps", "route_reason": "start_intent"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "found"},
+      "tags": [
+        "route:next_steps"
+      ],
+      "expected": {
+        "route": "next_steps",
+        "route_reason": "start_intent"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "found"
+      },
       "known_failure": false,
-      "notes": "START_TOKENS (confused, begin) and no APPLY_SPECIFIC → is_start_only=True. get_next_steps returns result. Branch 8."
+      "notes": "START_TOKENS (confused, begin) and no APPLY_SPECIFIC \u2192 is_start_only=True. get_next_steps returns result. Branch 8."
     },
     {
       "id": "rt_020",
       "query": "I'm stuck and overwhelmed",
-      "tags": ["route:next_steps"],
-      "expected": {"route": "next_steps", "route_reason": "start_intent"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "found"},
+      "tags": [
+        "route:next_steps"
+      ],
+      "expected": {
+        "route": "next_steps",
+        "route_reason": "start_intent"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "found"
+      },
       "known_failure": false,
       "notes": "START_TOKENS (stuck, overwhelmed) and no APPLY_SPECIFIC. Branch 8."
     },
     {
       "id": "rt_021",
       "query": "I want to apply and don't know where to start",
-      "tags": ["route:guidance"],
-      "expected": {"route": "guidance", "route_reason": "detect_route_guidance"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "found"},
+      "tags": [
+        "route:guidance"
+      ],
+      "expected": {
+        "route": "guidance",
+        "route_reason": "detect_route_guidance"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "found"
+      },
       "known_failure": false,
-      "notes": "Boundary: 'start' is in START_TOKENS but 'apply' is in APPLY_SPECIFIC → is_start_only=False. Falls to detect_route: 'apply' in GUIDANCE_DOMAIN. Branch 9."
+      "notes": "Boundary: 'start' is in START_TOKENS but 'apply' is in APPLY_SPECIFIC \u2192 is_start_only=False. Falls to detect_route: 'apply' in GUIDANCE_DOMAIN. Branch 9."
     },
     {
       "id": "rt_022",
       "query": "where do I start",
-      "tags": ["route:guidance"],
-      "expected": {"route": "guidance", "route_reason": "detect_route_guidance"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:guidance"
+      ],
+      "expected": {
+        "route": "guidance",
+        "route_reason": "detect_route_guidance"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
-      "notes": "is_start_only=True but get_next_steps returns None → falls through. detect_route: 'start' in GUIDANCE_DOMAIN. Branch 9."
+      "notes": "is_start_only=True but get_next_steps returns None \u2192 falls through. detect_route: 'start' in GUIDANCE_DOMAIN. Branch 9."
     },
     {
       "id": "rt_023",
       "query": "how do I apply to a graduate program",
-      "tags": ["route:guidance"],
-      "expected": {"route": "guidance", "route_reason": "detect_route_guidance"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:guidance"
+      ],
+      "expected": {
+        "route": "guidance",
+        "route_reason": "detect_route_guidance"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "is_process_query=True (apply) but no PROCESS_STEP_SIGNAL and no program. Falls to detect_route: 'apply'. Branch 9."
     },
     {
       "id": "rt_024",
       "query": "what should I do after being accepted",
-      "tags": ["route:guidance"],
-      "expected": {"route": "guidance", "route_reason": "detect_route_guidance"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:guidance"
+      ],
+      "expected": {
+        "route": "guidance",
+        "route_reason": "detect_route_guidance"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "detect_route: 'accepted' in GUIDANCE_DOMAIN. Branch 9."
     },
     {
       "id": "rt_025",
       "query": "I recently got admitted, what next",
-      "tags": ["route:guidance"],
-      "expected": {"route": "guidance", "route_reason": "detect_route_guidance"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:guidance"
+      ],
+      "expected": {
+        "route": "guidance",
+        "route_reason": "detect_route_guidance"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "detect_route: 'admitted' in GUIDANCE_DOMAIN. Branch 9."
     },
     {
       "id": "rt_026",
       "query": "is the program accredited",
-      "tags": ["route:answer"],
-      "expected": {"route": "answer", "route_reason": "detect_route_answer_starter"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:answer"
+      ],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_starter"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
-      "notes": "first_word='is' → detect_route returns ANSWER immediately. Branch 10."
+      "notes": "first_word='is' \u2192 detect_route returns ANSWER immediately. Branch 10."
     },
     {
       "id": "rt_027",
       "query": "does csulb offer graduate certificates",
-      "tags": ["route:answer"],
-      "expected": {"route": "answer", "route_reason": "detect_route_answer_starter"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:answer"
+      ],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_starter"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
-      "notes": "first_word='does' → detect_route answer_starter. Branch 10."
+      "notes": "first_word='does' \u2192 detect_route answer_starter. Branch 10."
     },
     {
       "id": "rt_028",
       "query": "will my transfer credits count",
-      "tags": ["route:answer"],
-      "expected": {"route": "answer", "route_reason": "detect_route_answer_starter"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:answer"
+      ],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_starter"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
-      "notes": "first_word='will' → detect_route answer_starter. Branch 10."
+      "notes": "first_word='will' \u2192 detect_route answer_starter. Branch 10."
     },
     {
       "id": "rt_029",
       "query": "tell me about funding opportunities",
-      "tags": ["route:answer"],
-      "expected": {"route": "answer", "route_reason": "detect_route_answer_default"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:answer"
+      ],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_default"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
-      "notes": "No guidance domain word, no starter → detect_route_answer_default. Branch 10."
+      "notes": "No guidance domain word, no starter \u2192 detect_route_answer_default. Branch 10."
     },
     {
       "id": "rt_030",
       "query": "is orientation mandatory for all students",
-      "tags": ["route:answer"],
-      "expected": {"route": "answer", "route_reason": "detect_route_answer_starter"},
-      "mock_overrides": {"advisor": "no_match", "program": null, "next_steps": "none"},
+      "tags": [
+        "route:answer"
+      ],
+      "expected": {
+        "route": "answer",
+        "route_reason": "detect_route_answer_starter"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
       "known_failure": false,
       "notes": "Boundary: first_word='is' fires answer_starter even though 'orientation' is in GUIDANCE_DOMAIN. Starter check precedes domain check in detect_route."
+    },
+    {
+      "id": "rt_031",
+      "query": "I am interested in becoming a nurse practitioner",
+      "tags": [
+        "route:discovery"
+      ],
+      "expected": {
+        "route": "discovery",
+        "route_reason": "discovery_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Discovery phrase 'interested in' fires Branch 1.5."
+    },
+    {
+      "id": "rt_032",
+      "query": "I want to become a physical therapist",
+      "tags": [
+        "route:discovery"
+      ],
+      "expected": {
+        "route": "discovery",
+        "route_reason": "discovery_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Discovery phrase 'want to become' fires Branch 1.5."
+    },
+    {
+      "id": "rt_033",
+      "query": "which program should I choose for public health",
+      "tags": [
+        "route:discovery"
+      ],
+      "expected": {
+        "route": "discovery",
+        "route_reason": "discovery_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Discovery phrase 'which program' fires Branch 1.5."
+    },
+    {
+      "id": "rt_034",
+      "query": "I want a career in education leadership",
+      "tags": [
+        "route:discovery"
+      ],
+      "expected": {
+        "route": "discovery",
+        "route_reason": "discovery_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Discovery phrase 'career in' fires Branch 1.5."
+    },
+    {
+      "id": "rt_035",
+      "query": "what are the deadlines for programs I'm interested in",
+      "tags": [
+        "route:deadlines"
+      ],
+      "expected": {
+        "route": "deadlines",
+        "route_reason": "deadline_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Deadline signal guards against discovery takeover. Branch 2 wins."
+    },
+    {
+      "id": "rt_036",
+      "query": "what are the gpa requirements for programs I'm interested in",
+      "tags": [
+        "route:eligibility"
+      ],
+      "expected": {
+        "route": "eligibility",
+        "route_reason": "eligibility_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Eligibility signal guards against discovery takeover. Branch 3 wins."
     }
   ]
 }

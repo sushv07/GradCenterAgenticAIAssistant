@@ -106,6 +106,49 @@ def run_tests(verbose: bool = True) -> bool:
         "", "welcome", "empty_query",
     ))
 
+    # ── Branch 1.5: discovery signals ────────────────────────────────────────
+    results.append(_test(
+        "interest phrase → discovery",
+        "I am interested in becoming a nurse practitioner",
+        "discovery", "discovery_signal",
+    ))
+    results.append(_test(
+        "want to become → discovery",
+        "I want to become a physical therapist",
+        "discovery", "discovery_signal",
+    ))
+    results.append(_test(
+        "which program → discovery",
+        "which program should I choose for public health",
+        "discovery", "discovery_signal",
+    ))
+    results.append(_test(
+        "career in phrase → discovery",
+        "I want a career in education leadership",
+        "discovery", "discovery_signal",
+    ))
+    results.append(_test(
+        "recommend a program → discovery",
+        "can you recommend a program for me",
+        "discovery", "discovery_signal",
+    ))
+    results.append(_test(
+        "discovery blocked by deadline signal → deadlines (not discovery)",
+        "what are the deadlines for programs I'm interested in",
+        "deadlines", "deadline_signal",
+    ))
+    results.append(_test(
+        "discovery blocked by advisor signal → advisor_fuzzy_match (not discovery)",
+        "who is the advisor for the program I'm interested in",
+        "advisor", "advisor_fuzzy_match",
+        advisor=_advisor_match("Dr. X", "x@csulb.edu", "DNP"),
+    ))
+    results.append(_test(
+        "discovery blocked by eligibility signal → eligibility (not discovery)",
+        "what are the gpa requirements for programs I'm interested in",
+        "eligibility", "eligibility_signal",
+    ))
+
     # ── Branch 2: deadlines ───────────────────────────────────────────────────
     results.append(_test(
         "deadline keyword → deadlines",
