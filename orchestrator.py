@@ -24,6 +24,7 @@ from gradcenter_logging import emit
 from retrieval.query_handler import handle_query
 from agents.answer_agent import answer
 from agents.guidance_agent import guide_from_file
+from agents.journey_agent import handle_discovery
 from routing.router import Route, RouteDecision, decide_route, detect_route
 from contracts.response_types import OrchestratorResponse, TopicResponse
 
@@ -520,6 +521,10 @@ def _dispatch(decision: RouteDecision) -> OrchestratorResponse:
 
     if decision.route == "next_steps":
         return _build_next_steps_response(decision)
+
+    if decision.route == "discovery":
+        response, _ = handle_discovery(decision.query, decision.session_id)
+        return response
 
     # "guidance" | "answer"
     route_enum = Route(decision.route)

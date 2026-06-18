@@ -46,9 +46,10 @@ class _JourneyStateRequired(TypedDict):
 # ---------------------------------------------------------------------------
 
 class JourneyState(_JourneyStateRequired, total=False):
-    orientation:         str   # "research" | "professional" | "applied" | "clinical"
-    degree_type:         str   # "PhD" | "EdD" | "DNP" | "DPT" | "DrPH"
-    work_experience:     str   # free-text or extracted tag, e.g. "clinical_rn_experience"
-    funding_priority:    bool  # True when student has signalled funding is a concern
-    modality_pref:       str   # "online" | "in_person" | "hybrid"
-    last_question_asked: str   # last clarification question sent to the student
+    orientation:          str        # "research" | "professional" | "applied" | "clinical"
+    degree_type:          str        # "PhD" | "EdD" | "DNP" | "DPT" | "DrPH"
+    career_goal_signals:  list[str]  # extracted career_goal_tags (taxonomy vocabulary)
+    work_experience:      str        # free-text or extracted tag, e.g. "clinical_rn_experience"
+    funding_priority:     bool       # True when student has signalled funding is a concern
+    modality_pref:        str        # "online" | "in_person" | "hybrid"
+    last_question_asked:  str        # last clarification question sent to the student
