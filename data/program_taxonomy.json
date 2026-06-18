@@ -418,12 +418,19 @@
       "college": "college_of_engineering",
       "department": null,
       "program_url": "https://www.csulb.edu/college-of-engineering/engineering-doctoral-studies",
-      "description": "Joint doctoral program with Claremont Graduate University (established 1987), integrating advanced engineering disciplines with computational mathematics. CSULB handles engineering coursework; CGU handles mathematics components. Only research-oriented doctoral program at CSULB. Accepts both fall and spring applicants.",
+      "description": "Joint doctoral program with Claremont Graduate University (established 1987), integrating advanced engineering disciplines with computational mathematics. CSULB handles engineering coursework; CGU handles mathematics components. Only research-oriented doctoral program at CSULB. Accepts both fall and spring applicants. STEM-designated degree program.",
       "orientation": "research",
       "concentrations": null,
-      "interest_tags": null,
+      "interest_tags": [
+        "engineering",
+        "computational_mathematics",
+        "applied_mathematics"
+      ],
       "career_goal_tags": null,
-      "academic_background_tags": null,
+      "academic_background_tags": [
+        "engineering",
+        "mathematics"
+      ],
       "advisor": {
         "name": "Dr. Kerop Janoyan",
         "email": "kerop.janoyan@csulb.edu",
@@ -462,16 +469,16 @@
       "data_status": {
         "description": "available",
         "concentrations": "source_missing",
-        "interest_tags": "manual_required",
+        "interest_tags": "manual_curated",
         "career_goal_tags": "manual_required",
-        "academic_background_tags": "manual_required",
+        "academic_background_tags": "manual_curated",
         "funding_signals": "partial",
         "admissions_fit": "source_missing"
       },
-      "coverage_status": "minimal",
+      "coverage_status": "partial",
       "manual_review_required": true,
-      "source_notes": "Description from program page. Research areas, concentrations, career outcomes, and all tag fields require manual enrichment from Engineering faculty pages, the Joint PhD Program Handbook (not publicly accessible), or direct contact with Dr. Kerop Janoyan (kerop.janoyan@csulb.edu). This entry must NOT be used for interest-based recommendations until coverage_status is promoted to 'partial' at minimum. Named-program queries (e.g., 'engineering PhD', 'computational math doctorate') should route to program_interest_tool for advisor and deadline information only.",
-      "last_verified": "2026-06-15"
+      "source_notes": "Description from program page. STEM designation confirmed from doctoral index page (**marker = STEM-Designated Degree Program, Tier 2). interest_tags: 'engineering' and 'computational_mathematics' sourced directly from program name and founding description — 'The College of Engineering jointly offers a Ph.D. degree in Engineering and Computational Mathematics' and 'combine the computational mathematics field with one or more branches of engineering' (Tier 1, csulb.edu/college-of-engineering/engineering-doctoral-studies). 'applied_mathematics' inferred from College of Engineering research lab descriptions: Computational Fluid and Structure Lab ('numerical, theoretical, and physical modeling') and Multiphase Flow Lab ('physics-based models and numerical algorithms') (Tier 3, csulb.edu/hung-family-college-of-engineering/research-centers-labs-0). Conservative data_status=manual_curated applied to entire interest_tags array since third tag is inferred. academic_background_tags: 'engineering' inferred from program description language 'combining computational mathematics with one or more branches of engineering'; 'mathematics' inferred from CGU partner being Institute of Mathematical Sciences (Tier 1). data_status=manual_curated: no published admission prerequisites found on any CSULB page consulted. 'computer_science' background tag evaluated and REJECTED — evidence is department-level only (CS department lists PhD alongside its MS programs) and insufficient to confirm CS as a required applicant background. career_goal_tags remain null: no explicit career outcome statements found on any of the 10 official CSULB sources consulted in Phase A2c audit. Resolution path: Joint PhD Program Handbook (URL returns 404; contact kerop.janoyan@csulb.edu) or CGU Institute of Mathematical Sciences program page. Phase A2c audit completed 2026-06-16.",
+      "last_verified": "2026-06-17"
     }
   ]
 }
