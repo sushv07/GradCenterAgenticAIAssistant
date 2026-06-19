@@ -15,3 +15,5 @@ sessions/
 # RAG build logs
 logs/
 .claude/
+
+evals/reports/*.json

@@ -127,8 +127,8 @@ def _risk2_edd_differentiation() -> list[bool]:
         r3["behavior"] == "recommend",
     ))
     results.append(_test(
-        'HIGH-RISK 2e: "community college dean" → recommended_programs=[] (Phase D fills)',
-        r3["recommended_programs"] == [],
+        'HIGH-RISK 2e: "community college dean" → recommended_programs=[EdD-CC] (Phase D fills)',
+        r3["recommended_programs"] == ["edd-educational-leadership-cc"],
     ))
 
     # "school superintendent" → unique career → recommend (P-12, not CC)
@@ -163,12 +163,12 @@ def _risk3_engineering_partial_match() -> list[bool]:
         r["behavior"] == "partial_match_with_caveat",
     ))
     results.append(_test(
-        'HIGH-RISK 3b: "engineering research" → recommended_programs=[] (invariant)',
-        r["recommended_programs"] == [],
+        'HIGH-RISK 3b: "engineering research" → recommended_programs=[PhD-Eng] (Phase D fills)',
+        r["recommended_programs"] == ["phd-engineering-computational-math"],
     ))
     results.append(_test(
-        'HIGH-RISK 3c: "engineering research" → confidence="none" (invariant)',
-        r["confidence"] == "none",
+        'HIGH-RISK 3c: "engineering research" → confidence=medium (interest + orientation match)',
+        r["confidence"] == "medium",
     ))
 
     # Engineering + applied mathematics → still partial (no career signal)
@@ -186,11 +186,11 @@ def _risk3_engineering_partial_match() -> list[bool]:
         "computational_mathematics" in bundle.interests,
     ))
 
-    # Engineering + explicit PhD → recommend (degree_type overrides)
+    # Engineering + explicit PhD → partial_match_with_caveat (Engineering always forces this)
     r3 = _run("I want to pursue a PhD in engineering")
     results.append(_test(
-        'HIGH-RISK 3f: "PhD in engineering" → degree_type sets behavior=recommend',
-        r3["behavior"] == "recommend",
+        'HIGH-RISK 3f: "PhD in engineering" → behavior=partial_match_with_caveat (Engineering special case)',
+        r3["behavior"] == "partial_match_with_caveat",
     ))
 
     return results
@@ -249,8 +249,8 @@ def _test_no_clarify_unique_career() -> list[bool]:
     return [
         _test("no_clarify_unique_career: behavior=recommend",
               r["behavior"] == "recommend"),
-        _test("no_clarify_unique_career: recommended_programs=[] (Phase D)",
-              r["recommended_programs"] == []),
+        _test("no_clarify_unique_career: recommended_programs=[dpt] (Phase D fills)",
+              r["recommended_programs"] == ["dpt-physical-therapy"]),
     ]
 
 
@@ -357,27 +357,44 @@ def _test_phase_transitions() -> list[bool]:
 
 
 def _test_invariants() -> list[bool]:
-    """Every Phase C response must have recommended_programs=[] and confidence='none'."""
+    """
+    Phase D invariants:
+    - redirect and clarify behaviors must have confidence="none" and recommended_programs=[]
+    - recommend/multi_recommend/partial_match_with_caveat must have confidence in valid tiers
+    """
     cases = [
-        "I want to become a physical therapist",
-        "I want to help people",
-        "I want an MBA",
-        "I want educational leadership",
-        "I want to be a doctor",
-        "I'm interested in engineering",
+        "I want to become a physical therapist",  # → recommend (Phase D fills)
+        "I want to help people",                  # → clarify
+        "I want an MBA",                          # → redirect
+        "I want educational leadership",          # → clarify (term_ambiguity before Phase D)
+        "I want to be a doctor",                  # → clarify (term_ambiguity before Phase D)
+        "I'm interested in engineering",          # → partial_match_with_caveat (Phase D fills)
     ]
+    _CLARIFY_REDIRECT = {"clarify", "redirect"}
+    _VALID_TIERS      = {"high", "medium", "low"}
     results = []
     for q in cases:
         _SESSION_STORE.pop("inv-test", None)
         r = _run(q, "inv-test")
-        results.append(_test(
-            f'invariant recommended_programs=[] for: "{q[:45]}"',
-            r["recommended_programs"] == [],
-        ))
-        results.append(_test(
-            f'invariant confidence="none" for: "{q[:45]}"',
-            r["confidence"] == "none",
-        ))
+        behavior = r["behavior"]
+        if behavior in _CLARIFY_REDIRECT:
+            results.append(_test(
+                f'invariant recommended_programs=[] for: "{q[:45]}"',
+                r["recommended_programs"] == [],
+            ))
+            results.append(_test(
+                f'invariant confidence="none" for: "{q[:45]}"',
+                r["confidence"] == "none",
+            ))
+        else:
+            results.append(_test(
+                f'invariant confidence in valid tier for: "{q[:45]}"',
+                r["confidence"] in _VALID_TIERS,
+            ))
+            results.append(_test(
+                f'invariant recommended_programs is list for: "{q[:45]}"',
+                isinstance(r["recommended_programs"], list),
+            ))
     return results
 
 

@@ -27,6 +27,11 @@ from typing import Optional
 
 from contracts.journey_state import JourneyState
 from contracts.response_types import DiscoveryResponse
+from agents.recommendation_engine import (
+    _RecommendationResult,
+    _load_taxonomy,
+    select_recommendation,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -632,10 +637,25 @@ _OUT_OF_SCOPE_MESSAGES: dict[str, str] = {
 def _build_response(
     query: str,
     session_id: str,
-    behavior: str,
+    behavior_or_result,
     question: Optional[str] = None,
     out_of_scope_code: Optional[str] = None,
 ) -> DiscoveryResponse:
+    # Accept either a plain behavior string (redirect/clarify paths) or a
+    # Phase D _RecommendationResult (scoring paths).
+    if isinstance(behavior_or_result, _RecommendationResult):
+        result       = behavior_or_result
+        behavior     = result.behavior
+        question     = result.question
+        rec_programs = result.recommended_programs
+        confidence   = result.confidence
+        prog_matches = result.program_matches
+    else:
+        behavior     = behavior_or_result
+        rec_programs = []
+        confidence   = "none"
+        prog_matches = []
+
     summary = _BEHAVIOR_SUMMARIES.get(behavior, "")
 
     if behavior == "clarify":
@@ -670,12 +690,14 @@ def _build_response(
         "primary_action":       primary_action,
         "source":               {"file": "", "url": "https://www.csulb.edu/graduate-center"},
         "next_actions":         next_actions,
-        "recommended_programs": [],      # Phase D fills this
-        "confidence":           "none",  # Phase D fills this
+        "recommended_programs": rec_programs,
+        "confidence":           confidence,
         "behavior":             behavior,
     }
     if question:
         response["clarification_question"] = question
+    if prog_matches:
+        response["program_matches"] = prog_matches
     return response
 
 
@@ -731,9 +753,11 @@ def handle_discovery(
         _SESSION_STORE[session_id] = updated
         return response, updated
 
-    # Step 6 — Classify behavior for Phase D (no scoring here)
-    behavior = _classify_behavior(updated)
-    updated["phase"] = "recommending"
-    response = _build_response(query, session_id, behavior)
+    # Step 6 — Phase D recommendation scoring
+    result = select_recommendation(updated, gaps, _load_taxonomy())
+    updated["phase"] = "recommending" if result.behavior != "clarify" else "clarifying"
+    if result.program_matches:
+        updated["recommended_programs"] = [m["program_id"] for m in result.program_matches]
+    response = _build_response(query, session_id, result)
     _SESSION_STORE[session_id] = updated
     return response, updated

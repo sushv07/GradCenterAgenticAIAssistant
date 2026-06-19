@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 import streamlit as st
 import orchestrator
+from agents.journey_agent import handle_discovery
 from gradcenter_logging import emit, set_request_id, new_request_id
 from tools.program_interest_tool import (
     generate_program_specific_response,
@@ -785,6 +786,66 @@ button[kind="header"] {
 
 
 /* ══════════════════════════════════════════════════════════════════════
+   DISCOVERY / PROGRAM RECOMMENDATION CARDS
+══════════════════════════════════════════════════════════════════════ */
+
+.disc-behavior-banner {
+    display:        inline-block;
+    font-size:      0.62rem;
+    font-weight:    800;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color:          var(--navy);
+    background:     var(--gold-light);
+    border:         1px solid rgba(230,168,0,0.35);
+    border-radius:  5px;
+    padding:        3px 10px;
+    margin-bottom:  12px;
+}
+.disc-program-card {
+    background:    var(--surface);
+    border:        1px solid var(--border-soft);
+    border-top:    3px solid var(--gold-dark);
+    border-radius: var(--radius);
+    padding:       16px 20px 14px;
+    margin-bottom: 12px;
+    box-shadow:    var(--shadow-xs);
+}
+.disc-program-name {
+    font-size:   1.05rem;
+    font-weight: 700;
+    color:       var(--text);
+    margin:      0 0 8px 0;
+    line-height: 1.35;
+}
+.disc-confidence-badge {
+    display:        inline-block;
+    font-size:      0.67rem;
+    font-weight:    700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    border:         1.5px solid currentColor;
+    border-radius:  4px;
+    padding:        2px 8px;
+    margin-bottom:  10px;
+}
+.disc-rows { margin-top: 8px; }
+.disc-row {
+    display:       flex;
+    gap:           10px;
+    padding:       5px 0;
+    border-bottom: 1px solid var(--border-soft);
+    font-size:     0.9rem;
+    line-height:   1.45;
+}
+.disc-row:last-child { border-bottom: none; }
+.disc-key { color: var(--muted); min-width: 100px; font-weight: 500; flex-shrink: 0; }
+.disc-val { color: var(--text);  font-weight: 500; }
+.disc-val a { color: #1a56db; text-decoration: none; }
+.disc-val a:hover { text-decoration: underline; }
+
+
+/* ══════════════════════════════════════════════════════════════════════
    APPLICATION STEP CARDS
 ══════════════════════════════════════════════════════════════════════ */
 
@@ -1057,6 +1118,38 @@ def _init_state() -> None:
             st.session_state[k] = v
 
 _init_state()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Discovery session continuity
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _is_discovery_clarify(response: dict) -> bool:
+    """
+    Pure predicate: True when a response is a pending discovery clarification.
+    Extracted as a standalone function so tests can import it without running
+    the full Streamlit app.
+    """
+    return (
+        bool(response)
+        and response.get("route") == "discovery"
+        and response.get("behavior") == "clarify"
+    )
+
+
+def _should_continue_discovery() -> bool:
+    """
+    Return True when the most recent assistant message was a discovery
+    clarification.  In that case the next user message must be sent directly
+    to handle_discovery() with the same session_id so the journey agent can
+    accumulate the new signal into the existing JourneyState — rather than
+    letting the generic router create a fresh, unrelated dispatch.
+    """
+    messages = st.session_state.get("messages", [])
+    for msg in reversed(messages):
+        if msg.get("role") == "assistant":
+            return _is_discovery_clarify(msg.get("response") or {})
+    return False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1782,8 +1875,140 @@ def _render_answer_panel(response: dict) -> None:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Agent response helpers
+# Discovery / program recommendation panel
 # ─────────────────────────────────────────────────────────────────────────────
+
+_PROGRAM_NAMES: dict[str, str] = {
+    "drph-public-health":                 "Doctor of Public Health (DrPH)",
+    "dnp-nursing":                        "Doctor of Nursing Practice (DNP)",
+    "dpt-physical-therapy":               "Doctor of Physical Therapy (DPT)",
+    "edd-educational-leadership-cc":      "EdD — Educational Leadership (Community College)",
+    "edd-educational-leadership-p12":     "EdD — Educational Leadership (P-12 Schools)",
+    "phd-engineering-computational-math": "PhD — Engineering & Computational Mathematics",
+}
+
+_BEHAVIOR_LABELS: dict[str, str] = {
+    "recommend":                 "Recommended Program",
+    "multi_recommend":           "Recommended Programs",
+    "partial_match_with_caveat": "Potential Match — Review Carefully",
+    "clarify":                   "More Information Needed",
+}
+
+_CONF_COLORS: dict[str, str] = {
+    "high":   "#16a34a",
+    "medium": "#d97706",
+    "low":    "#dc2626",
+}
+
+_SCORE_BASIS_LABELS: dict[str, str] = {
+    "degree_type":     "Explicit degree type match",
+    "orientation_match": "Orientation matches program focus",
+}
+
+
+def _readable_basis(factor: str) -> str:
+    """Convert a raw score_basis token to a short human-readable phrase."""
+    if factor.startswith("unique_career:"):
+        tag = factor.split(":", 1)[1].replace("_", " ")
+        return f"Career goal: {tag} (unique to this program)"
+    if factor.startswith("shared_career:"):
+        tag = factor.split(":", 1)[1].replace("_", " ")
+        return f"Career goal: {tag}"
+    if factor.startswith("interests_3plus:"):
+        tags = factor.split(":", 1)[1].replace("_", " ")
+        return f"3+ interest matches: {tags}"
+    if factor.startswith("interests_2:"):
+        tags = factor.split(":", 1)[1].replace("_", " ")
+        return f"2 interest matches: {tags}"
+    if factor.startswith("interest_1:"):
+        tag = factor.split(":", 1)[1].replace("_", " ")
+        return f"Interest: {tag}"
+    if factor.startswith("background_2plus:"):
+        tags = factor.split(":", 1)[1].replace("_", " ")
+        return f"2+ background matches: {tags}"
+    if factor.startswith("background_1:"):
+        tag = factor.split(":", 1)[1].replace("_", " ")
+        return f"Academic background: {tag}"
+    if factor.startswith("orientation_match:"):
+        orient = factor.split(":", 1)[1]
+        return f"Orientation match: {orient}"
+    if factor.startswith("orientation_mismatch:"):
+        return "Orientation mismatch (penalty applied)"
+    return _SCORE_BASIS_LABELS.get(factor, factor.replace("_", " "))
+
+
+def _render_discovery_panel(response: dict) -> None:
+    """
+    Render Phase D program recommendation results for route='discovery'.
+    Falls back silently when program_matches is absent (clarify / redirect paths).
+    """
+    program_matches = response.get("program_matches") or []
+    behavior        = response.get("behavior", "")
+    confidence      = response.get("confidence", "")
+
+    # ── Clarify / no-match paths: nothing extra to render ─────────────────
+    if not program_matches:
+        return
+
+    # ── Behavior label banner ──────────────────────────────────────────────
+    label = _BEHAVIOR_LABELS.get(behavior, "Program Match")
+    st.markdown(
+        f'<div class="disc-behavior-banner">{label}</div>',
+        unsafe_allow_html=True,
+    )
+
+    # ── Per-program cards ──────────────────────────────────────────────────
+    for match in program_matches:
+        prog_id    = match.get("program_id", "")
+        conf       = match.get("confidence", confidence)
+        email      = match.get("advisor_email", "")
+        deadline   = match.get("deadline_fall", "")
+        basis      = match.get("score_basis") or []
+        prog_name  = _PROGRAM_NAMES.get(prog_id, prog_id.replace("-", " ").title())
+        conf_color = _CONF_COLORS.get(conf, "#6b7280")
+
+        # Card header
+        email_html = (
+            f'<a href="mailto:{email}">{email}</a>'
+            if email else "—"
+        )
+        st.markdown(
+            f'<div class="disc-program-card">'
+            f'<div class="disc-program-name">{prog_name}</div>'
+            f'<span class="disc-confidence-badge" style="color:{conf_color};border-color:{conf_color};">'
+            f'Confidence: {conf.capitalize()}'
+            f'</span>'
+            f'<div class="disc-rows">'
+            f'<div class="disc-row">'
+            f'  <span class="disc-key">Advisor email</span>'
+            f'  <span class="disc-val">{email_html}</span>'
+            f'</div>'
+            f'<div class="disc-row">'
+            f'  <span class="disc-key">Fall deadline</span>'
+            f'  <span class="disc-val">{deadline or "—"}</span>'
+            f'</div>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        # Score basis — collapsible
+        if basis:
+            readable = [_readable_basis(f) for f in basis]
+            with st.expander("Why this program matched", expanded=False):
+                for item in readable:
+                    st.markdown(f"- {item}")
+
+    # ── Caveat note for partial matches ───────────────────────────────────
+    if behavior == "partial_match_with_caveat":
+        st.markdown(
+            '<p style="color:#d97706;font-size:.85rem;margin-top:4px;">'
+            "⚠️ This is a potential match based on limited signal. "
+            "Contact the program advisor to confirm fit before applying."
+            "</p>",
+            unsafe_allow_html=True,
+        )
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Orchestrator response renderer
@@ -1816,6 +2041,8 @@ def _render_response(response: dict, msg_idx: int = 0) -> None:
         _render_guidance_panel(response.get("steps", []))
     elif route == "answer":
         st.markdown("### Answer"); _render_answer_panel(response)
+    elif route == "discovery":
+        _render_discovery_panel(response)
 
     if source:
         st.caption(f"Source: [{source}]({source})")
@@ -1883,7 +2110,12 @@ def _submit_query(query: str) -> None:
     _req_t0 = time.perf_counter()
 
     with st.spinner("Searching for an answer…"):
-        response = orchestrator.run(query, session_id=sid)
+        if _should_continue_discovery():
+            # Previous turn was a discovery clarification — continue the journey
+            # in the same session so JourneyState accumulates the new signal.
+            response, _ = handle_discovery(query, session_id=sid)
+        else:
+            response = orchestrator.run(query, session_id=sid)
 
     _req_elapsed = round((time.perf_counter() - _req_t0) * 1000, 1)
     _had_error   = bool(response.get("error"))

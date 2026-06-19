@@ -151,6 +151,15 @@ class NextStepsResponse(BaseResponse):
     resources: list   # always [] currently; reserved for future use
 
 
+class ProgramMatch(TypedDict, total=False):
+    """Rich per-program result populated by Phase D recommendation engine."""
+    program_id:    str
+    confidence:    str         # "high" | "medium" | "low"
+    advisor_email: str
+    deadline_fall: str
+    score_basis:   list[str]  # human-readable scoring factors
+
+
 class _DiscoveryBase(BaseResponse):
     """Required fields for every discovery response."""
     recommended_programs: list[str]  # program_ids from program_taxonomy.json; [] when behavior="clarify"
@@ -161,6 +170,8 @@ class _DiscoveryBase(BaseResponse):
 class DiscoveryResponse(_DiscoveryBase, total=False):
     # Present only when behavior="clarify" — the question to pose to the student next.
     clarification_question: str
+    # Phase D fills this with per-program scoring details.
+    program_matches: list[ProgramMatch]
 
 
 # ---------------------------------------------------------------------------
