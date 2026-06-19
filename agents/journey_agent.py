@@ -71,6 +71,7 @@ _INTEREST_MAP: dict[str, str] = {
     "healthcare leadership":      "healthcare_leadership",
     "clinical leadership":        "healthcare_leadership",
     # DrPH
+    "population health":          "public_health",
     "global health":              "global_health",
     "community health":           "community_health",
     "health policy":              "health_policy",
@@ -79,6 +80,10 @@ _INTEREST_MAP: dict[str, str] = {
     "health disparities":         "community_health",
     "underserved communities":    "community_health",
     "underserved":                "community_health",
+    # DPT rehabilitation phrases
+    "recover movement":           "rehabilitation",
+    "movement recovery":          "rehabilitation",
+    "restore movement":           "rehabilitation",
     # EdD-CC
     "community college":          "community_college",
     "student affairs":            "student_affairs",
@@ -242,6 +247,14 @@ _DOCTOR_PHRASES: tuple[str, ...] = (
     "be a doctor",
     "i want to be doctor",
 )
+
+# Interest tags exclusive to DrPH (not present in DNP or DPT interest_tags).
+# When ALL health interests fall within this set, the program is already
+# distinguishable — health_undifferentiated should not fire.
+_DRPH_EXCLUSIVE_INTERESTS: frozenset[str] = frozenset({
+    "public_health", "global_health", "community_health",
+    "health_policy", "health_informatics",
+})
 
 # Domain membership sets (taxonomy tags, not query keywords)
 _HEALTH_CLINICAL_INTERESTS: frozenset[str] = frozenset({
@@ -445,7 +458,15 @@ def detect_gaps(state: JourneyState, bundle: _SignalBundle) -> list[str]:
 
     # No field signal at all (vague query with no taxonomy tags extracted)
     if not interests and not career_goals and not degree_type:
-        gaps.append("orientation_only" if orientation else "no_field_signal")
+        health_bg = set(background) & _HEALTH_BACKGROUNDS
+        # Clinical orientation or healthcare background with no program-specific
+        # interest yet → ask a goal-oriented question before surfacing programs
+        if orientation == "clinical" or health_bg:
+            gaps.append("healthcare_goal_unclear")
+        elif orientation:
+            gaps.append("orientation_only")
+        else:
+            gaps.append("no_field_signal")
         return gaps  # no further analysis useful without any field signal
 
     # Education domain without CC vs. P-12 sector differentiation
@@ -462,7 +483,10 @@ def detect_gaps(state: JourneyState, bundle: _SignalBundle) -> list[str]:
     health_interests = set(interests) & _HEALTH_DOMAIN_INTERESTS
     has_health_career = bool(set(career_goals) & _HEALTH_CAREER_TAGS)
     if len(health_interests) >= 2 and not has_health_career:
-        gaps.append("health_undifferentiated")
+        # If ALL health interests are DrPH-exclusive, the program is already
+        # distinguishable — don't ask the user to choose further.
+        if not (health_interests <= _DRPH_EXCLUSIVE_INTERESTS):
+            gaps.append("health_undifferentiated")
 
     # Health background present but no specific health interest or career yet
     health_bg = set(background) & _HEALTH_BACKGROUNDS
@@ -491,6 +515,7 @@ _CLARIFY_GAPS: frozenset[str] = frozenset({
     "term_ambiguity_education",
     "no_field_signal",
     "orientation_only",
+    "healthcare_goal_unclear",
     "education_undifferentiated",
     "health_undifferentiated",
     "admission_gated",
@@ -534,6 +559,11 @@ _CLARIFICATION_QUESTIONS: dict[str, str] = {
         "For example, do you hold a nursing license (BSN/RN) or have pre-physical "
         "therapy coursework completed?"
     ),
+    "healthcare_goal_unclear": (
+        "What kind of role or impact are you hoping to have in healthcare? "
+        "For example, are you interested in direct patient care, nursing leadership, "
+        "public health, rehabilitation, or something else?"
+    ),
     "health_undifferentiated": (
         "Are you looking for a program focused on academic or applied public health "
         "research, or clinical patient care practice?"
@@ -552,6 +582,7 @@ _QUESTION_PRIORITY: list[str] = [
     "term_ambiguity_leadership",
     "term_ambiguity_education",
     "admission_gated",
+    "healthcare_goal_unclear",     # goal-oriented before program-menu questions
     "health_undifferentiated",
     "education_undifferentiated",
     "orientation_only",

@@ -651,6 +651,60 @@
       },
       "known_failure": false,
       "notes": "Eligibility signal guards against discovery takeover. Branch 3 wins."
+    },
+    {
+      "id": "rt_037",
+      "query": "I want a clinical doctoral degree in healthcare.",
+      "tags": [
+        "route:discovery"
+      ],
+      "expected": {
+        "route": "discovery",
+        "route_reason": "discovery_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Discovery phrase 'doctoral degree in' fires Branch 1.5. Previously routed to advisor/doctoral_no_match."
+    },
+    {
+      "id": "rt_038",
+      "query": "I am looking for a doctoral program in healthcare.",
+      "tags": [
+        "route:discovery"
+      ],
+      "expected": {
+        "route": "discovery",
+        "route_reason": "discovery_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Discovery phrases 'looking for a doctoral' and 'doctoral program in' both fire Branch 1.5."
+    },
+    {
+      "id": "rt_039",
+      "query": "I want a doctorate in healthcare.",
+      "tags": [
+        "route:discovery"
+      ],
+      "expected": {
+        "route": "discovery",
+        "route_reason": "discovery_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Discovery phrase 'doctorate in' fires Branch 1.5. Previously routed to advisor/doctoral_no_match."
     }
   ]
 }

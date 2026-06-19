@@ -1370,3 +1370,25 @@ Improved final answer quality after Phase 6A showed that some queries routed cor
 - Decided not to introduce a universal `normalized_confidence` field.
 - Reason: it would create misleading apples-to-oranges comparisons across backends.
 - Deferred possible future addition of `retrieval_score_pct` only for true 0–1 similarity scores such as FAQ RAG and Chroma tool results, if a real consumer needs it.
+
+
+Phase D — Program Recommendation Engine
+
+Completed:
+- Deterministic program recommendation engine
+- Multi-turn discovery workflow
+- Recommendation confidence scoring
+- Clarification handling
+- Recommendation UI cards
+- Session-aware discovery continuation
+
+Validation:
+- 121 automated tests passing
+- Manual verification completed
+
+Known future improvements:
+- Healthcare umbrella clarification (DPT vs DNP vs DrPH)
+- Additional recommendation explanations
+- Expanded discovery taxonomy
+
+

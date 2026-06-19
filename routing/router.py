@@ -115,6 +115,12 @@ _DISCOVERY_SIGNALS = frozenset({
     "recommend a program",
     "career in",
     "i want to study",
+    # Broad doctoral-intent phrases — catches "I want a [adj] doctoral degree/program in [field]"
+    # and "I want a doctorate in [field]" before Branch 6 (doctoral_no_match) can fire.
+    # Deadline/advisor guards in Branch 1.5 prevent false positives.
+    "doctoral degree in",
+    "doctorate in",
+    "doctoral program in",
 })
 
 

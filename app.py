@@ -2117,6 +2117,12 @@ def _submit_query(query: str) -> None:
         else:
             response = orchestrator.run(query, session_id=sid)
 
+    print("\n========== DEBUG ==========")
+    print("RESPONSE BEHAVIOR:", response.get("behavior"))
+    print("RESPONSE ROUTE:", response.get("route"))
+    print("RESPONSE:", response)
+    print("===========================\n")
+
     _req_elapsed = round((time.perf_counter() - _req_t0) * 1000, 1)
     _had_error   = bool(response.get("error"))
     _route       = response.get("route") or ""

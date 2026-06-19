@@ -148,6 +148,34 @@ def run_tests(verbose: bool = True) -> bool:
         "what are the gpa requirements for programs I'm interested in",
         "eligibility", "eligibility_signal",
     ))
+    # Broad doctoral-intent phrases — must reach discovery before doctoral_no_match (Branch 6)
+    results.append(_test(
+        "doctoral degree in healthcare → discovery (not doctoral_no_match)",
+        "I want a clinical doctoral degree in healthcare.",
+        "discovery", "discovery_signal",
+    ))
+    results.append(_test(
+        "looking for a doctoral program in healthcare → discovery",
+        "I am looking for a doctoral program in healthcare.",
+        "discovery", "discovery_signal",
+    ))
+    results.append(_test(
+        "doctorate in healthcare → discovery (not doctoral_no_match)",
+        "I want a doctorate in healthcare.",
+        "discovery", "discovery_signal",
+    ))
+    # Guards: deadline and advisor signals must still block discovery for doctoral queries
+    results.append(_test(
+        "doctoral deadline query → deadlines (not discovery)",
+        "What are the application deadlines for DNP?",
+        "deadlines", "deadline_signal",
+    ))
+    results.append(_test(
+        "doctoral advisor query → advisor (not discovery)",
+        "Who is the advisor for DNP?",
+        "advisor", "advisor_fuzzy_match",
+        advisor=_advisor_match("Dr. Arellano", "cleddhy.arellano@csulb.edu", "Nursing (D.N.P.)"),
+    ))
 
     # ── Branch 2: deadlines ───────────────────────────────────────────────────
     results.append(_test(
