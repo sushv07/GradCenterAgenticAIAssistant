@@ -172,6 +172,7 @@ _BACKGROUND_MAP: dict[str, str] = {
     "teaching background":         "education",
     "teaching":                    "education",
     "teacher":                     "education",
+    "education":                   "education",    # one-word domain answer from domain_unclear clarification
     "biology":                     "biology",
     "engineering background":      "engineering",
     "mathematics background":      "mathematics",
@@ -248,6 +249,18 @@ _DOCTOR_PHRASES: tuple[str, ...] = (
     "i want to be doctor",
 )
 
+# Phrases that signal the student is explicitly uncertain or exploring options.
+# Detected in extract_signals(); accumulated as stated_uncertainty=True in JourneyState.
+_STATED_UNCERTAINTY_PHRASES: frozenset[str] = frozenset({
+    "not sure",
+    "don't know",
+    "do not know",
+    "exploring",
+    "figure out",
+    "not certain",
+    "unsure",
+})
+
 # Interest tags exclusive to DrPH (not present in DNP or DPT interest_tags).
 # When ALL health interests fall within this set, the program is already
 # distinguishable — health_undifferentiated should not fire.
@@ -301,13 +314,14 @@ _HEALTH_CAREER_TAGS: frozenset[str] = frozenset({
 
 @dataclass
 class _SignalBundle:
-    interests:      list[str]     = field(default_factory=list)
-    career_goals:   list[str]     = field(default_factory=list)
-    academic_bg:    list[str]     = field(default_factory=list)
-    orientation:    Optional[str] = None
-    degree_type:    Optional[str] = None
-    out_of_scope:   Optional[str] = None   # redirect code, or None
-    term_ambiguity: Optional[str] = None   # "doctor" | "leadership" | "education"
+    interests:          list[str]     = field(default_factory=list)
+    career_goals:       list[str]     = field(default_factory=list)
+    academic_bg:        list[str]     = field(default_factory=list)
+    orientation:        Optional[str] = None
+    degree_type:        Optional[str] = None
+    out_of_scope:       Optional[str] = None   # redirect code, or None
+    term_ambiguity:     Optional[str] = None   # "doctor" | "leadership" | "education"
+    stated_uncertainty: bool          = False   # student expressed unsureness / exploration intent
 
 
 # ---------------------------------------------------------------------------
@@ -344,7 +358,9 @@ def extract_signals(query: str) -> _SignalBundle:
     Signal extraction runs before guard evaluation — guards read the completed bundle.
     Phrase-first matching (longest phrase wins ties).
     """
-    q = query.lower()
+    # Normalize curly quotes (smart-quote autocorrect in browsers/OSes) to ASCII
+    # apostrophes so phrase maps like _OUT_OF_SCOPE_MAP match regardless of input source.
+    q = query.lower().replace("’", "'").replace("‘", "'")
     bundle = _SignalBundle()
 
     # Step 1 — Out-of-scope (short-circuit: no further extraction needed)
@@ -352,6 +368,9 @@ def extract_signals(query: str) -> _SignalBundle:
         if phrase in q:
             bundle.out_of_scope = code
             return bundle
+
+    # Step 1.5 — Stated uncertainty (student explicitly signals unsureness or exploration)
+    bundle.stated_uncertainty = any(p in q for p in _STATED_UNCERTAINTY_PHRASES)
 
     # Step 2 — Degree type (explicit; highest specificity signal)
     for phrase, dtype in _DEGREE_PHRASES:
@@ -430,6 +449,9 @@ def _update_state(state: JourneyState, bundle: _SignalBundle) -> JourneyState:
         updated["orientation"] = bundle.orientation
     if bundle.degree_type and not state.get("degree_type"):
         updated["degree_type"] = bundle.degree_type
+    # stated_uncertainty is sticky: once a student signals unsureness, preserve it
+    if bundle.stated_uncertainty and not state.get("stated_uncertainty"):
+        updated["stated_uncertainty"] = True
     return updated
 
 
@@ -463,8 +485,15 @@ def detect_gaps(state: JourneyState, bundle: _SignalBundle) -> list[str]:
         # interest yet → ask a goal-oriented question before surfacing programs
         if orientation == "clinical" or health_bg:
             gaps.append("healthcare_goal_unclear")
+        elif "education" in background:
+            # Education background with no sector signal yet — same escape as
+            # health_bg above, mirrored for the education domain
+            gaps.append("education_undifferentiated")
         elif orientation:
             gaps.append("orientation_only")
+        elif state.get("stated_uncertainty"):
+            # Student explicitly said "not sure" / "exploring" — domain-first question
+            gaps.append("domain_unclear")
         else:
             gaps.append("no_field_signal")
         return gaps  # no further analysis useful without any field signal
@@ -514,6 +543,7 @@ _CLARIFY_GAPS: frozenset[str] = frozenset({
     "term_ambiguity_leadership",
     "term_ambiguity_education",
     "no_field_signal",
+    "domain_unclear",
     "orientation_only",
     "healthcare_goal_unclear",
     "education_undifferentiated",
@@ -568,20 +598,27 @@ _CLARIFICATION_QUESTIONS: dict[str, str] = {
         "Are you looking for a program focused on academic or applied public health "
         "research, or clinical patient care practice?"
     ),
+    "domain_unclear": (
+        "Which area interests you most? CSULB doctoral programs span healthcare and patient "
+        "care, education and leadership, public health and community impact, and research and "
+        "engineering. Which sounds closest to what you're exploring?"
+    ),
     "orientation_only": (
         "What field or area are you most drawn to studying or working in?"
     ),
     "no_field_signal": (
-        "What field or area are you most drawn to studying or working in?"
+        "Tell me a bit about what you're drawn to — are you more interested in healthcare, "
+        "education, public health, or research? Any starting point helps."
     ),
 }
 
-# Priority: Q5 (disambiguation) → Q3 (background) → Q4 (orientation/field) → Q1 (field)
+# Priority: disambiguation → background gate → domain-first → domain-specific → field
 _QUESTION_PRIORITY: list[str] = [
     "term_ambiguity_doctor",
     "term_ambiguity_leadership",
     "term_ambiguity_education",
     "admission_gated",
+    "domain_unclear",              # exploration entry point — ask broad domain before drilling in
     "healthcare_goal_unclear",     # goal-oriented before program-menu questions
     "health_undifferentiated",
     "education_undifferentiated",
@@ -656,7 +693,7 @@ _BEHAVIOR_SUMMARIES: dict[str, str] = {
 }
 
 _OUT_OF_SCOPE_MESSAGES: dict[str, str] = {
-    "masters_level":     "I focus on doctoral programs at CSULB. For master's programs, visit csulb.edu/graduate-studies.",
+    "masters_level":     "My recommendations are strongest for CSULB doctoral programs right now. For master's programs, please review the CSULB Graduate Studies program directory at csulb.edu/graduate-studies. If you're open to doctoral programs, I can help you explore those.",
     "masters_business":  "The MBA is a master's-level program; I focus on doctoral programs. Visit the CSULB College of Business for MBA details.",
     "difficulty_framing":"I match programs based on your career goals and interests, not admission difficulty. Tell me about your goals.",
     "other_institution": "I can only help with CSULB programs. Please contact that institution's graduate admissions directly.",
@@ -789,6 +826,13 @@ def handle_discovery(
     updated["phase"] = "recommending" if result.behavior != "clarify" else "clarifying"
     if result.program_matches:
         updated["recommended_programs"] = [m["program_id"] for m in result.program_matches]
+    if result.behavior == "clarify" and not result.question:
+        # Phase D's gap-override conditions weren't met (e.g. education_undifferentiated
+        # with only a background match, no interest match) and it fell through to a
+        # bare clarify with no question. Use the same domain-specific question Phase C
+        # would have asked, instead of letting _build_response() fall back to the
+        # generic "Can you tell me more about your career goals?" placeholder.
+        result.question = select_question(gaps)
     response = _build_response(query, session_id, result)
     _SESSION_STORE[session_id] = updated
     return response, updated

@@ -705,6 +705,60 @@
       },
       "known_failure": false,
       "notes": "Discovery phrase 'doctorate in' fires Branch 1.5. Previously routed to advisor/doctoral_no_match."
+    },
+    {
+      "id": "rt_040",
+      "query": "I want a master's degree in public health.",
+      "tags": [
+        "route:discovery"
+      ],
+      "expected": {
+        "route": "discovery",
+        "route_reason": "masters_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Master's token fires Branch 1.5 masters_signal check. Previously fell through to advisor/advisor_suggestions (fuzzy match against 'Public Health (DR.P.H.)')."
+    },
+    {
+      "id": "rt_041",
+      "query": "I want a master’s degree in public health.",
+      "tags": [
+        "route:discovery"
+      ],
+      "expected": {
+        "route": "discovery",
+        "route_reason": "masters_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Curly apostrophe (U+2019) variant of rt_040. raw_toks regex strips the apostrophe character regardless of style, so masters_signal fires identically."
+    },
+    {
+      "id": "rt_042",
+      "query": "I'm not sure whether I should do a master's or doctorate.",
+      "tags": [
+        "route:discovery"
+      ],
+      "expected": {
+        "route": "discovery",
+        "route_reason": "masters_signal"
+      },
+      "mock_overrides": {
+        "advisor": "no_match",
+        "program": null,
+        "next_steps": "none"
+      },
+      "known_failure": false,
+      "notes": "Master's token fires Branch 1.5 before Branch 6 doctoral_no_match can hijack on the 'doctorate' token. Previously routed to advisor/doctoral_no_match."
     }
   ]
 }

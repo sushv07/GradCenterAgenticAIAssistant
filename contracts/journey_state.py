@@ -53,3 +53,4 @@ class JourneyState(_JourneyStateRequired, total=False):
     funding_priority:     bool       # True when student has signalled funding is a concern
     modality_pref:        str        # "online" | "in_person" | "hybrid"
     last_question_asked:  str        # last clarification question sent to the student
+    stated_uncertainty:   bool       # True when student explicitly signalled unsureness ("not sure", "exploring")

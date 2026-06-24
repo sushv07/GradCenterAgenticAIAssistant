@@ -121,7 +121,23 @@ _DISCOVERY_SIGNALS = frozenset({
     "doctoral degree in",
     "doctorate in",
     "doctoral program in",
+    # Student Interest Agent — exploration-intent phrases.
+    # Catch students who are uncertain or browsing before they carry a program signal.
+    # Branch 1.5 deadline/advisor/eligibility guards still block false positives.
+    "not sure which",
+    "not sure what",
+    "don't know what",
+    "exploring",
+    "help me figure out",
 })
+
+# Master's-level exploration tokens. Checked via raw_toks (not phrase substring)
+# so "master's", "masters", and curly-apostrophe variants all normalize the same way —
+# the [a-z]+ tokenizer strips the apostrophe character regardless of style.
+# Routes to discovery so handle_discovery() can apply the out_of_scope redirect
+# (masters_level / masters_business) instead of falling through to Branch 5
+# advisor fuzzy-match suggestions or Branch 6 doctoral_no_match.
+_MASTERS_TOKENS: frozenset[str] = frozenset({"master", "masters", "mba"})
 
 
 # ---------------------------------------------------------------------------
@@ -190,7 +206,9 @@ def decide_route(query: str, session_id: str) -> RouteDecision:
         )
 
     # ── Shared pre-computation (token set computed once for all branches) ─────
-    _q               = query.lower()
+    # Curly quotes (smart-quote autocorrect) normalized to ASCII so phrase checks
+    # like "don't know what" match regardless of input source.
+    _q               = query.lower().replace("’", "'").replace("‘", "'")
     is_process_query = any(k in _q for k in _PROCESS_KEYWORDS)
     raw_toks         = set(re.findall(r"[a-z]+", query.lower()))
     has_advisor_signal = bool(raw_toks & _ADVISOR_SIGNALS)
@@ -216,6 +234,24 @@ def decide_route(query: str, session_id: str) -> RouteDecision:
                 is_process_query=is_process_query,
                 has_advisor_signal=has_advisor_signal,
                 matched_signals=matched_disc,
+            )
+
+        # Master's-level exploration — route to discovery before Branch 5/6 can
+        # hijack it as an advisor fuzzy-match or doctoral_no_match. handle_discovery()
+        # applies the out_of_scope redirect for these queries.
+        matched_masters = sorted(raw_toks & _MASTERS_TOKENS)
+        if matched_masters:
+            emit("route.decision", level="INFO",
+                 route="discovery", reason="masters_signal",
+                 is_process_query=is_process_query,
+                 has_advisor_signal=has_advisor_signal,
+                 matched_signals=matched_masters)
+            return RouteDecision(
+                route="discovery", reason="masters_signal",
+                query=query, session_id=session_id,
+                is_process_query=is_process_query,
+                has_advisor_signal=has_advisor_signal,
+                matched_signals=matched_masters,
             )
 
     # ── Branches 2–4: topic-priority routing (BEFORE find_advisor) ───────────

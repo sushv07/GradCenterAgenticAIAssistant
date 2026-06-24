@@ -176,6 +176,34 @@ def run_tests(verbose: bool = True) -> bool:
         "advisor", "advisor_fuzzy_match",
         advisor=_advisor_match("Dr. Arellano", "cleddhy.arellano@csulb.edu", "Nursing (D.N.P.)"),
     ))
+    # Master's-level exploration — must reach discovery before Branch 5 (advisor
+    # fuzzy-match suggestions) or Branch 6 (doctoral_no_match) can hijack it.
+    results.append(_test(
+        "master's degree (ASCII apostrophe) → discovery (not advisor_suggestions)",
+        "I want a master's degree in public health.",
+        "discovery", "masters_signal",
+    ))
+    results.append(_test(
+        "master's degree (curly apostrophe) → discovery (not advisor_suggestions)",
+        "I want a master’s degree in public health.",
+        "discovery", "masters_signal",
+    ))
+    results.append(_test(
+        "master's or doctorate → discovery (not doctoral_no_match)",
+        "I'm not sure whether I should do a master's or doctorate.",
+        "discovery", "masters_signal",
+    ))
+    # Guard: deadline/advisor/eligibility queries must still win over masters tokens
+    results.append(_test(
+        "deadlines query → deadlines (not discovery, even though guard list is master's-adjacent)",
+        "What are the deadlines for DNP?",
+        "deadlines", "deadline_signal",
+    ))
+    results.append(_test(
+        "GPA requirements → eligibility (not discovery)",
+        "What are the GPA requirements?",
+        "eligibility", "eligibility_signal",
+    ))
 
     # ── Branch 2: deadlines ───────────────────────────────────────────────────
     results.append(_test(
