@@ -32,6 +32,7 @@ from agents.recommendation_engine import (
     _load_taxonomy,
     select_recommendation,
 )
+from gradcenter_logging import emit
 
 
 # ---------------------------------------------------------------------------
@@ -320,6 +321,7 @@ class _SignalBundle:
     orientation:        Optional[str] = None
     degree_type:        Optional[str] = None
     out_of_scope:       Optional[str] = None   # redirect code, or None
+    out_of_scope_phrase: Optional[str] = None  # literal matched phrase — observability only
     term_ambiguity:     Optional[str] = None   # "doctor" | "leadership" | "education"
     stated_uncertainty: bool          = False   # student expressed unsureness / exploration intent
 
@@ -367,6 +369,7 @@ def extract_signals(query: str) -> _SignalBundle:
     for phrase, code in _OOS_PHRASES:
         if phrase in q:
             bundle.out_of_scope = code
+            bundle.out_of_scope_phrase = phrase
             return bundle
 
     # Step 1.5 — Stated uncertainty (student explicitly signals unsureness or exploration)
@@ -634,6 +637,16 @@ def select_question(gaps: list[str]) -> str:
     return _CLARIFICATION_QUESTIONS["no_field_signal"]
 
 
+def _clarification_type(gaps: list[str]) -> str:
+    """Return the gap code that determined which question select_question()
+    asked. Mirrors select_question()'s own priority search — observability
+    only, does not change which question is selected."""
+    for gap_code in _QUESTION_PRIORITY:
+        if gap_code in gaps:
+            return gap_code
+    return "no_field_signal"
+
+
 # ---------------------------------------------------------------------------
 # Behavior classification (Phase D hook)
 # ---------------------------------------------------------------------------
@@ -803,6 +816,10 @@ def handle_discovery(
     # Step 3 — Out-of-scope redirect (from current bundle, not accumulated state)
     if bundle.out_of_scope:
         updated["phase"] = "init"  # don't advance phase for out-of-scope queries
+        emit("recommendation.redirect", level="INFO",
+             redirect_reason="out_of_scope",
+             redirect_type=bundle.out_of_scope,
+             triggering_signal=bundle.out_of_scope_phrase or "")
         response = _build_response(
             query, session_id, "redirect", out_of_scope_code=bundle.out_of_scope
         )
@@ -817,6 +834,10 @@ def handle_discovery(
         question = select_question(gaps)
         updated["phase"] = "clarifying"
         updated["last_question_asked"] = question
+        emit("recommendation.clarify", level="INFO",
+             gaps_considered=gaps,
+             clarification_question=question,
+             clarification_type=_clarification_type(gaps))
         response = _build_response(query, session_id, "clarify", question=question)
         _SESSION_STORE[session_id] = updated
         return response, updated
@@ -833,6 +854,16 @@ def handle_discovery(
         # would have asked, instead of letting _build_response() fall back to the
         # generic "Can you tell me more about your career goals?" placeholder.
         result.question = select_question(gaps)
+    if result.behavior == "clarify":
+        # Phase D can also reach a clarify outcome (gap-override conditions not met) —
+        # this event is the user-facing-question layer; recommendation.decision
+        # (emitted inside select_recommendation()) is the scoring-layer explanation
+        # for why no program was confident enough. Deliberately not duplicating
+        # score/override details here.
+        emit("recommendation.clarify", level="INFO",
+             gaps_considered=gaps,
+             clarification_question=result.question or "",
+             clarification_type=_clarification_type(gaps))
     response = _build_response(query, session_id, result)
     _SESSION_STORE[session_id] = updated
     return response, updated

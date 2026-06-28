@@ -45,6 +45,7 @@ from typing import Optional
 
 from contracts.journey_state import JourneyState
 from contracts.response_types import ProgramMatch
+from gradcenter_logging import emit
 
 
 # ---------------------------------------------------------------------------
@@ -352,6 +353,103 @@ def _clarify_result(question: Optional[str] = None) -> _RecommendationResult:
     )
 
 
+# ---------------------------------------------------------------------------
+# Observability (Phase 2F) — read-only: explains decisions, never influences
+# them. Every helper below only inspects ProgramScore/state/taxonomy data
+# that select_recommendation() already computed; none of them feed back
+# into scoring, confidence, or behavior selection.
+# ---------------------------------------------------------------------------
+
+def _emit_score_events(all_scores: list[ProgramScore]) -> None:
+    """recommendation.score — one event per program evaluated this call,
+    explaining exactly how each program's raw_score was produced."""
+    for s in all_scores:
+        fields = dict(
+            program_id=s.program_id,
+            raw_score=round(s.raw_score, 4),
+            confidence=s.confidence,
+            degree_match=s.degree_type_match,
+            matched_career_unique=s.matched_career_unique,
+            matched_career_shared=s.matched_career_shared,
+            matched_interest=s.matched_interest,
+            matched_background=s.matched_background,
+            score_basis=s.score_basis,
+        )
+        if s.orientation_match is not None:
+            fields["orientation_match"] = s.orientation_match
+        emit("recommendation.score", level="INFO", **fields)
+
+
+def _classify_rejection(score: ProgramScore, program: dict, state: JourneyState) -> str:
+    """Deterministic reason a non-selected program lost out, derived only
+    from data select_recommendation() already has on hand. Checked in order
+    of most-specific to least-specific cause."""
+    if program.get("coverage_status") not in _COVERED_STATUSES:
+        return "coverage_gate"
+    if score.career_gap_applied:
+        return "career_gap"
+    state_careers = set(state.get("career_goal_signals", []))
+    prog_careers  = set(program.get("career_goal_tags") or [])
+    if state_careers and prog_careers and not (score.matched_career_unique or score.matched_career_shared):
+        return "career_mismatch"
+    if score.orientation_match is False:
+        return "orientation_mismatch"
+    if score.raw_score <= 0.0:
+        return "no_signal_match"
+    if score.raw_score < 0.20:
+        return "below_threshold"
+    return "lower_score"
+
+
+def _emit_rejection_events(
+    all_scores: list[ProgramScore],
+    taxonomy: list[dict],
+    state: JourneyState,
+    selected_ids: set[str],
+) -> None:
+    """recommendation.rejected — one event per non-selected program this
+    call, explaining why it lost (or, for a clarify outcome, why none of
+    them were confident enough to recommend)."""
+    by_id = {p["program_id"]: p for p in taxonomy}
+    top_score = all_scores[0].raw_score if all_scores else 0.0
+    for s in all_scores:
+        if s.program_id in selected_ids:
+            continue
+        reason = _classify_rejection(s, by_id.get(s.program_id, {}), state)
+        emit(
+            "recommendation.rejected", level="INFO",
+            program_id=s.program_id, reason=reason,
+            raw_score=round(s.raw_score, 4), score_gap=round(top_score - s.raw_score, 4),
+        )
+
+
+def _emit_decision_event(
+    behavior: str,
+    confidence: str,
+    recommended_programs: list[str],
+    gaps: list[str],
+    all_scores: Optional[list[ProgramScore]] = None,
+    override: Optional[str] = None,
+) -> None:
+    """recommendation.decision — exactly one event per select_recommendation()
+    call, summarizing the final outcome and the override path (if any) that
+    produced it."""
+    fields = dict(
+        behavior=behavior,
+        confidence=confidence,
+        recommended_programs=recommended_programs,
+        gaps_considered=list(gaps),
+    )
+    if override:
+        fields["override_used"] = override
+    if all_scores:
+        fields["top_score"] = round(all_scores[0].raw_score, 4)
+        if len(all_scores) > 1:
+            fields["second_score"]  = round(all_scores[1].raw_score, 4)
+            fields["score_margin"]  = round(all_scores[0].raw_score - all_scores[1].raw_score, 4)
+    emit("recommendation.decision", level="INFO", **fields)
+
+
 def select_recommendation(
     state: JourneyState,
     gaps: list[str],
@@ -369,6 +467,7 @@ def select_recommendation(
 
     # ── Guard: non-overridable gaps ────────────────────────────────────────
     if gap_set & _NON_OVERRIDABLE_GAPS:
+        _emit_decision_event("clarify", "none", [], gaps, override="non_overridable_gap")
         return _clarify_result()
 
     # ── Score all programs ─────────────────────────────────────────────────
@@ -377,6 +476,8 @@ def select_recommendation(
     # Assign confidence to every scored program
     for s in all_scores:
         s.confidence = _assign_confidence(s)
+
+    _emit_score_events(all_scores)
 
     # ── Phase C override: orientation_only + clinical ──────────────────────
     # Must run BEFORE the general overridable-gap handling because it has
@@ -404,13 +505,24 @@ def select_recommendation(
             ):
                 pair = sorted(clinical_medium, key=lambda s: s.raw_score, reverse=True)
                 matches = [_to_program_match(s) for s in pair]
+                recommended = [m["program_id"] for m in matches]
+                _emit_rejection_events(all_scores, taxonomy, state, set(recommended))
+                _emit_decision_event("multi_recommend", "medium", recommended, gaps,
+                                      all_scores=all_scores, override="orientation_only_clinical_pair")
                 return _RecommendationResult(
                     behavior="multi_recommend",
                     confidence="medium",
                     program_matches=matches,
-                    recommended_programs=[m["program_id"] for m in matches],
+                    recommended_programs=recommended,
                 )
+            _emit_rejection_events(all_scores, taxonomy, state, set())
+            _emit_decision_event("clarify", "none", [], gaps, all_scores=all_scores,
+                                  override="orientation_only_clinical_incomplete")
+            return _clarify_result()
         # orientation_only with non-clinical orientation is non-overridable
+        _emit_rejection_events(all_scores, taxonomy, state, set())
+        _emit_decision_event("clarify", "none", [], gaps, all_scores=all_scores,
+                              override="orientation_only_non_clinical")
         return _clarify_result()
 
     # ── Phase C override: education_undifferentiated ───────────────────────
@@ -438,13 +550,20 @@ def select_recommendation(
                 for s in pair:
                     s.confidence = "medium"
                 matches = [_to_program_match(s) for s in pair]
+                recommended = [m["program_id"] for m in matches]
+                _emit_rejection_events(all_scores, taxonomy, state, set(recommended))
+                _emit_decision_event("multi_recommend", "medium", recommended, gaps,
+                                      all_scores=all_scores, override="education_undifferentiated_pair")
                 return _RecommendationResult(
                     behavior="multi_recommend",
                     confidence="medium",
                     program_matches=matches,
-                    recommended_programs=[m["program_id"] for m in matches],
+                    recommended_programs=recommended,
                 )
         # Override conditions not met — fall through to clarify
+        _emit_rejection_events(all_scores, taxonomy, state, set())
+        _emit_decision_event("clarify", "none", [], gaps, all_scores=all_scores,
+                              override="education_undifferentiated_no_match")
         return _clarify_result()
 
     # ── Phase C override: health_undifferentiated ──────────────────────────
@@ -457,13 +576,20 @@ def select_recommendation(
             pair = sorted(health_medium, key=lambda s: s.raw_score, reverse=True)
             conf = _multi_confidence(pair[0], pair[1], state, all_scores)
             matches = [_to_program_match(s) for s in pair]
+            recommended = [m["program_id"] for m in matches]
+            _emit_rejection_events(all_scores, taxonomy, state, set(recommended))
+            _emit_decision_event("multi_recommend", conf, recommended, gaps,
+                                  all_scores=all_scores, override="health_undifferentiated_pair")
             return _RecommendationResult(
                 behavior="multi_recommend",
                 confidence=conf,
                 program_matches=matches,
-                recommended_programs=[m["program_id"] for m in matches],
+                recommended_programs=recommended,
             )
         # Override conditions not met — keep clarify
+        _emit_rejection_events(all_scores, taxonomy, state, set())
+        _emit_decision_event("clarify", "none", [], gaps, all_scores=all_scores,
+                              override="health_undifferentiated_no_match")
         return _clarify_result()
 
     # ── No gaps (or all gaps are overridable and handled above) ───────────
@@ -479,6 +605,9 @@ def select_recommendation(
         # ── Single clear program with HIGH confidence ──────────────────────
         if top_overall.confidence == "high" and prog_id != "phd-engineering-computational-math":
             match = _to_program_match(top_overall)
+            _emit_rejection_events(all_scores, taxonomy, state, {prog_id})
+            _emit_decision_event("recommend", "high", [prog_id], gaps,
+                                  all_scores=all_scores, override="high_single")
             return _RecommendationResult(
                 behavior="recommend",
                 confidence="high",
@@ -489,6 +618,9 @@ def select_recommendation(
         # ── Engineering PhD special case ───────────────────────────────────
         if prog_id == "phd-engineering-computational-math" and top_overall.raw_score > 0:
             match = _to_program_match(top_overall)
+            _emit_rejection_events(all_scores, taxonomy, state, {prog_id})
+            _emit_decision_event("partial_match_with_caveat", top_overall.confidence, [prog_id], gaps,
+                                  all_scores=all_scores, override="engineering_caveat")
             return _RecommendationResult(
                 behavior="partial_match_with_caveat",
                 confidence=top_overall.confidence,
@@ -504,16 +636,23 @@ def select_recommendation(
             if spread <= 0.20:
                 conf = _multi_confidence(top2[0], top2[1], state, all_scores)
                 matches = [_to_program_match(s) for s in top2]
+                recommended = [m["program_id"] for m in matches]
+                _emit_rejection_events(all_scores, taxonomy, state, set(recommended))
+                _emit_decision_event("multi_recommend", conf, recommended, gaps,
+                                      all_scores=all_scores, override="medium_spread_pair")
                 return _RecommendationResult(
                     behavior="multi_recommend",
                     confidence=conf,
                     program_matches=matches,
-                    recommended_programs=[m["program_id"] for m in matches],
+                    recommended_programs=recommended,
                 )
 
         # ── Single MEDIUM program ──────────────────────────────────────────
         if top_overall.confidence == "medium":
             match = _to_program_match(top_overall)
+            _emit_rejection_events(all_scores, taxonomy, state, {prog_id})
+            _emit_decision_event("recommend", "medium", [prog_id], gaps,
+                                  all_scores=all_scores, override="medium_single")
             return _RecommendationResult(
                 behavior="recommend",
                 confidence="medium",
@@ -524,6 +663,9 @@ def select_recommendation(
         # ── Low confidence: partial_match_with_caveat ──────────────────────
         if top_overall.confidence == "low":
             match = _to_program_match(top_overall)
+            _emit_rejection_events(all_scores, taxonomy, state, {prog_id})
+            _emit_decision_event("partial_match_with_caveat", "low", [prog_id], gaps,
+                                  all_scores=all_scores, override="low_partial")
             return _RecommendationResult(
                 behavior="partial_match_with_caveat",
                 confidence="low",
@@ -532,4 +674,7 @@ def select_recommendation(
             )
 
     # No eligible programs at all → clarify
+    _emit_rejection_events(all_scores, taxonomy, state, set())
+    _emit_decision_event("clarify", "none", [], gaps, all_scores=all_scores,
+                          override="no_eligible_program")
     return _clarify_result()
