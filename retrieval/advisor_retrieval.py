@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 from rapidfuzz import fuzz
 
 from gradcenter_logging import emit
+from config.settings import ADVISOR_STRONG_MATCH_THRESHOLD
 
 DATA_FILE = Path(__file__).parent.parent / "advisors_extracted.json"
 
@@ -273,7 +274,7 @@ def format_advisor_result(result_dict: dict) -> str:
     suggestions = result_dict.get("suggestions", [])
 
     if match:
-        if confidence >= 90:
+        if confidence >= ADVISOR_STRONG_MATCH_THRESHOLD:
             label = "Strong match"
         else:
             label = "Good match"

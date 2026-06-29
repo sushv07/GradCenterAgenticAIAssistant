@@ -45,12 +45,12 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from pathlib import Path
 from typing import Optional
 
 from contracts.journey_state import JourneyState
 from contracts.response_types import ProgramMatch
 from gradcenter_logging import emit
+from config.settings import PROGRAM_TAXONOMY_PATH
 
 
 # ---------------------------------------------------------------------------
@@ -63,8 +63,7 @@ _TAXONOMY_CACHE: Optional[list[dict]] = None
 def _load_taxonomy() -> list[dict]:
     global _TAXONOMY_CACHE
     if _TAXONOMY_CACHE is None:
-        path = Path(__file__).parent.parent / "data" / "program_taxonomy.json"
-        with path.open() as f:
+        with PROGRAM_TAXONOMY_PATH.open() as f:
             data = json.load(f)
         _TAXONOMY_CACHE = data["programs"]
     return _TAXONOMY_CACHE

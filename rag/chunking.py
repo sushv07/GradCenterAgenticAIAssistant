@@ -50,17 +50,15 @@ import json
 
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
+from config.settings import CHUNK_SIZE, CHUNK_OVERLAP
 
 # ---------------------------------------------------------------------------
 # Chunking parameters
 # ---------------------------------------------------------------------------
-
+# CHUNK_SIZE / CHUNK_OVERLAP now live in config/settings.py (Phase 5A).
 # chunk_size: target character count per chunk (not tokens — simpler, predictable)
-CHUNK_SIZE    = 500
-
 # chunk_overlap: characters shared between adjacent chunks to preserve context
 # at boundaries.  ~15% of CHUNK_SIZE is a good default for prose content.
-CHUNK_OVERLAP = 75
 
 # Separator hierarchy: the splitter tries each in order, falling back to the next.
 # Order: paragraph → newline → sentence end → clause → word → character (last resort)

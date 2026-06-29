@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).parent))
 import streamlit as st
 from backend.entrypoint import handle_user_query
 from gradcenter_logging import emit, set_request_id, new_request_id
+from config.settings import DEFAULT_SESSION_ID
 from tools.program_interest_tool import (
     generate_program_specific_response,
     generate_general_interest_response,
@@ -1107,7 +1108,7 @@ button[kind="header"] {
 
 def _init_state() -> None:
     defaults: dict = {
-        "session_id":    "default",
+        "session_id":    DEFAULT_SESSION_ID,
         "messages":      [],
         "last_response": None,
         "nav_active":    "Ask Assistant",

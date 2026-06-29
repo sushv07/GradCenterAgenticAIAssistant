@@ -42,38 +42,31 @@ from __future__ import annotations
 
 import shutil
 import time
-from pathlib import Path
 from typing import Optional
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 
 from gradcenter_logging import emit
+from config.settings import (
+    CHROMA_DIR,
+    CHROMA_COLLECTION_NAME as COLLECTION_NAME,
+    EMBEDDING_MODEL,
+    EMBEDDING_DEVICE,
+    EMBEDDING_NORMALIZE,
+    CHROMA_STORE_TTL_SECONDS as STORE_TTL,
+)
 
 # ---------------------------------------------------------------------------
 # Paths and configuration
 # ---------------------------------------------------------------------------
-
-# Persistent ChromaDB directory — relative to the project root.
-# Created automatically on first build; add to .gitignore (can be large).
-CHROMA_DIR = Path(__file__).parent.parent / "chroma_db"
+# CHROMA_DIR, COLLECTION_NAME, EMBEDDING_MODEL, STORE_TTL now live in
+# config/settings.py (Phase 5A) — imported above under their original local
+# names so nothing else in this file (or any future caller) needs to change.
 
 # Timestamp file written after each successful build.
 # Its mtime (OS modification time) is used for TTL checks.
 _TIMESTAMP_FILE = CHROMA_DIR / ".last_built"
-
-# ChromaDB collection name.  All 4 source pages land in one collection.
-# page_type metadata enables per-source filtered queries.
-COLLECTION_NAME = "csulb_grad_center"
-
-# Embedding model — must match the model used during build when loading.
-# Changing this value requires a forced rebuild (invalidate_store()).
-EMBEDDING_MODEL = "all-MiniLM-L6-v2"
-
-# How long (seconds) before the store is considered stale and rebuilt.
-# 24 hours: CSULB pages change infrequently; daily rebuilds are sufficient.
-# Compare: faq_rag_module.py uses 3600s (1h) for its in-memory store.
-STORE_TTL = 86_400  # 24 hours
 
 # ---------------------------------------------------------------------------
 # Module-level singletons
@@ -108,8 +101,8 @@ def _get_embeddings() -> HuggingFaceEmbeddings:
         print(f"[store] Loading embedding model: {EMBEDDING_MODEL}  (one-time ~2–5s)")
         _EMBEDDINGS = HuggingFaceEmbeddings(
             model_name=EMBEDDING_MODEL,
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True},
+            model_kwargs={"device": EMBEDDING_DEVICE},
+            encode_kwargs={"normalize_embeddings": EMBEDDING_NORMALIZE},
         )
     return _EMBEDDINGS
 

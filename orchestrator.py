@@ -28,6 +28,7 @@ from agents.journey_agent import handle_discovery
 from routing.router import Route, RouteDecision, decide_route, detect_route
 from contracts.response_types import OrchestratorResponse, TopicResponse
 from responses.builder import build_response
+from config.settings import DEFAULT_SESSION_ID, ADVISOR_STRONG_MATCH_THRESHOLD
 
 
 
@@ -433,7 +434,7 @@ def _build_advisor_response(decision: RouteDecision) -> dict:
         route="advisor",
         session_id=decision.session_id,
         summary=(
-            f"I found a {'Strong' if advisor_result.get('confidence', 0) >= 90 else 'Good'} "
+            f"I found a {'Strong' if advisor_result.get('confidence', 0) >= ADVISOR_STRONG_MATCH_THRESHOLD else 'Good'} "
             "match for your query."
         ) if match else "I couldn't find an exact match.",
         primary_action=primary,
@@ -542,7 +543,7 @@ def _dispatch(decision: RouteDecision) -> OrchestratorResponse:
 # Public API
 # ---------------------------------------------------------------------------
 
-def run(query: str, session_id: str = "default") -> OrchestratorResponse:
+def run(query: str, session_id: str = DEFAULT_SESSION_ID) -> OrchestratorResponse:
     """Route the query, run the agent, and return a user-friendly response."""
     query    = (query or "").strip()
     decision = decide_route(query, session_id)
@@ -667,7 +668,7 @@ if __name__ == "__main__":
     args   = sys.argv[1:]
     pretty = "--pretty" in args
     args   = [a for a in args if a != "--pretty"]
-    session_id, args = _extract_flag(args, "--session", "default")
+    session_id, args = _extract_flag(args, "--session", DEFAULT_SESSION_ID)
 
     if args:
         response = run(" ".join(args), session_id=session_id)

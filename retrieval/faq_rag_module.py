@@ -33,6 +33,10 @@ from langchain_core.documents import Document
 
 from gradcenter_logging import emit
 from rag.store import get_embeddings as _get_embeddings
+from config.settings import (
+    FAQ_VECTORSTORE_TTL_SECONDS as _VECTORSTORE_TTL,
+    RETRIEVAL_MIN_RELEVANCE as _MIN_RELEVANCE,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -45,12 +49,10 @@ _BASE_URL = "https://www.csulb.edu"
 # Vector store cache (rebuilt every hour so page changes are picked up)
 _VECTORSTORE: Optional[Chroma] = None
 _VECTORSTORE_BUILT_AT: float = 0.0
-_VECTORSTORE_TTL = 3600          # seconds
-
-# Relevance score threshold — similarity_search_with_relevance_scores
-# returns scores in [0, 1] where 1.0 = perfect match.
-# Queries that score below this are treated as "not covered by FAQ".
-_MIN_RELEVANCE = 0.30
+# _VECTORSTORE_TTL / _MIN_RELEVANCE now live in config/settings.py (Phase 5A),
+# imported above under their original local names. Relevance score threshold —
+# similarity_search_with_relevance_scores returns scores in [0, 1] where
+# 1.0 = perfect match; queries scoring below this are "not covered by FAQ".
 
 # Phase 4C: embeddings model is no longer instantiated here. It's loaded once
 # by rag.store and shared via rag.store.get_embeddings() — same model name and

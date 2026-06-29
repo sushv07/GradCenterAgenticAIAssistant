@@ -2067,4 +2067,132 @@ The next major milestones include:
 - Production infrastructure
 - LLM integration and evaluation improvements
 
+# Phase 5A — Production Engineering: Configuration Management
+
+## Summary
+
+The first Level 3 milestone. Moved deployment-sensitive, hardcoded configuration values out of `rag/store.py`, `rag/retriever.py`, `rag/chunking.py`, `retrieval/faq_rag_module.py`, `agents/recommendation_engine.py`, `orchestrator.py`, `backend/entrypoint.py`, `app.py`, and `retrieval/advisor_retrieval.py` into one new module, `config/settings.py`.
+
+---
+
+## What Moved
+
+- Embedding model name, device, normalization (`rag/store.py`)
+- Chroma persistence path, collection name, store TTL (`rag/store.py`)
+- The FAQ store's separate, smaller TTL (`retrieval/faq_rag_module.py`) — kept distinct from the main Chroma TTL, not merged
+- Retrieval min-relevance threshold and default top_k (`rag/retriever.py`) — this single threshold was already, by explicit prior design, shared in spirit between `rag/retriever.py` and `faq_rag_module.py`; now it's shared in fact
+- Chunk size and chunk overlap (`rag/chunking.py`)
+- The program taxonomy file path (`agents/recommendation_engine.py`)
+- The default session_id string, previously the literal `"default"` independently hardcoded in `orchestrator.py`, `backend/entrypoint.py`, and `app.py`
+- The advisor "strong match" confidence threshold (90), previously hardcoded identically in both `orchestrator.py`'s live advisor response and `retrieval/advisor_retrieval.py`'s CLI formatter
+
+## What Stayed in Code, and Why
+
+- **Recommendation weights** (`agents/recommendation_engine.py`) — a tightly-coupled algorithm tuning surface with its own dedicated sensitivity-analysis tooling (`evals/weight_validation.py`, `evals/experimental_scoring.py`). Moving them to generic config would duplicate, not replace, that tooling.
+- **Routing signal phrases and journey_agent's interest/career maps** — domain vocabulary, not deployment config. Belongs next to the matching logic that reads it.
+- **The 3-turn discovery stopping rule** — a business rule easier to verify correct next to `should_clarify()`'s own docstring than as a disconnected number in a settings file.
+- **Tool-specific `min_score`/`k` defaults** in `deadlines_tool.py` / `eligibility_tool.py` / `rag_tool.py` — confirmed during the audit that these are *not* the same duplicated value: `deadlines_tool.py` deliberately uses `0.25` while the others use `0.30`. Centralizing them risked silently homogenizing intentionally different tuned values.
+- **`gradcenter_logging.py`'s log path** — its own module docstring states "Standard library only. No project imports." as a deliberate isolation guarantee. Importing `config.settings` into it would violate that invariant for no real gain, since the log path isn't actually duplicated anywhere else.
+
+## Design
+
+`config/settings.py` — plain Python module-level constants, matching the convention already used everywhere else in this codebase (`EMBEDDING_MODEL`, `CHUNK_SIZE`, etc. were already UPPER_CASE constants before this phase). No Pydantic, no YAML, no environment-variable overrides: this is a single-process app with one deployment target today, so there's no multi-environment selection problem to solve yet, and env-var overrides would start to be "environment-specific deployment logic" — explicitly out of scope for this phase.
+
+## Validation
+
+- 241/241 tests passed (227 prior + 14 new config tests)
+- Router tests: 44/44 unchanged
+- Golden route tests: 42/42 unchanged
+- Recommendation evaluation unchanged (Recommendation 56%, Known Gap 8%, Unexpected Failure 0%)
+- Weight validation sensitivity percentages unchanged
+- Direct before/after diff of `rag.retriever.retrieve()` output for 3 real queries: identical
+- Two pre-existing, unrelated failures (`test_journey_agent.py`'s `clarify_no_signals: Q1`, `run_evals.py`'s `answer_001` backend mismatch) reproduced identically on the pre-Phase-5A code — confirmed unrelated.
+
+## Final Configuration Architecture
+
+```text
+config/settings.py
+        │
+        ├── rag/store.py             (embedding model/device/normalize, Chroma path/collection/TTL)
+        ├── rag/retriever.py         (min_relevance, default top_k)
+        ├── rag/chunking.py          (chunk size, chunk overlap)
+        ├── retrieval/faq_rag_module.py   (FAQ store TTL, min_relevance)
+        ├── retrieval/advisor_retrieval.py (advisor strong-match threshold)
+        ├── agents/recommendation_engine.py (taxonomy path)
+        ├── orchestrator.py          (default session_id, advisor strong-match threshold)
+        ├── backend/entrypoint.py    (default session_id)
+        └── app.py                   (default session_id)
+
+gradcenter_logging.py — deliberately NOT a consumer (documented isolation constraint)
+```
+
+## Production Engineering Status
+
+**Level 3 — Production Engineering: Configuration Management is complete.**
+
+Remaining Level 3 milestones:
+
+- Dependency injection
+- FastAPI API layer
+- Health checks
+- Docker deployment
+- CI/CD pipeline
+- Production infrastructure
+
 The architectural foundation is now considered stable, allowing future work to focus on deployment, scalability, and production readiness rather than backend reorganization.
+
+## Phase 5A — Configuration Management (Completed)
+
+### Objective
+Centralize infrastructure and deployment configuration while keeping business rules and recommendation logic inside their owning modules.
+
+### Changes Completed
+
+- Introduced a dedicated `config/` package with a shared `settings.py` module.
+- Replaced duplicated infrastructure constants throughout the backend with centralized configuration values.
+- Configuration now owns:
+  - embedding model
+  - embedding device
+  - embedding normalization
+  - Chroma database path
+  - collection name
+  - vector store TTL
+  - retrieval defaults (`top_k`, `min_relevance`)
+  - chunking parameters
+  - taxonomy file path
+  - default session identifier
+  - advisor confidence threshold
+
+### Design Decisions
+
+The following intentionally remain inside their owning modules rather than configuration:
+
+- recommendation weights
+- confidence thresholds
+- routing phrase dictionaries
+- journey signal maps
+- business decision rules
+- tool-specific retrieval tuning
+- logging implementation details
+
+These represent application behavior rather than deployment configuration and are easier to understand, validate, and evolve when colocated with the algorithms that use them.
+
+### Result
+
+The backend now has a single source of truth for infrastructure configuration while preserving locality of business logic.
+
+This improves:
+
+- deployment readiness
+- future environment-specific configuration
+- maintainability
+- consistency across retrieval components
+
+without changing application behavior.
+
+### Remaining Level 3 Work
+
+- Dependency Injection
+- FastAPI service layer
+- API contracts
+- Health endpoints

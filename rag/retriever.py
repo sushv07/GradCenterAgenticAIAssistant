@@ -46,14 +46,17 @@ from typing import Optional
 
 from rag.store import get_or_build_store
 from gradcenter_logging import emit
+from config.settings import (
+    RETRIEVAL_MIN_RELEVANCE as MIN_RELEVANCE,
+    RETRIEVAL_DEFAULT_TOP_K as _DEFAULT_TOP_K,
+)
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-
-# Minimum cosine similarity to include in results.
-# Queries with no chunks meeting this threshold are considered out-of-scope.
-MIN_RELEVANCE = 0.30
+# MIN_RELEVANCE now lives in config/settings.py (Phase 5A) — imported above
+# under its original local name. Minimum cosine similarity to include in
+# results; queries with no chunks meeting this threshold are out-of-scope.
 
 # Valid page_type values — mirrors PAGE_SOURCES + PROGRAM_SOURCES in ingestion.py.
 PAGE_TYPES = frozenset({
@@ -67,7 +70,7 @@ PAGE_TYPES = frozenset({
 
 def retrieve(
     query:        str,
-    k:            int   = 3,
+    k:            int   = _DEFAULT_TOP_K,
     min_score:    float = MIN_RELEVANCE,
     page_type:    Optional[str] = None,
     program_name: Optional[str] = None,

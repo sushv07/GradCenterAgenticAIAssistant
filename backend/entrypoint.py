@@ -50,6 +50,7 @@ from agents.journey_agent import handle_discovery, init_journey_state
 from contracts.response_types import OrchestratorResponse
 from state.context_manager import get_context
 from context.trace_context import TraceContext, create_trace_context, record_route
+from config.settings import DEFAULT_SESSION_ID
 
 
 def _is_discovery_active(session_id: str) -> bool:
@@ -59,7 +60,7 @@ def _is_discovery_active(session_id: str) -> bool:
     return context.journey_state.get("phase") == "clarifying"
 
 
-def handle_user_query(query: str, session_id: str = "default") -> OrchestratorResponse:
+def handle_user_query(query: str, session_id: str = DEFAULT_SESSION_ID) -> OrchestratorResponse:
     """
     The single backend entry point for all incoming user requests.
 
