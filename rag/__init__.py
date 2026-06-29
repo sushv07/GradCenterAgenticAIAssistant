@@ -21,7 +21,7 @@ Vector store: ChromaDB persisted under ./chroma_db/.
 """
 
 from rag.retriever import retrieve, retrieve_multi
-from rag.store import get_or_build_store, invalidate_store
+from rag.store import get_or_build_store, invalidate_store, get_embeddings
 from rag.ingestion import PAGE_SOURCES, PROGRAM_SOURCES, ALL_SOURCES, ingest_pages
 from rag.chunking import chunk_documents
 from rag.discovery import (
@@ -37,6 +37,7 @@ __all__ = [
     "retrieve_multi",
     "get_or_build_store",
     "invalidate_store",
+    "get_embeddings",
     "PAGE_SOURCES",
     "PROGRAM_SOURCES",
     "ALL_SOURCES",

@@ -1756,3 +1756,50 @@ This phase reinforced an important production engineering principle:
 Not every evaluation mismatch should be fixed with code changes.
 
 Some behaviors intentionally favor conservative recommendations, transparent uncertainty, or data correctness over maximizing evaluation metrics. The remaining known limitations have been explicitly documented and assigned to future roadmap items rather than addressed through unnecessary architectural changes.
+
+### Phase 4B — Retrieval Abstraction
+
+Introduced a backend retrieval service abstraction to reduce direct coupling between callers and concrete retrieval implementations.
+
+#### Improvements
+
+- Added a shared `Retriever` interface for chunk-level retrieval.
+- Added a backend-agnostic `RetrievedChunk` response contract.
+- Wrapped the existing Chroma-backed `rag/` retrieval path behind the new service.
+- Migrated one low-risk call site (`rag_tool`) to use the retrieval service.
+- Preserved existing retrieval behavior and output shape.
+
+#### Validation
+
+- Added unit tests for the retrieval abstraction.
+- Verified byte-for-byte identical results between the old direct retrieval path and the new service-backed path.
+- Full regression suite completed successfully with no routing, recommendation, or retrieval behavior changes.
+
+#### Design Principle
+
+The backend should depend on retrieval contracts rather than concrete vector-store implementations. This allows future migration to ChromaDB, Pinecone, pgvector, or Azure AI Search without changing agents, tools, or orchestrator logic.
+
+### Phase 4C — Retrieval Backend Consolidation Review
+
+Reviewed the duplicate vector retrieval implementations used by the main RAG backend and FAQ guidance backend.
+
+The review found that the FAQ retrieval path is not a simple duplicate of the generic RAG backend. The FAQ module preserves question-answer boundaries, entry-specific links, and clean markdown formatting, while the generic RAG backend uses page-level chunking.
+
+Because replacing the FAQ backend with generic page-level retrieval would introduce visible response regressions, full consolidation was intentionally deferred.
+
+#### Improvement
+
+- Preserved FAQ-specific retrieval and formatting behavior.
+- Shared the embedding model instance between the generic RAG backend and FAQ retrieval backend.
+- Avoided duplicate model initialization while preserving user-facing behavior.
+
+#### Validation
+
+- Confirmed both retrieval paths now share the same embedding model instance.
+- Full regression suite completed successfully.
+- Recommendation evaluation and routing results remained unchanged.
+
+#### Design Principle
+
+Backend consolidation should not come at the cost of user-facing correctness. When two retrieval paths serve different document structures, they may remain separate while still sharing safe infrastructure such as embedding configuration and model instances.
+

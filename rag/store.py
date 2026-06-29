@@ -114,6 +114,17 @@ def _get_embeddings() -> HuggingFaceEmbeddings:
     return _EMBEDDINGS
 
 
+def get_embeddings() -> HuggingFaceEmbeddings:
+    """
+    Public accessor for the shared embeddings model.
+
+    Phase 4C: faq_rag_module.py uses this instead of instantiating its own
+    HuggingFaceEmbeddings — same model name and kwargs, so this only avoids
+    loading the model twice; it does not change embedding output.
+    """
+    return _get_embeddings()
+
+
 # ---------------------------------------------------------------------------
 # TTL helpers
 # ---------------------------------------------------------------------------

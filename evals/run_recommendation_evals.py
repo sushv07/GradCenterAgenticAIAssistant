@@ -42,6 +42,10 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from agents.journey_agent import handle_discovery, _SESSION_STORE  # noqa: E402
+from evals.metrics_recommendation import compute_metrics, format_console_summary  # noqa: E402
+from evals.error_classification import (  # noqa: E402
+    classify, build_error_summary, format_error_summary_console,
+)
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 _EVALS_DIR       = Path(__file__).parent
@@ -122,18 +126,24 @@ def _run_case(case: dict) -> dict:
     run_result = _run_case_turns(case)
 
     if run_result["error"]:
+        diffs = [{
+            "field": "execution", "expected": "no exception", "actual": run_result["error"],
+        }]
+        error_category, error_reason = classify(
+            case["known_gap"], expected, None, diffs, run_result["error"],
+        )
         return {
-            "case_id":     case["case_id"],
-            "category":    case.get("category"),
-            "sub_category": case.get("sub_category"),
-            "status":      "FAIL",
-            "known_gap":   case["known_gap"],
-            "expected":    expected,
-            "actual":      None,
-            "differences": [{
-                "field": "execution", "expected": "no exception", "actual": run_result["error"],
-            }],
-            "error": run_result["error"],
+            "case_id":        case["case_id"],
+            "category":       case.get("category"),
+            "sub_category":   case.get("sub_category"),
+            "status":         "FAIL",
+            "error_category": error_category,
+            "error_reason":   error_reason,
+            "known_gap":      case["known_gap"],
+            "expected":       expected,
+            "actual":         None,
+            "differences":    diffs,
+            "error":          run_result["error"],
         }
 
     actual = _actual_snapshot(run_result["response"])
@@ -146,16 +156,20 @@ def _run_case(case: dict) -> dict:
     else:
         status = "PASS"
 
+    error_category, error_reason = classify(case["known_gap"], expected, actual, diffs, None)
+
     return {
-        "case_id":      case["case_id"],
-        "category":     case.get("category"),
-        "sub_category": case.get("sub_category"),
-        "status":       status,
-        "known_gap":    case["known_gap"],
-        "expected":     expected,
-        "actual":       actual,
-        "differences":  diffs,
-        "error":        None,
+        "case_id":        case["case_id"],
+        "category":       case.get("category"),
+        "sub_category":   case.get("sub_category"),
+        "status":         status,
+        "error_category": error_category,
+        "error_reason":   error_reason,
+        "known_gap":      case["known_gap"],
+        "expected":       expected,
+        "actual":         actual,
+        "differences":    diffs,
+        "error":          None,
     }
 
 
@@ -187,6 +201,8 @@ def _build_report(results: list[dict], dataset_path: Path, dataset: dict) -> dic
         "dataset_taxonomy_version": dataset.get("_taxonomy_version"),
         "summary":                _build_summary(results),
         "cases":                  results,
+        "metrics":                compute_metrics(results),
+        "error_summary":          build_error_summary(results),
     }
 
 
@@ -213,6 +229,7 @@ def _print_case_live(result: dict, verbose: bool) -> None:
     label = _LABEL.get(result["status"], result["status"])
     print(f"{label:<12} {result['case_id']}")
     if result["status"] == "FAIL" or verbose:
+        print(f"             [{result['error_category']}] {result['error_reason']}")
         for d in result["differences"]:
             print(f"             - {d['field']}: expected={d['expected']!r} actual={d['actual']!r}")
         if result.get("error"):
@@ -241,6 +258,11 @@ def _print_footer(report: dict, latest: Path, archive: Optional[Path]) -> None:
     print(f"Report: {latest}")
     if archive:
         print(f"        {archive}")
+
+
+def _print_error_summary(report: dict) -> None:
+    print()
+    print(format_error_summary_console(report["error_summary"]))
 
 
 # ── Validation of dataset shape (fail fast, don't half-run) ────────────────
@@ -313,6 +335,10 @@ def main() -> None:
     report          = _build_report(results, dataset_path, dataset)
     latest, archive = _write_report(report, args.no_archive)
     _print_footer(report, latest, archive)
+    _print_error_summary(report)
+
+    print()
+    print(format_console_summary(report["metrics"]))
 
     if args.ci and report["summary"]["unexpected_failures"] > 0:
         sys.exit(1)

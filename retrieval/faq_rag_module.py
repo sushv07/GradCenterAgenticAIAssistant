@@ -28,11 +28,11 @@ import requests
 from bs4 import BeautifulSoup, Tag
 
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
 
 from gradcenter_logging import emit
+from rag.store import get_embeddings as _get_embeddings
 
 
 # ---------------------------------------------------------------------------
@@ -52,19 +52,10 @@ _VECTORSTORE_TTL = 3600          # seconds
 # Queries that score below this are treated as "not covered by FAQ".
 _MIN_RELEVANCE = 0.30
 
-# Shared embeddings model — loaded once, reused for every query
-_EMBEDDINGS: Optional[HuggingFaceEmbeddings] = None
-
-
-def _get_embeddings() -> HuggingFaceEmbeddings:
-    global _EMBEDDINGS
-    if _EMBEDDINGS is None:
-        _EMBEDDINGS = HuggingFaceEmbeddings(
-            model_name="all-MiniLM-L6-v2",
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True},
-        )
-    return _EMBEDDINGS
+# Phase 4C: embeddings model is no longer instantiated here. It's loaded once
+# by rag.store and shared via rag.store.get_embeddings() — same model name and
+# kwargs ("all-MiniLM-L6-v2", device="cpu", normalize_embeddings=True), so
+# this changes nothing about embedding output, only avoids a second load.
 
 
 # ---------------------------------------------------------------------------
