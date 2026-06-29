@@ -25,8 +25,8 @@ from agents.journey_agent import (
     select_question,
     _classify_behavior,
     handle_discovery,
-    _SESSION_STORE,
 )
+from state.context_manager import clear_context
 
 
 # ---------------------------------------------------------------------------
@@ -39,7 +39,7 @@ def _fresh_state(session_id: str = "test"):
 
 def _run(query: str, session_id: str = "test") -> dict:
     """Run handle_discovery with a fresh state (clears any stored state first)."""
-    _SESSION_STORE.pop(session_id, None)
+    clear_context(session_id)
     response, _ = handle_discovery(query, session_id)
     return response
 
@@ -319,7 +319,7 @@ def _test_stopping_rule() -> list[bool]:
 
 
 def _test_state_accumulation() -> list[bool]:
-    _SESSION_STORE.pop("acc-test", None)
+    clear_context("acc-test")
     _, s1 = handle_discovery("I want to become a physical therapist", "acc-test")
     _, s2 = handle_discovery("I also have a biomechanics background", "acc-test")
     return [
@@ -332,7 +332,7 @@ def _test_state_accumulation() -> list[bool]:
 
 
 def _test_phase_transitions() -> list[bool]:
-    _SESSION_STORE.pop("phase-test", None)
+    clear_context("phase-test")
     # Strong first signal → recommending
     _, s_rec = handle_discovery("I want to become a nurse practitioner", "phase-test")
     results = [
@@ -340,14 +340,14 @@ def _test_phase_transitions() -> list[bool]:
               s_rec["phase"] == "recommending"),
     ]
     # Vague first signal → clarifying
-    _SESSION_STORE.pop("phase-test2", None)
+    clear_context("phase-test2")
     _, s_clar = handle_discovery("I want to help people", "phase-test2")
     results.append(_test(
         "phase_transition: vague first signal → phase=clarifying",
         s_clar["phase"] == "clarifying",
     ))
     # Out-of-scope → stays at init
-    _SESSION_STORE.pop("phase-test3", None)
+    clear_context("phase-test3")
     _, s_oos = handle_discovery("I want an MBA", "phase-test3")
     results.append(_test(
         "phase_transition: out-of-scope → phase=init",
@@ -374,7 +374,7 @@ def _test_invariants() -> list[bool]:
     _VALID_TIERS      = {"high", "medium", "low"}
     results = []
     for q in cases:
-        _SESSION_STORE.pop("inv-test", None)
+        clear_context("inv-test")
         r = _run(q, "inv-test")
         behavior = r["behavior"]
         if behavior in _CLARIFY_REDIRECT:

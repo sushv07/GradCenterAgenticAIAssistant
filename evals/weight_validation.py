@@ -56,8 +56,9 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 from agents.journey_agent import (  # noqa: E402
-    handle_discovery, extract_signals, detect_gaps, _SESSION_STORE,
+    handle_discovery, extract_signals, detect_gaps,
 )
+from state.context_manager import clear_context  # noqa: E402
 from agents.recommendation_engine import (  # noqa: E402
     select_recommendation as production_select_recommendation,
 )
@@ -111,13 +112,13 @@ def _final_state_and_gaps(case: dict) -> dict:
     the final turn's gaps via the REAL detect_gaps(). Both are pure/production
     functions — nothing here is weight-experiment code."""
     sid = f"weightval_{case['case_id']}"
-    _SESSION_STORE.pop(sid, None)
+    clear_context(sid)
 
     state = None
     last_query = case["turns"][-1]
     for turn in case["turns"]:
         _response, state = handle_discovery(turn, sid)
-    _SESSION_STORE.pop(sid, None)
+    clear_context(sid)
 
     last_bundle = extract_signals(last_query)
     gaps = detect_gaps(state, last_bundle)

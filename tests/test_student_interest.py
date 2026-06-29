@@ -20,7 +20,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
-from agents.journey_agent import handle_discovery, _SESSION_STORE
+from agents.journey_agent import handle_discovery
+from state.context_manager import clear_context
 
 
 # ---------------------------------------------------------------------------
@@ -28,7 +29,7 @@ from agents.journey_agent import handle_discovery, _SESSION_STORE
 # ---------------------------------------------------------------------------
 
 def _fresh(sid: str) -> None:
-    _SESSION_STORE.pop(sid, None)
+    clear_context(sid)
 
 
 def _program_ids(r: dict) -> list[str]:

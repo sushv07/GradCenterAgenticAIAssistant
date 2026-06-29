@@ -94,3 +94,17 @@ def get_context(
 def save_context(session_id: str, journey_state: JourneyState) -> None:
     """Persist a JourneyState for a session. Overwrites any prior value."""
     _SESSION_STORE[session_id] = journey_state
+
+
+def clear_context(session_id: str) -> None:
+    """
+    Remove any stored state for a session. No-op if none exists.
+
+    Phase 4H: added because every caller that needed to reset a session
+    (test setup/teardown, eval-runner fresh-session-per-case) was reaching
+    into _SESSION_STORE directly with .pop(session_id, None) — bypassing
+    this module's API even though get_context()/save_context() already
+    existed. Swapping the in-memory dict for Redis/a database later means
+    this is the only function that needs to change.
+    """
+    _SESSION_STORE.pop(session_id, None)

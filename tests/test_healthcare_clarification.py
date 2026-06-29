@@ -17,14 +17,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import pytest
-from agents.journey_agent import handle_discovery, _SESSION_STORE
+from agents.journey_agent import handle_discovery
+from state.context_manager import clear_context
 
 
 BROAD_HEALTHCARE_Q = "I want a clinical doctoral degree in healthcare."
 
 
 def _fresh(sid: str):
-    _SESSION_STORE.pop(sid, None)
+    clear_context(sid)
 
 
 # ---------------------------------------------------------------------------

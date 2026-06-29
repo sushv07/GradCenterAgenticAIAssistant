@@ -33,7 +33,7 @@ from agents.recommendation_engine import (
     select_recommendation,
 )
 from gradcenter_logging import emit
-from state.context_manager import _SESSION_STORE, get_context, save_context
+from state.context_manager import get_context, save_context
 from responses.builder import build_response
 
 

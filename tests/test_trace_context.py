@@ -30,11 +30,11 @@ from datetime import datetime
 from context.trace_context import TraceContext, create_trace_context, record_route
 from gradcenter_logging import set_request_id, get_request_id
 from backend.entrypoint import handle_user_query
-from state.context_manager import _SESSION_STORE
+from state.context_manager import clear_context
 
 
 def _fresh(sid: str) -> None:
-    _SESSION_STORE.pop(sid, None)
+    clear_context(sid)
 
 
 class TestTraceContextCreation(unittest.TestCase):

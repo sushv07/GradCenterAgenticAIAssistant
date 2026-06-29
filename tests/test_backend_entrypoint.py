@@ -24,12 +24,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 import unittest
 
 from backend.entrypoint import handle_user_query, _is_discovery_active
-from state.context_manager import _SESSION_STORE
+from state.context_manager import clear_context
 import orchestrator
 
 
 def _fresh(sid: str) -> None:
-    _SESSION_STORE.pop(sid, None)
+    clear_context(sid)
 
 
 class TestStandardRequest(unittest.TestCase):

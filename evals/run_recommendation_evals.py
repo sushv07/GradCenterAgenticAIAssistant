@@ -41,7 +41,8 @@ _ROOT = Path(__file__).parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from agents.journey_agent import handle_discovery, _SESSION_STORE  # noqa: E402
+from agents.journey_agent import handle_discovery  # noqa: E402
+from state.context_manager import clear_context  # noqa: E402
 from evals.metrics_recommendation import compute_metrics, format_console_summary  # noqa: E402
 from evals.error_classification import (  # noqa: E402
     classify, build_error_summary, format_error_summary_console,
@@ -63,7 +64,7 @@ def _run_case_turns(case: dict) -> dict:
     Returns the final turn's DiscoveryResponse (or an error string on exception).
     """
     sid = f"recoeval_{case['case_id']}"
-    _SESSION_STORE.pop(sid, None)
+    clear_context(sid)
 
     response: dict = {}
     error: Optional[str] = None
@@ -73,7 +74,7 @@ def _run_case_turns(case: dict) -> dict:
     except Exception as exc:  # noqa: BLE001 — capture and report, don't crash the run
         error = repr(exc)
     finally:
-        _SESSION_STORE.pop(sid, None)
+        clear_context(sid)
 
     return {"response": response, "error": error}
 
