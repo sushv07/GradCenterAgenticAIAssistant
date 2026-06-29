@@ -1803,3 +1803,25 @@ Because replacing the FAQ backend with generic page-level retrieval would introd
 
 Backend consolidation should not come at the cost of user-facing correctness. When two retrieval paths serve different document structures, they may remain separate while still sharing safe infrastructure such as embedding configuration and model instances.
 
+### Phase 4D — Context Manager
+
+Introduced a backend Context Manager to centralize ownership of conversation state.
+
+#### Improvements
+
+- Moved JourneyState session storage out of the Journey Agent.
+- Added a `ConversationContext` abstraction containing the current session ID and JourneyState.
+- Added `get_context()` and `save_context()` APIs for reading and updating state.
+- Preserved the existing in-memory session behavior.
+- Kept UI session state and backend JourneyState behavior unchanged.
+
+#### Validation
+
+- Confirmed cross-turn discovery state still accumulates correctly.
+- Full regression suite completed successfully with no routing, recommendation, retrieval, or evaluation regressions.
+- Existing evaluation results remained unchanged.
+
+#### Design Principle
+
+Agents should consume conversation context rather than own session storage directly. Centralizing context ownership prepares the backend for future FastAPI deployment, persistent session storage, and additional agents without requiring agents to manage their own state stores.
+

@@ -33,13 +33,7 @@ from agents.recommendation_engine import (
     select_recommendation,
 )
 from gradcenter_logging import emit
-
-
-# ---------------------------------------------------------------------------
-# Session store — ephemeral, process-scoped. Upgraded to durable in Phase E.
-# ---------------------------------------------------------------------------
-
-_SESSION_STORE: dict[str, JourneyState] = {}
+from state.context_manager import _SESSION_STORE, get_context, save_context
 
 
 # ---------------------------------------------------------------------------
@@ -844,8 +838,8 @@ def handle_discovery(
     Main entry point for the discovery route.
 
     Returns (DiscoveryResponse, updated_state).
-    The updated state is also written to _SESSION_STORE[session_id] so
-    the orchestrator does not need to manage state directly.
+    The updated state is also persisted via state.context_manager.save_context()
+    so the orchestrator does not need to manage state directly.
 
     Phase C invariants:
       - recommended_programs=[] always
@@ -854,7 +848,7 @@ def handle_discovery(
     """
     # Restore or initialize state
     if state is None:
-        state = _SESSION_STORE.get(session_id) or init_journey_state(session_id)
+        state = get_context(session_id, default_factory=init_journey_state).journey_state
 
     # Step 1 — Extract signals (must happen before any guard evaluation)
     bundle = extract_signals(query)
@@ -872,7 +866,7 @@ def handle_discovery(
         response = _build_response(
             query, session_id, "redirect", out_of_scope_code=bundle.out_of_scope
         )
-        _SESSION_STORE[session_id] = updated
+        save_context(session_id, updated)
         return response, updated
 
     # Step 4 — Detect gaps
@@ -888,7 +882,7 @@ def handle_discovery(
              clarification_question=question,
              clarification_type=_clarification_type(gaps))
         response = _build_response(query, session_id, "clarify", question=question)
-        _SESSION_STORE[session_id] = updated
+        save_context(session_id, updated)
         return response, updated
 
     # Step 6 — Phase D recommendation scoring
@@ -914,5 +908,5 @@ def handle_discovery(
              clarification_question=result.question or "",
              clarification_type=_clarification_type(gaps))
     response = _build_response(query, session_id, result)
-    _SESSION_STORE[session_id] = updated
+    save_context(session_id, updated)
     return response, updated
