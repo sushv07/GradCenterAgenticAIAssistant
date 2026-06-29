@@ -97,6 +97,30 @@ class TestClearDoctoralExploration:
             f"Should clarify education sector; got behavior={r['behavior']!r}"
         )
 
+    def test_a06_distinct_education_interests_recommend_p12(self):
+        """Phase 3A.1 regression: 'urban public schools' + 'student outcomes' must
+        extract 2 distinct interest tags (k12_education, school_reform), not dedup
+        to 1 — confirms the DISC-019 vocabulary fix reaches recommend/medium."""
+        _fresh("a06")
+        r, _ = handle_discovery(
+            "I'm passionate about improving student outcomes in urban public schools.", "a06"
+        )
+        assert r["behavior"] == "recommend"
+        assert r["confidence"] == "medium"
+        assert _program_ids(r) == ["edd-educational-leadership-p12"]
+
+    def test_a07_distinct_health_interests_recommend_drph(self):
+        """Phase 3A.1 regression: 'health disparities' + 'underserved communities'
+        must extract 2 distinct interest tags (public_health, community_health),
+        not dedup to 1 — confirms the DISC-020 vocabulary fix reaches recommend/medium."""
+        _fresh("a07")
+        r, _ = handle_discovery(
+            "I want to address health disparities in underserved communities.", "a07"
+        )
+        assert r["behavior"] == "recommend"
+        assert r["confidence"] == "medium"
+        assert _program_ids(r) == ["drph-public-health"]
+
     def test_a05_educational_leadership_career_clarifies(self):
         """Educational leadership interest triggers sector clarification."""
         _fresh("a05")
@@ -354,6 +378,19 @@ class TestOutOfScopeExploration:
         r, _ = handle_discovery("I'm interested in programs at UCLA.", "d15")
         assert r["behavior"] == "redirect"
         assert r.get("recommended_programs", []) == []
+
+    def test_d16_unsupported_topic_redirect(self):
+        """Phase 3A.1 regression: 'quantum computing and artificial intelligence'
+        has no signal-map coverage and must redirect with an honest, specific
+        message — not fall through to the generic no_field_signal clarify
+        (confirms the DISC-043 vocabulary-gap fix)."""
+        _fresh("d16")
+        r, _ = handle_discovery(
+            "I want to study quantum computing and artificial intelligence.", "d16"
+        )
+        assert r["behavior"] == "redirect"
+        assert r.get("recommended_programs", []) == []
+        assert "quantum" in r["primary_action"].lower()
 
 
 # ===========================================================================

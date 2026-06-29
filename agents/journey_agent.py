@@ -78,7 +78,7 @@ _INTEREST_MAP: dict[str, str] = {
     "health policy":              "health_policy",
     "health informatics":         "health_informatics",
     "public health":              "public_health",
-    "health disparities":         "community_health",
+    "health disparities":         "public_health",
     "underserved communities":    "community_health",
     "underserved":                "community_health",
     # DPT rehabilitation phrases
@@ -93,7 +93,7 @@ _INTEREST_MAP: dict[str, str] = {
     # EdD-P12
     "urban public school":        "k12_education",
     "urban school":               "k12_education",
-    "student outcomes":           "k12_education",
+    "student outcomes":           "school_reform",
     "k-12":                       "k12_education",
     "k12":                        "k12_education",
     "school reform":              "school_reform",
@@ -230,6 +230,8 @@ _OUT_OF_SCOPE_MAP: dict[str, str] = {
     "md program":             "medical_school",
     "usc":                    "other_institution",
     "ucla":                   "other_institution",
+    "quantum computing":      "unsupported_topic",
+    "artificial intelligence": "unsupported_topic",
 }
 
 # Phrases that, when present, make "leadership" or "education" unambiguous
@@ -712,6 +714,7 @@ _OUT_OF_SCOPE_MESSAGES: dict[str, str] = {
     "other_institution": "I can only help with CSULB programs. Please contact that institution's graduate admissions directly.",
     "medical_school":    "CSULB does not offer an MD program. If you are interested in an advanced clinical doctoral degree (DNP or DPT), I can help.",
     "undergrad":         "I focus on doctoral programs at CSULB. For undergraduate admissions, visit csulb.edu/admissions.",
+    "unsupported_topic": "I don't have specific information on quantum computing or AI doctoral programs at CSULB. If you're interested in engineering or computational/mathematical research more broadly, I can help you explore the PhD in Engineering and Computational Mathematics.",
 }
 
 
