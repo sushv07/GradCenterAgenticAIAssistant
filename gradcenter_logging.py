@@ -52,6 +52,17 @@ def new_request_id() -> str:
     return str(uuid.uuid4())
 
 
+def get_request_id() -> str:
+    """
+    Return the request_id currently set for this context, or "" if none has
+    been set. Pure read — never mints a new id. Added in Phase 4G so the
+    backend's TraceContext can capture whatever id is already active without
+    duplicating the generation logic that set_request_id()/new_request_id()
+    already own.
+    """
+    return _REQUEST_ID.get()
+
+
 # ---------------------------------------------------------------------------
 # Logger configuration
 # ---------------------------------------------------------------------------

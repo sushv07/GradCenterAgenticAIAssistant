@@ -1868,3 +1868,69 @@ Introduced a unified backend entry point for handling user queries across UI and
 #### Design Principle
 
 UI clients should submit user queries to a backend entry point rather than making backend workflow decisions themselves. This prepares the system for FastAPI, CLI clients, and future multi-agent orchestration by giving all clients one stable request interface.
+
+## Phase 4G — Unified Trace Context
+
+### Objective
+
+Introduce a backend-owned `TraceContext` to represent request-scoped metadata throughout the request lifecycle.
+
+### Improvements
+
+- Added a `TraceContext` object containing:
+  - `request_id`
+  - `session_id`
+  - `route`
+  - `started_at`
+- Centralized request metadata into a single object rather than passing individual values independently.
+- Established the backend entry point as the owner of request-scoped context.
+- Clearly separated:
+  - **TraceContext** (single request)
+  - **ConversationContext** (multi-turn session)
+  - **JourneyState** (domain-specific conversation state)
+
+### Architectural Impact
+
+Before:
+
+```
+request_id
+session_id
+route
+
+flowed independently through different parts of the backend.
+```
+
+After:
+
+```
+Backend Entry Point
+        │
+        ▼
+TraceContext
+        │
+        ▼
+Backend Components
+```
+
+The backend now has a single request-level context object that can be extended in the future without changing request signatures across the system.
+
+### Design Decisions
+
+- Kept `TraceContext` lightweight and limited to metadata already present in the backend.
+- Preserved existing logging behavior.
+- Preserved existing routing and response behavior.
+- Did not introduce OpenTelemetry or external tracing libraries.
+- Deferred deeper trace propagation until future production infrastructure work.
+
+### Future Readiness
+
+This provides the foundation for future integration with:
+
+- FastAPI middleware
+- OpenTelemetry
+- LangSmith
+- Azure AI Foundry
+- Distributed tracing
+
+without requiring architectural changes to the request pipeline.

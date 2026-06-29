@@ -49,6 +49,7 @@ import orchestrator
 from agents.journey_agent import handle_discovery, init_journey_state
 from contracts.response_types import OrchestratorResponse
 from state.context_manager import get_context
+from context.trace_context import TraceContext, create_trace_context, record_route
 
 
 def _is_discovery_active(session_id: str) -> bool:
@@ -66,11 +67,20 @@ def handle_user_query(query: str, session_id: str = "default") -> OrchestratorRe
     agents.journey_agent.handle_discovery() or orchestrator.run() — the same
     two functions every caller used directly before Phase 4F, just no
     longer with the caller deciding which one to use.
+
+    Phase 4G: also assembles a TraceContext (request_id/session_id/route/
+    started_at) for this call. It is not yet returned or logged — see the
+    Phase 4G output report — but every field on it reflects this real
+    request, ready for a future caller (FastAPI, observability) to consume
+    without any further redesign.
     """
     query = (query or "").strip()
+    trace: TraceContext = create_trace_context(session_id)
 
     if _is_discovery_active(session_id):
         response, _ = handle_discovery(query, session_id)
-        return response
+    else:
+        response = orchestrator.run(query, session_id=session_id)
 
-    return orchestrator.run(query, session_id=session_id)
+    record_route(trace, response.get("route"))
+    return response
