@@ -1,7 +1,7 @@
 {
   "_schema_version": "1.0",
   "_scope": "doctoral",
-  "_last_updated": "2026-06-15",
+  "_last_updated": "2026-06-28",
   "_notes": "Doctoral-first taxonomy. Six doctoral programs confirmed from live CSULB doctoral index and programs.json. Master's programs added in Phase B without schema changes. advisors_extracted.json reconciliation: DrPH source URL in advisors_extracted.json incorrectly points to the DNP page — program_url in this file is the canonical source for each program.",
   "_null_contract": {
     "null_not_applicable": "null + data_status: 'not_applicable' — field does not apply to this program",
@@ -208,7 +208,10 @@
         "physical_therapist",
         "clinical_leader"
       ],
-      "academic_background_tags": null,
+      "academic_background_tags": [
+        "biology",
+        "social_sciences"
+      ],
       "advisor": {
         "name": "Dr. Jeff Rodrigues",
         "email": "CHHS-PT@csulb.edu",
@@ -249,13 +252,13 @@
         "concentrations": "available",
         "interest_tags": "manual_curated",
         "career_goal_tags": "available",
-        "academic_background_tags": "source_missing",
+        "academic_background_tags": "manual_curated",
         "funding_signals": "partial",
         "admissions_fit": "source_missing"
       },
       "coverage_status": "partial",
       "manual_review_required": true,
-      "source_notes": "Career outcomes (ABPTS board specialty certifications in Orthopedics, Neurology, Geriatrics, Pediatrics, Sports) from physical therapy department page. Research lab names (Balance & Prevention of Falls, CMPL, CRAB, Electrophysiological Measurement, Pathokinesiology, Spine Research, THRIVE) from department page — used to curate interest_tags. Concentrations set to [] confirmed: DPT is a single cohort curriculum with no student-selected specialization tracks; post-graduation board certifications are not program concentrations. Prerequisite coursework explicitly redirects to PTCAS — not documented on any CSULB page.",
+      "source_notes": "Career outcomes (ABPTS board specialty certifications in Orthopedics, Neurology, Geriatrics, Pediatrics, Sports) from physical therapy department page. Research lab names (Balance & Prevention of Falls, CMPL, CRAB, Electrophysiological Measurement, Pathokinesiology, Spine Research, THRIVE) from department page — used to curate interest_tags. Concentrations set to [] confirmed: DPT is a single cohort curriculum with no student-selected specialization tracks; post-graduation board certifications are not program concentrations. Prerequisite coursework explicitly redirects to PTCAS — not documented on any CSULB page. academic_background_tags (2026-06-28, Phase 3A.3): populated from this same record's admissions_fit.notes, which already documents PTCAS-listed prerequisite coursework (\"typically biology, chemistry, physics, anatomy, physiology, psychology\"). Only \"biology\" and \"social_sciences\" (covering psychology) were promoted, since those are the only two subjects with an existing, established academic_background_tags vocabulary value already in use elsewhere in this taxonomy. Chemistry, physics, anatomy, and physiology were intentionally NOT added: they would be new vocabulary values with no corresponding signal-extraction phrase mapping anywhere in the assistant, so they could never be matched against a student's stated background and would sit permanently inert. admissions_fit.background_tags is left null/source_missing — that field tracks CSULB-specific admission requirements (GPA, license), which remain genuinely unpublished, and is not read by the recommendation engine.",
       "last_verified": "2026-06-15"
     },
 
