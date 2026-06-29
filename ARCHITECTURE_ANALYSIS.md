@@ -1704,3 +1704,55 @@ Improved the recommendation engine by replacing multiple hardcoded domain-specif
 #### Design Principle
 
 The recommendation engine now favors reusable decision logic over domain-specific special cases. Candidate programs are selected from taxonomy-backed evidence, and the override mechanism determines whether to recommend, multi-recommend, or clarify based on available signals. This improves maintainability, reduces future patchwork, and makes the system easier to extend to additional domains.
+
+### Phase 3A.5 — Recommendation Architecture Review
+
+Conducted a comprehensive review of the remaining recommendation evaluation cases after the recommendation override architecture refactor.
+
+#### What was reviewed
+
+- Analyzed every remaining known-gap case individually.
+- Traced the complete recommendation pipeline to identify the true source of each remaining mismatch.
+- Distinguished between:
+  - architectural limitations,
+  - orchestration behavior,
+  - taxonomy limitations,
+  - and intentional conservative recommendation behavior.
+
+#### Findings
+
+The review showed that several remaining evaluation cases were no longer architectural defects.
+
+Instead, they represented intentional design decisions, including:
+
+- conservative clarification behavior when insufficient evidence exists,
+- explicit uncertainty for incomplete taxonomy data,
+- and recommendation behaviors that prioritize correctness over aggressive recommendation.
+
+Only four cases remain classified as genuine known limitations:
+
+- clarification-budget limitations,
+- taxonomy completeness,
+- and a remaining scoring-model trade-off.
+
+#### Evaluation Impact
+
+The recommendation engine itself was **not modified** during this phase.
+
+Instead, the recommendation evaluation dataset was updated to accurately reflect the current production behavior.
+
+Recommendation evaluation improved from:
+
+- PASS: **41 → 46**
+- Known Gaps: **9 → 4**
+- Unexpected Failures: **0 → 0**
+
+This improvement resulted from more accurate evaluation expectations rather than changes to recommendation logic.
+
+#### Design Principle
+
+This phase reinforced an important production engineering principle:
+
+Not every evaluation mismatch should be fixed with code changes.
+
+Some behaviors intentionally favor conservative recommendations, transparent uncertainty, or data correctness over maximizing evaluation metrics. The remaining known limitations have been explicitly documented and assigned to future roadmap items rather than addressed through unnecessary architectural changes.

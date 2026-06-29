@@ -29,6 +29,9 @@ Phase 3A.4 — generalized domain override regression tests:
   T14  No eligible candidate         → clarify, not an unrelated program
   T15  Multiple eligible programs    → real-signal pair, medium confidence
   T16  No exclusive signal (singleton domain) → never promoted, clarify
+
+Phase 3A.5 — confirms intentional behavior (formerly misclassified gaps):
+  T17  DISC-024/025-style background+orientation tie-break → solo DNP, low
 """
 from __future__ import annotations
 
@@ -537,4 +540,34 @@ def test_t16_singleton_domain_group_never_promoted_clarifies():
         f"a singleton domain group must not be promoted to a confident pick "
         f"from bare orientation alone; got {result.behavior!r} "
         f"programs={_program_ids(result)}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T17 — Phase 3A.5: DISC-024/025-style background+orientation tie-break
+# (intentional behavior, formerly misclassified as a known gap)
+# background='healthcare' alone would tie drph-public-health and dnp-nursing
+# (see T05). Adding orientation='clinical' on top zeroes drph-public-health
+# (orientation mismatch: 'clinical' != its 'applied') while reinforcing
+# dnp-nursing (orientation match), leaving dnp-nursing as the sole eligible
+# candidate. A low-confidence solo partial_match_with_caveat is the correct,
+# signal-faithful outcome here — not an artifact like DISC-027, since both
+# candidates considered stay within the healthcare domain (no unrelated
+# program is ever considered).
+# ---------------------------------------------------------------------------
+
+def test_t17_healthcare_background_plus_clinical_orientation_isolates_dnp():
+    state = _state(academic_background=["healthcare"], orientation="clinical")
+    gaps = ["healthcare_goal_unclear"]
+    result = select_recommendation(state, gaps, _load_taxonomy())
+
+    assert result.behavior == "partial_match_with_caveat", (
+        f"clinical orientation should isolate dnp-nursing as the sole eligible "
+        f"candidate, not multi_recommend or clarify; got {result.behavior!r}"
+    )
+    assert result.confidence == "low"
+    ids = _program_ids(result)
+    assert ids == ["dnp-nursing"], (
+        f"drph-public-health must be excluded — its orientation ('applied') "
+        f"mismatches the stated 'clinical' orientation; got {ids}"
     )

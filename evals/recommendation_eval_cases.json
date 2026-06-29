@@ -35,9 +35,9 @@
       "expected_clarification": true,
       "match_basis": ["clarification_gap", "known_gap"],
       "known_gap": true,
-      "gap_description": "rehabilitation and biomechanics are both DPT-exclusive interest tags (no other program has them), but extract_signals() treats them as generic health-domain interests. Turn 1 hits admission_gated (no background yet); turn 2 clears that gate but immediately triggers health_undifferentiated because 2+ health-domain interests are present. The health_undifferentiated override in select_recommendation() only ever considers drph-public-health and dnp-nursing, so dpt-physical-therapy can never be reached through this path even though it is the unambiguous correct match. Originally documented as resolving to a high-confidence dpt-physical-therapy recommendation.",
-      "rationale": "Traced through the live pipeline: admission_gated then health_undifferentiated both intercept before DPT-specific scoring is ever reached.",
-      "notes": "Original DISCOVERY_EVAL_V1.md design expected DPT/high from a single turn; the current implementation cannot reach that outcome at all for this query shape."
+      "gap_description": "Phase 3A.5 re-trace: the override-architecture root cause documented here previously (health_undifferentiated only considering drph-public-health/dnp-nursing) was fixed in Phase 3A.4 — calling select_recommendation() directly with this exact state now correctly resolves to recommend/medium/[dpt-physical-therapy], since rehabilitation+biomechanics derive a single-program candidate group via taxonomy interest-tag membership (see test_t11). The remaining blocker is one layer up: this conversation is only 2 turns, and should_clarify()'s 3-turn stopping rule (journey_agent.py) has not yet been reached, so the agent correctly asks a 3rd clarifying question instead of invoking select_recommendation() at all. This is a clarification-budget/orchestration timing question, not a recommendation-decision-logic defect — out of scope for a phase restricted to recommendation_engine.py.",
+      "rationale": "Verified directly: select_recommendation() given this state and gaps=['health_undifferentiated'] returns recommend/medium/[dpt-physical-therapy]; handle_discovery() end-to-end still asks a clarifying question at turn_count=2 because should_clarify() has not hit its stopping rule.",
+      "notes": "Candidate for a future phase touching journey_agent.py: should the clarification budget short-circuit early when the override mechanism would already resolve confidently? Deliberately not implemented here, since journey_agent.py is outside this phase's scope (recommendation_engine.py only)."
     },
     {
       "case_id": "DISC-003",
@@ -89,9 +89,9 @@
       "expected_clarification": true,
       "match_basis": ["clarification_gap", "known_gap"],
       "known_gap": true,
-      "gap_description": "mental_health and nursing are both DNP-exclusive interest tags, but they still satisfy health_undifferentiated's generic 'two or more health-domain interests' trigger. As in DISC-002, the override for this gap only ever evaluates drph-public-health and dnp-nursing as a pair, and drph-public-health does not score medium here, so the override condition fails and the system clarifies indefinitely instead of recommending dnp-nursing directly.",
-      "rationale": "Same root architecture gap as DISC-002, applied to a DNP-exclusive interest pair instead of a DPT-exclusive one.",
-      "notes": "Originally documented as resolving to a DNP recommendation; current implementation cannot reach it via this query shape."
+      "gap_description": "Same Phase 3A.5 re-trace as DISC-002, applied to a DNP-exclusive interest pair: calling select_recommendation() directly with this state now correctly resolves to recommend/medium/[dnp-nursing] (see test_t13). The remaining blocker is the same clarification-budget timing issue — this conversation is only 2 turns, and should_clarify()'s 3-turn stopping rule has not yet been reached, so the agent correctly asks another clarifying question rather than ever invoking select_recommendation(). Not a recommendation-decision-logic defect.",
+      "rationale": "Verified directly: select_recommendation() given this state and gaps=['health_undifferentiated'] returns recommend/medium/[dnp-nursing]; handle_discovery() end-to-end still asks a clarifying question at turn_count=2.",
+      "notes": "Same future-phase candidate as DISC-002 (clarification-budget short-circuiting), deliberately not implemented here."
     },
     {
       "case_id": "DISC-006",
@@ -231,11 +231,11 @@
       "expected_behavior": "partial_match_with_caveat",
       "expected_confidence": "medium",
       "expected_clarification": false,
-      "match_basis": ["interest_tags", "orientation", "known_gap"],
-      "known_gap": true,
-      "gap_description": "phd-engineering-computational-math has career_goal_tags=null in the taxonomy, so the recommendation engine always wraps any match for this program in partial_match_with_caveat (never a plain recommend) and the career-gap penalty caps its score; combined with the interest-only confidence cap, it lands at medium regardless of how strong the interest/orientation match is.",
-      "rationale": "Two interest tags (applied_mathematics, engineering) plus a research orientation match, but the program's known null career_goal_tags forces the caveat wrapper.",
-      "notes": "This is the documented taxonomy gap referenced in the alignment rules (Engineering career-goal cases)."
+      "match_basis": ["interest_tags", "orientation"],
+      "known_gap": false,
+      "gap_description": null,
+      "rationale": "Phase 3A.5 review: phd-engineering-computational-math has a well-audited null career_goal_tags field (data_status='manual_required'; 10 official sources checked, none found — see taxonomy source_notes). No career signal is present in this query at all, so the ×0.5 career-gap multiplier never applies here (it only fires when state_careers is non-empty); medium confidence comes from the ordinary 2-interest-tag tier, and partial_match_with_caveat is an intentional, unconditional wrapper for this program (select_recommendation()'s 'Engineering PhD special case') reflecting that its career outcomes are genuinely undocumented — not a confidence-tier defect. Reclassified from known_gap: this is the system correctly flagging real uncertainty, not a limitation to fix.",
+      "notes": "Locked in by test_t03_disc014_engineering_partial_match_with_caveat. Previously documented as a 'taxonomy gap' — corrected: the gap is real (the data genuinely doesn't exist) but the caveat behavior in response to it is intentional, not a bug."
     },
     {
       "case_id": "DISC-015",
@@ -247,11 +247,11 @@
       "expected_behavior": "partial_match_with_caveat",
       "expected_confidence": "medium",
       "expected_clarification": false,
-      "match_basis": ["interest_tags", "academic_background_tags", "orientation", "known_gap"],
-      "known_gap": true,
-      "gap_description": "Same null career_goal_tags gap as DISC-014; engineering interest, engineering background, and research orientation match are real but the result is always wrapped in partial_match_with_caveat.",
-      "rationale": "Interest, background, and orientation all point to phd-engineering-computational-math; capped at medium/caveat by the known taxonomy gap.",
-      "notes": null
+      "match_basis": ["interest_tags", "academic_background_tags", "orientation"],
+      "known_gap": false,
+      "gap_description": null,
+      "rationale": "Same Phase 3A.5 reasoning as DISC-014: no career signal present, so the career-gap multiplier never applies; medium confidence comes from the ordinary 1-interest+1-background tier, and the unconditional partial_match_with_caveat wrapper is an intentional reflection of Engineering PhD's genuinely undocumented career outcomes.",
+      "notes": "Reclassified from known_gap for the same reason as DISC-014 — intentional, correct behavior, not a defect."
     },
     {
       "case_id": "DISC-016",
@@ -410,11 +410,11 @@
       "expected_behavior": "partial_match_with_caveat",
       "expected_confidence": "low",
       "expected_clarification": false,
-      "match_basis": ["academic_background_tags", "orientation", "known_gap"],
-      "known_gap": true,
-      "gap_description": "This query triggers healthcare_goal_unclear, not health_undifferentiated. healthcare_goal_unclear has no Phase D override block at all (it is neither in _OVERRIDABLE_GAPS nor _NON_OVERRIDABLE_GAPS), so once the 3-turn stopping rule forces Phase D, the gap is silently ignored and the engine falls through to its general top-score scoring path. There, a clinical orientation match (picked up from turn 2's 'clinical and policy work') tips dnp-nursing above drph-public-health by an orientation-mismatch penalty, producing a single low-confidence partial match rather than the originally documented dnp-nursing+drph-public-health multi_recommend.",
-      "rationale": "Traced the exact scoring path: orientation match/mismatch is what decides the winner once the gap-specific override is bypassed.",
-      "notes": "This is a different failure mode from DISC-022/023 — here the override is simply missing for this gap code, rather than blocked by a missing interest tag."
+      "match_basis": ["academic_background_tags", "orientation"],
+      "known_gap": false,
+      "gap_description": null,
+      "rationale": "Phase 3A.5 review: the gap_description previously here was written before Phase 3A.4 generalized the override mechanism and is now stale — healthcare_goal_unclear DOES have an override (added in 3A.4) and is no longer 'silently ignored.' Re-traced under the current architecture: the generalized override derives {drph-public-health, dnp-nursing} as candidates from academic_background_tags ('healthcare'); drph-public-health is zeroed by the orientation mismatch (state='clinical' vs. its 'applied' orientation) while dnp-nursing's orientation matches, leaving it the sole eligible candidate. 'Maybe both clinical and policy work' genuinely only maps a clinical-orientation signal — no countervailing 'policy'-orientation phrase exists in the taxonomy to support drph-public-health equally — so a low-confidence solo dnp-nursing pick honestly reflects the available signal, not an artifact.",
+      "notes": "Reclassified from known_gap: the override is correctly implemented and the outcome is well-supported by the actual extracted signal, unlike DISC-027's off-domain artifact (which this case does not exhibit, since both candidates stay within the healthcare domain)."
     },
     {
       "case_id": "DISC-025",
@@ -430,11 +430,11 @@
       "expected_behavior": "partial_match_with_caveat",
       "expected_confidence": "low",
       "expected_clarification": false,
-      "match_basis": ["academic_background_tags", "orientation", "known_gap"],
-      "known_gap": true,
-      "gap_description": "Same root cause as DISC-024: healthcare_goal_unclear has no Phase D override, so the 3-turn stopping rule falls through to general scoring, where the clinical-orientation match decides dnp-nursing over drph-public-health.",
-      "rationale": "Identical final state shape to DISC-024 (background=['healthcare'], orientation='clinical').",
-      "notes": null
+      "match_basis": ["academic_background_tags", "orientation"],
+      "known_gap": false,
+      "gap_description": null,
+      "rationale": "Same Phase 3A.5 reasoning as DISC-024 (identical final state: background=['healthcare'], orientation='clinical') — the generalized override correctly isolates dnp-nursing as the sole eligible candidate, and the low confidence honestly reflects the thin (1 background tag) signal.",
+      "notes": "Reclassified from known_gap for the same reason as DISC-024."
     },
     {
       "case_id": "DISC-026",
@@ -448,9 +448,9 @@
       "expected_clarification": false,
       "match_basis": ["career_goal_tags", "known_gap"],
       "known_gap": true,
-      "gap_description": "university_educator is a shared career tag on drph-public-health and dnp-nursing, correctly producing a multi_recommend. However, phd-engineering-computational-math has career_goal_tags=null in the taxonomy, so it structurally cannot match a 'professor' career query at all, even though pursuing a professorship via an engineering PhD is a realistic path. This is the documented null-career-tags limitation, not a new finding.",
+      "gap_description": "university_educator is a shared career tag on drph-public-health and dnp-nursing, correctly producing a multi_recommend. However, phd-engineering-computational-math has career_goal_tags=null in the taxonomy, so it structurally cannot match a 'professor' career query at all, even though pursuing a professorship via an engineering PhD is a realistic path. This is the documented null-career-tags limitation, not a new finding (see DISC-014/015's data_status='manual_required' provenance — fabricating a career tag here would violate the no-speculative-information principle).",
       "rationale": "Shared career tag correctly triggers multi_recommend across the two eligible programs.",
-      "notes": "Resolves on a single turn with no clarification needed."
+      "notes": "Resolves on a single turn with no clarification needed. Phase 3A.5 observation (not acted on): select_recommendation()'s general-fallback multi_recommend path also hardcodes a top-2 cap (medium_programs[:2]), so even if Engineering PhD someday gained a real career_goal_tags entry, a 3-candidate tie could still only ever surface 2 programs. Not changed — no current eval case exercises a genuine 3-way tie, and generalizing the cap now would be speculative engineering against a hypothetical taxonomy change, not a fix for this case."
     },
     {
       "case_id": "DISC-027",
@@ -470,7 +470,7 @@
       "known_gap": true,
       "gap_description": "Partially improved by Phase 3A.4: healthcare_goal_unclear is now routed through the generalized domain override instead of falling through unhandled to general scoring. background=['healthcare'] resolves the candidate group to {drph-public-health, dnp-nursing} (taxonomy-driven, not phd-engineering-computational-math), but orientation='research' (sticky from turn 1) mismatches both candidates' orientation ('applied' and 'clinical'), zeroing their scores — so the domain group has no eligible candidate and the override clarifies. This eliminates the prior scoring artifact (an unrelated engineering program no longer surfaces for a healthcare query), but does not reach the ideal outcome of a confident drph-public-health match, since distinguishing 'research orientation is closer to applied than to clinical' would require a scoring-model change (degree-of-mismatch, not just match/mismatch), which is out of scope for override-architecture work.",
       "rationale": "Traced exactly: with the override now scoped to taxonomy-matched candidates, phd-engineering-computational-math is never considered at all for this background-driven gap, removing the off-domain artifact; the remaining gap is a scoring-model limitation, not an override-architecture one.",
-      "notes": "Still the most significant scoring-related finding from this audit. A strong candidate for a future scoring-model phase (e.g. weighted/partial orientation-mismatch instead of a flat penalty) — explicitly out of scope here per the non-goals (no scoring model changes)."
+      "notes": "Phase 3A.5 review reconfirms this classification: this is a true (if narrow) architectural limitation — the scoring model treats orientation mismatch as flat/binary rather than a question of relative distance — not an intentional design choice or a taxonomy limitation. Still the most significant scoring-related finding from this audit, and still explicitly out of scope: this phase's non-goals forbid heuristic-weight/scoring-model changes, and 'research is closer to applied than to clinical' would require exactly that. A strong candidate for a dedicated future scoring-model phase."
     },
     {
       "case_id": "DISC-028",
@@ -486,11 +486,11 @@
       "expected_behavior": "clarify",
       "expected_confidence": "none",
       "expected_clarification": true,
-      "match_basis": ["clarification_gap", "known_gap"],
-      "known_gap": true,
-      "gap_description": "Background='education' takes priority over the generic orientation check in detect_gaps()'s elif chain, so this fires education_undifferentiated (not orientation_only). education_undifferentiated's own override block returns a clarify directly when no interest tag is present (interests=[] throughout), so unlike DISC-027 this never falls through to general scoring and never picks up an unrelated program — it simply stays clarify.",
-      "rationale": "Same interest-tag-absence root cause as DISC-022/023, but for the education_undifferentiated gap rather than healthcare.",
-      "notes": "Useful contrast case showing why DISC-027 (unhandled gap, falls through to scoring) and DISC-028 (handled gap, explicit clarify fallback) end up with different failure shapes despite a similar setup."
+      "match_basis": ["clarification_gap"],
+      "known_gap": false,
+      "gap_description": null,
+      "rationale": "Phase 3A.5 review: background='education' with orientation='research' derives {edd-educational-leadership-cc, edd-educational-leadership-p12} as candidates via the generalized domain override (Phase 3A.4), but both are zeroed by the orientation mismatch (their orientation is 'professional', not 'research'). With no eligible candidate in the domain group, the override correctly clarifies rather than guessing or falling through to general scoring — exactly the designed behavior, locked in by test_t14_no_eligible_candidate_in_domain_clarifies_not_unrelated_program.",
+      "notes": "Reclassified from known_gap: this is the override mechanism working as intended (clarify when nothing in the domain group is eligible), not a defect. Useful contrast with DISC-027, which hits the same 'no eligible candidate → clarify' path but for a healthcare-domain group — both are now correctly handled by the same mechanism."
     },
     {
       "case_id": "DISC-029",
