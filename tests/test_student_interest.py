@@ -466,17 +466,18 @@ class TestMultiTurnExploration:
 
     def test_e17b_education_undifferentiated_survives_phase_d_fallback(self):
         """Root-cause regression: when the 3-turn stopping rule forces Phase D
-        (select_recommendation) to handle the clarify decision instead of Phase C,
-        and the EdD multi_recommend override conditions aren't met (only a
-        background match, no interest match), the question must still be the
-        domain-specific K-12/CC question — not the generic _build_response()
-        placeholder ("Can you tell me more about your career goals?").
+        (select_recommendation) to handle the decision instead of Phase C, and
+        only a background match is present (no interest match), Phase D must
+        not silently drop the signal into a bare, unhelpful clarify.
 
-        This is the actual root cause behind the manual UI report: by the time
-        'education' lands on a session with turn_count already >= 2, should_clarify()
-        is bypassed by the stopping rule, select_recommendation() falls through to
-        a bare _clarify_result() with no question, and _build_response() used to
-        substitute the generic fallback.
+        Phase 3A.4 update: the generalized domain override now derives EdD-CC/
+        EdD-P12 as candidates directly from academic_background_tags ('education'),
+        not just interest tags. Since neither program has any further
+        differentiator, they resolve to a tied low-confidence multi_recommend —
+        surfacing both options directly — instead of asking yet another
+        clarifying question. Previously this fell through to a bare
+        _clarify_result() with no question at all (the original manual-UI bug);
+        now it skips the clarify step entirely and presents both programs.
         """
         sid = "e17b"
         _fresh(sid)
@@ -486,16 +487,14 @@ class TestMultiTurnExploration:
 
         r3, s3 = handle_discovery("education", sid)                 # turn 3 -> stopping rule
         assert s3["turn_count"] == 3
-        assert r3["behavior"] == "clarify"
-        q3 = (r3.get("clarification_question") or r3.get("primary_action") or "").lower()
-        assert "k-12" in q3 or "k12" in q3, (
-            f"Phase D fallback must still ask the K-12/CC question; got: {q3!r}"
+        assert r3["behavior"] == "multi_recommend", (
+            f"background-only 'education' signal must resolve to a tied EdD "
+            f"multi_recommend via the generalized domain override; got {r3['behavior']!r}"
         )
-        assert "community college" in q3 or "higher education" in q3, (
-            f"Phase D fallback question must mention CC/higher-ed; got: {q3!r}"
-        )
-        assert "career goals" not in q3, (
-            f"Phase D fallback must not use the generic career-goals placeholder; got: {q3!r}"
+        assert r3["confidence"] == "low"
+        ids3 = _program_ids(r3)
+        assert "edd-educational-leadership-cc" in ids3 and "edd-educational-leadership-p12" in ids3, (
+            f"both EdD programs must be surfaced as the tied pair; got {ids3}"
         )
 
     def test_e18_dont_know_to_public_health_policy_drph(self):

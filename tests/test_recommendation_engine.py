@@ -21,6 +21,14 @@ Test inventory (highest-risk first):
   T08  DISC-029  Clinical doctoral degree → DNP + DPT multi_recommend medium
   T09  Admission-gated guard must NOT be bypassed by Phase D
   T10  DISC-050  Psychology + healthcare background → DrPH partial_match_with_caveat at low
+
+Phase 3A.4 — generalized domain override regression tests:
+  T11  Exclusive-interest scenario  → solo DPT recommend (not stuck multi)
+  T12  Education background-only tie → EdD-CC + EdD-P12 multi_recommend low
+  T13  Mixed-domain isolation        → DNP-exclusive interests stay isolated
+  T14  No eligible candidate         → clarify, not an unrelated program
+  T15  Multiple eligible programs    → real-signal pair, medium confidence
+  T16  No exclusive signal (singleton domain) → never promoted, clarify
 """
 from __future__ import annotations
 
@@ -194,29 +202,38 @@ def test_t04_disc026_professor_engineering_invisible_known_gap():
 
 
 # ---------------------------------------------------------------------------
-# T05 — DISC-025
+# T05 — DISC-025-style background-only tie
 # "I have a healthcare background and want a doctoral degree."
-# Expected: clarify — NOT multi_recommend.
-# Risk: Phase C fires health_undifferentiated. Phase D sees DrPH + DNP
-#       both at LOW confidence (background only = 0.10 each).
-#       Phase D override requires MEDIUM confidence → NOT triggered.
-#       Must keep clarify.
+# Expected (Phase 3A.4): multi_recommend at low confidence, not clarify.
+# Risk: Phase C fires health_undifferentiated. The generalized domain
+#       override derives {drph-public-health, dnp-nursing} as candidates
+#       from academic_background_tags ('healthcare'); DPT is correctly
+#       excluded (no 'healthcare' tag). Both DrPH/DNP tie at LOW confidence
+#       (background only = 0.10 each) with no further differentiator, so
+#       they resolve to a tied multi_recommend rather than an indefinite
+#       clarify — the same generalization that fixed DISC-022/023.
 # ---------------------------------------------------------------------------
 
-def test_t05_disc025_healthcare_background_only_stays_clarify():
+def test_t05_disc025_healthcare_background_only_resolves_to_tied_pair():
     """
     Healthcare background puts DrPH and DNP at low confidence (0.10 each).
-    DPT has null academic_background_tags → score = 0.
-    Phase D override requires medium confidence → not triggered → clarify.
-    Must NOT produce multi_recommend.
+    DPT has null academic_background_tags → excluded from the candidate group.
+    Both DrPH and DNP are equally undifferentiated, so the generalized domain
+    override surfaces them as a tied low-confidence multi_recommend.
     """
     state = _state(academic_background=["healthcare"])
     gaps = ["health_undifferentiated"]
     result = select_recommendation(state, gaps, _load_taxonomy())
 
-    assert result.behavior == "clarify", (
-        f"low-confidence programs must not override to multi_recommend; "
+    assert result.behavior == "multi_recommend", (
+        f"tied low-confidence candidates should multi_recommend, not clarify; "
         f"got {result.behavior!r}"
+    )
+    assert result.confidence == "low"
+    ids = _program_ids(result)
+    assert "drph-public-health" in ids and "dnp-nursing" in ids, f"got {ids}"
+    assert "dpt-physical-therapy" not in ids, (
+        f"DPT must stay excluded — no 'healthcare' background tag; got {ids}"
     )
 
 
@@ -283,17 +300,26 @@ def test_t07_disc016_explicit_dnp_high_with_advisor_deadline():
 # ---------------------------------------------------------------------------
 # T08 — DISC-029
 # "I want a clinical doctoral degree in health."
-# Expected: DNP + DPT, medium, multi_recommend
+# Expected (Phase 3A.4): DNP + DPT, low, multi_recommend
 # Risk: only orientation signal present → Phase C fires orientation_only.
-#       Phase D must recognise clinical orientation as domain-specific to
-#       DNP+DPT and override orientation_only → multi_recommend.
+#       The generalized domain override derives {dnp-nursing,
+#       dpt-physical-therapy} from taxonomy orientation=='clinical' lookup
+#       (no hardcoded program-id pair). Both are otherwise fully
+#       undifferentiated, so the zero-information tie-promotion rule
+#       promotes them together and they multi_recommend. Confidence is "low"
+#       (not "medium"): the shared _multi_confidence() helper — now reused
+#       consistently for every multi_recommend pair instead of being
+#       bypassed — only grants "medium" for an exclusive interest/career
+#       tag, and orientation alone isn't one. This is an intentional,
+#       more-honest confidence level, not a regression.
 # ---------------------------------------------------------------------------
 
 def test_t08_disc029_clinical_orientation_dnp_dpt_multi_recommend():
     """
     orientation='clinical' is domain-specific to DNP and DPT (both have
-    clinical orientation in taxonomy).  Phase D must override orientation_only
-    → multi_recommend at medium when exactly 2 clinical programs exist.
+    clinical orientation in taxonomy). The generalized domain override
+    derives this pair from taxonomy lookup and promotes their genuine
+    zero-information tie to a low-confidence multi_recommend.
     """
     state = _state(orientation="clinical")
     gaps = ["orientation_only"]
@@ -303,8 +329,9 @@ def test_t08_disc029_clinical_orientation_dnp_dpt_multi_recommend():
         f"clinical orientation should override orientation_only → multi_recommend; "
         f"got {result.behavior!r}"
     )
-    assert result.confidence == "medium", (
-        f"clinical domain-exclusive orientation → medium; got {result.confidence!r}"
+    assert result.confidence == "low", (
+        f"orientation-only tie has no exclusive interest/career signal → low; "
+        f"got {result.confidence!r}"
     )
     ids = _program_ids(result)
     assert "dnp-nursing" in ids, f"DNP must be surfaced; got {ids}"
@@ -364,4 +391,150 @@ def test_t10_disc050_psychology_healthcare_drph_partial():
     )
     assert top["confidence"] == "low", (
         f"background-only match → low confidence; got {top['confidence']!r}"
+    )
+
+
+# ===========================================================================
+# Phase 3A.4 — Generalized domain override regression tests (T11–T16)
+#
+# These exercise _resolve_domain_override() directly: candidate-group
+# derivation from taxonomy tag membership, the zero-information tie
+# promotion rule, and the multi/solo/clarify decision — across healthcare,
+# education, and mixed-domain scenarios, with both exclusive-interest
+# (single eligible candidate) and multi-candidate cases.
+# ===========================================================================
+
+# ---------------------------------------------------------------------------
+# T11 — DISC-002-style: healthcare domain, exclusive-interest scenario
+# rehabilitation + biomechanics are interest tags exclusive to DPT (no other
+# program shares them). Even though health_undifferentiated fires (≥2
+# health-domain interests, no health career), the candidate group derived
+# from interest-tag membership has exactly one eligible member → solo
+# recommend, not a stuck DrPH/DNP-only multi-program dead end.
+# ---------------------------------------------------------------------------
+
+def test_t11_healthcare_exclusive_interest_resolves_to_solo_dpt():
+    state = _state(interests=["rehabilitation", "biomechanics"], academic_background=["biology"])
+    gaps = ["health_undifferentiated"]
+    result = select_recommendation(state, gaps, _load_taxonomy())
+
+    assert result.behavior == "recommend", (
+        f"interest tags exclusive to one program → solo recommend; got {result.behavior!r}"
+    )
+    assert result.confidence == "medium"
+    ids = _program_ids(result)
+    assert ids == ["dpt-physical-therapy"], f"got {ids}"
+
+
+# ---------------------------------------------------------------------------
+# T12 — Education domain, background-only tie (DISC-022/023-style)
+# background=['education'] with no interest tag. The old education_undifferentiated
+# override only ever checked matched_interest, so this could never resolve.
+# The generalized override also checks background-tag membership, deriving
+# {edd-cc, edd-p12} as a tied pair with no further differentiator.
+# ---------------------------------------------------------------------------
+
+def test_t12_education_background_only_tie_resolves_to_pair():
+    state = _state(academic_background=["education"])
+    gaps = ["education_undifferentiated"]
+    result = select_recommendation(state, gaps, _load_taxonomy())
+
+    assert result.behavior == "multi_recommend", (
+        f"background-only EdD tie should multi_recommend, not clarify; got {result.behavior!r}"
+    )
+    assert result.confidence == "low"
+    ids = _program_ids(result)
+    assert "edd-educational-leadership-cc" in ids and "edd-educational-leadership-p12" in ids, (
+        f"got {ids}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T13 — Mixed-domain isolation
+# DNP-exclusive interests (mental_health, nursing) must resolve to DNP alone
+# and must NOT pull in drph-public-health or any education/engineering
+# program, even though health_undifferentiated fired. Verifies the
+# interest-tag candidate derivation stays scoped to programs that actually
+# share a matched tag, not the whole health/education domain.
+# ---------------------------------------------------------------------------
+
+def test_t13_mixed_domain_interest_group_stays_isolated():
+    state = _state(interests=["mental_health", "nursing"], academic_background=["nursing"])
+    gaps = ["health_undifferentiated"]
+    result = select_recommendation(state, gaps, _load_taxonomy())
+
+    assert result.behavior == "recommend", f"got {result.behavior!r}"
+    ids = _program_ids(result)
+    assert ids == ["dnp-nursing"], (
+        f"mental_health+nursing are DNP-exclusive — no other program should "
+        f"appear in the candidate group; got {ids}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T14 — No eligible candidate in the domain group → clarify
+# (DISC-027/028-style) background='education' with orientation='research'.
+# Both EdD programs are zeroed by the orientation mismatch (professional
+# orientation vs. stated research), so the domain group has no eligible
+# member. Must clarify — must NOT fall through to general scoring and
+# surface an unrelated program (e.g. phd-engineering-computational-math,
+# whose orientation='research' happens to match but has zero domain
+# relevance to an education-background query).
+# ---------------------------------------------------------------------------
+
+def test_t14_no_eligible_candidate_in_domain_clarifies_not_unrelated_program():
+    state = _state(academic_background=["education"], orientation="research")
+    gaps = ["education_undifferentiated"]
+    result = select_recommendation(state, gaps, _load_taxonomy())
+
+    assert result.behavior == "clarify", (
+        f"a domain group with no eligible candidate must clarify, not surface "
+        f"an unrelated program; got {result.behavior!r} "
+        f"programs={_program_ids(result)}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T15 — Multiple eligible programs, both real signal (no promotion needed)
+# Sanity check that the generalized mechanism still reproduces the original
+# Phase C override's flagship case: education_leadership is an interest tag
+# exclusive to the EdD pair → multi_recommend at medium (real signal, not a
+# zero-information promotion). Mirrors T02 but adds a background tag to
+# ensure no unrelated program is swept in by the background-tag fallback.
+# ---------------------------------------------------------------------------
+
+def test_t15_multiple_eligible_programs_real_signal_pair():
+    state = _state(interests=["education_leadership"], academic_background=["education"])
+    gaps = ["education_undifferentiated"]
+    result = select_recommendation(state, gaps, _load_taxonomy())
+
+    assert result.behavior == "multi_recommend"
+    assert result.confidence == "medium", (
+        f"education_leadership is interest-exclusive to the EdD pair → medium; "
+        f"got {result.confidence!r}"
+    )
+    ids = _program_ids(result)
+    assert set(ids) == {"edd-educational-leadership-cc", "edd-educational-leadership-p12"}, (
+        f"got {ids}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# T16 — No exclusive signal at all (bare orientation, singleton domain) → clarify
+# orientation='research' alone (no interest/background) maps to exactly one
+# program (phd-engineering-computational-math) in the taxonomy. A singleton
+# domain group must never be promoted from a bare orientation match — there
+# is nothing to break a tie against, so promoting it would manufacture a
+# confident pick out of zero real information. Must clarify.
+# ---------------------------------------------------------------------------
+
+def test_t16_singleton_domain_group_never_promoted_clarifies():
+    state = _state(orientation="research")
+    gaps = ["orientation_only"]
+    result = select_recommendation(state, gaps, _load_taxonomy())
+
+    assert result.behavior == "clarify", (
+        f"a singleton domain group must not be promoted to a confident pick "
+        f"from bare orientation alone; got {result.behavior!r} "
+        f"programs={_program_ids(result)}"
     )

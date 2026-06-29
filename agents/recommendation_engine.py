@@ -24,12 +24,17 @@ Rule-based confidence tiers (NOT purely numeric):
 
 Coverage gate: programs without coverage_status in {"complete","partial"} score 0.0.
 
-Phase D override cases (documented exceptions to Phase C clarify decisions):
-  education_undifferentiated → multi_recommend when exactly 2 EdD programs
-      both score ≥ low AND education_leadership is domain-exclusive to EdD pair.
-  health_undifferentiated → multi_recommend when DrPH + DNP both score ≥ medium.
-  orientation_only → multi_recommend ONLY when state.orientation == "clinical"
-      AND exactly 2 clinical programs exist (DNP + DPT) AND both reach medium.
+Phase 3A.4 generalized domain override (replaces the three former Phase D
+special-case blocks — education_undifferentiated, health_undifferentiated,
+orientation_only — plus the previously-unhandled healthcare_goal_unclear gap):
+  For any overridable gap, the candidate program group is derived from
+  taxonomy tag membership only (interest tags > background tags >
+  orientation, by specificity) — no hardcoded program-id pairs. Within that
+  group: 2+ eligible candidates → multi_recommend; exactly 1 → solo
+  recommend/partial_match_with_caveat; a genuine zero-signal tie (every
+  candidate undifferentiated except for the orientation match that defined
+  the group) is promoted together rather than silently picked apart.
+  See _resolve_domain_override().
 
 Non-overridable gaps: term_ambiguity_*, admission_gated, no_field_signal.
 
@@ -95,14 +100,22 @@ _NON_OVERRIDABLE_GAPS: frozenset[str] = frozenset({
     "no_field_signal",
 })
 
-# Overridable gap codes
+# Overridable gap codes — dispatched through the single generalized domain
+# override mechanism (_resolve_domain_override), not per-gap special cases.
+# healthcare_goal_unclear was previously unhandled here (silently fell
+# through to general scoring); Phase 3A.4 gives it the same treatment as
+# the other three domain-ambiguity gaps.
 _OVERRIDABLE_GAPS: frozenset[str] = frozenset({
     "education_undifferentiated",
     "health_undifferentiated",
     "orientation_only",
+    "healthcare_goal_unclear",
 })
 
-# Clinical program IDs (for orientation_only override)
+# Retained for evals/experimental_scoring.py (Phase 2E weight-validation
+# clone), which imports this directly. No longer consulted by
+# select_recommendation() itself — candidate groups are now derived from
+# taxonomy tag membership rather than a hardcoded program-id pair.
 _CLINICAL_PROGRAM_IDS: frozenset[str] = frozenset({"dnp-nursing", "dpt-physical-therapy"})
 
 
@@ -450,6 +463,111 @@ def _emit_decision_event(
     emit("recommendation.decision", level="INFO", **fields)
 
 
+# ---------------------------------------------------------------------------
+# Phase 3A.4 — Generalized domain override
+# ---------------------------------------------------------------------------
+
+def _domain_candidates(
+    state: JourneyState,
+    all_scores: list[ProgramScore],
+    taxonomy: list[dict],
+) -> list[ProgramScore]:
+    """
+    Determine which programs are plausible candidates for the ambiguity the
+    current state represents, using taxonomy tag membership only — no
+    hardcoded program-id pairs. Priority: interest tags > background tags >
+    orientation, mirroring the specificity ordering already used elsewhere
+    (extract_signals() step order, _assign_confidence() tiers). Whichever
+    signal channel is present and most specific defines the group; this is
+    the one algorithm that determines candidates for every domain, instead
+    of a separate hardcoded set per gap code.
+    """
+    state_interests = set(state.get("interests", []))
+    state_bg        = set(state.get("academic_background", []))
+    state_orient    = state.get("orientation")
+
+    if state_interests:
+        matching_ids = {
+            p["program_id"] for p in taxonomy
+            if set(p.get("interest_tags") or []) & state_interests
+        }
+    elif state_bg:
+        matching_ids = {
+            p["program_id"] for p in taxonomy
+            if set(p.get("academic_background_tags") or []) & state_bg
+        }
+    elif state_orient:
+        matching_ids = {
+            p["program_id"] for p in taxonomy
+            if p.get("orientation") == state_orient
+        }
+    else:
+        return []
+
+    return [s for s in all_scores if s.program_id in matching_ids]
+
+
+def _promote_domain_tie(candidates: list[ProgramScore], orientation: Optional[str]) -> None:
+    """
+    Mutates candidates in place. When EVERY candidate in the domain group is
+    otherwise fully undifferentiated (confidence == "none") and their only
+    positive signal is the orientation match that defined the group, this is
+    a genuine zero-information tie — promote them together to medium so the
+    group can be offered as a multi_recommend instead of silently picking
+    one. Never promotes a singleton group: with nothing to break a tie
+    against, that would manufacture a confident pick out of bare orientation
+    alone. Generalizes the old orientation_only+clinical promotion rule to
+    any domain group.
+    """
+    if len(candidates) < 2:
+        return
+    tied = [
+        s for s in candidates
+        if s.confidence == "none" and s.orientation_match is True
+        and not s.matched_interest and not s.matched_background
+        and not s.matched_career_unique and not s.matched_career_shared
+        and not s.degree_type_match
+    ]
+    if len(tied) == len(candidates):
+        tag = f"orientation_match:{orientation}"
+        for s in tied:
+            s.confidence = "medium"
+            if tag not in s.score_basis:
+                s.score_basis.append(tag)
+
+
+def _resolve_domain_override(
+    state: JourneyState,
+    all_scores: list[ProgramScore],
+    taxonomy: list[dict],
+) -> Optional[tuple[str, str, list[ProgramScore]]]:
+    """
+    Single generalized override mechanism for every overridable gap code
+    (replaces the three former Phase D special-case blocks). Returns
+    (behavior, confidence, programs) when the domain group resolves to a
+    confident answer, or None when the caller should clarify instead.
+    """
+    candidates = _domain_candidates(state, all_scores, taxonomy)
+    if not candidates:
+        return None
+
+    _promote_domain_tie(candidates, state.get("orientation"))
+
+    eligible = [s for s in candidates if s.confidence != "none"]
+    if not eligible:
+        return None
+
+    ranked = sorted(eligible, key=lambda s: s.raw_score, reverse=True)
+    if len(ranked) >= 2:
+        pair = ranked[:2]
+        conf = _multi_confidence(pair[0], pair[1], state, all_scores)
+        return ("multi_recommend", conf, pair)
+
+    solo = ranked[0]
+    behavior = "recommend" if solo.confidence in ("medium", "high") else "partial_match_with_caveat"
+    return (behavior, solo.confidence, [solo])
+
+
 def select_recommendation(
     state: JourneyState,
     gaps: list[str],
@@ -479,117 +597,34 @@ def select_recommendation(
 
     _emit_score_events(all_scores)
 
-    # ── Phase C override: orientation_only + clinical ──────────────────────
-    # Must run BEFORE the general overridable-gap handling because it has
-    # stricter conditions than a generic gap override.
-    if "orientation_only" in gap_set:
-        # Only override when orientation is clinical AND exactly 2 clinical programs
-        # (DNP + DPT) reach medium confidence with a special clinical rule.
-        if state.get("orientation") == "clinical":
-            clinical_scored = [
-                s for s in all_scores
-                if s.program_id in _CLINICAL_PROGRAM_IDS
-            ]
-            # For the clinical override, orientation match alone elevates to medium
-            # (clinical orientation is domain-exclusive to DNP+DPT)
-            for s in clinical_scored:
-                if s.confidence == "none" and s.orientation_match is True:
-                    s.confidence = "medium"
-                    if "orientation_match:clinical" not in s.score_basis:
-                        s.score_basis.append("orientation_match:clinical")
-
-            clinical_medium = [s for s in clinical_scored if s.confidence == "medium"]
-            if (
-                len(clinical_medium) == 2
-                and {s.program_id for s in clinical_medium} == _CLINICAL_PROGRAM_IDS
-            ):
-                pair = sorted(clinical_medium, key=lambda s: s.raw_score, reverse=True)
-                matches = [_to_program_match(s) for s in pair]
-                recommended = [m["program_id"] for m in matches]
-                _emit_rejection_events(all_scores, taxonomy, state, set(recommended))
-                _emit_decision_event("multi_recommend", "medium", recommended, gaps,
-                                      all_scores=all_scores, override="orientation_only_clinical_pair")
-                return _RecommendationResult(
-                    behavior="multi_recommend",
-                    confidence="medium",
-                    program_matches=matches,
-                    recommended_programs=recommended,
-                )
-            _emit_rejection_events(all_scores, taxonomy, state, set())
-            _emit_decision_event("clarify", "none", [], gaps, all_scores=all_scores,
-                                  override="orientation_only_clinical_incomplete")
-            return _clarify_result()
-        # orientation_only with non-clinical orientation is non-overridable
-        _emit_rejection_events(all_scores, taxonomy, state, set())
-        _emit_decision_event("clarify", "none", [], gaps, all_scores=all_scores,
-                              override="orientation_only_non_clinical")
-        return _clarify_result()
-
-    # ── Phase C override: education_undifferentiated ───────────────────────
-    if "education_undifferentiated" in gap_set:
-        edd_scored = [
-            s for s in all_scores
-            if s.program_id.startswith("edd-")
-        ]
-        edd_eligible = [s for s in edd_scored if s.raw_score >= 0.10]
-        if len(edd_eligible) == 2:
-            # Check if any matched interest is domain-exclusive to the EdD pair
-            pair_ids = {s.program_id for s in edd_eligible}
-            pair_interests = set()
-            for s in edd_eligible:
-                pair_interests |= set(s.matched_interest)
-
-            other_scores = [s for s in all_scores if s.program_id not in pair_ids]
-            other_interests: set[str] = set()
-            for s in other_scores:
-                other_interests |= set(s.matched_interest)
-
-            if pair_interests - other_interests:
-                # Domain-exclusive interest → override to multi_recommend at medium
-                pair = sorted(edd_eligible, key=lambda s: s.raw_score, reverse=True)
-                for s in pair:
-                    s.confidence = "medium"
-                matches = [_to_program_match(s) for s in pair]
-                recommended = [m["program_id"] for m in matches]
-                _emit_rejection_events(all_scores, taxonomy, state, set(recommended))
-                _emit_decision_event("multi_recommend", "medium", recommended, gaps,
-                                      all_scores=all_scores, override="education_undifferentiated_pair")
-                return _RecommendationResult(
-                    behavior="multi_recommend",
-                    confidence="medium",
-                    program_matches=matches,
-                    recommended_programs=recommended,
-                )
-        # Override conditions not met — fall through to clarify
-        _emit_rejection_events(all_scores, taxonomy, state, set())
-        _emit_decision_event("clarify", "none", [], gaps, all_scores=all_scores,
-                              override="education_undifferentiated_no_match")
-        return _clarify_result()
-
-    # ── Phase C override: health_undifferentiated ──────────────────────────
-    if "health_undifferentiated" in gap_set:
-        # DrPH and DNP are the health pair (DPT has null academic_background_tags)
-        health_pair_ids = {"drph-public-health", "dnp-nursing"}
-        health_scored = [s for s in all_scores if s.program_id in health_pair_ids]
-        health_medium  = [s for s in health_scored if s.confidence == "medium"]
-        if len(health_medium) == 2:
-            pair = sorted(health_medium, key=lambda s: s.raw_score, reverse=True)
-            conf = _multi_confidence(pair[0], pair[1], state, all_scores)
-            matches = [_to_program_match(s) for s in pair]
+    # ── Generalized domain override (Phase 3A.4) ────────────────────────────
+    # Single mechanism for every overridable gap — candidate group, exclusive
+    # signal, and recommend/multi_recommend/clarify decision are all derived
+    # from taxonomy tag membership (see _resolve_domain_override), not from
+    # per-gap hardcoded program-id sets.
+    if gap_set & _OVERRIDABLE_GAPS:
+        active_gaps = ",".join(sorted(gap_set & _OVERRIDABLE_GAPS))
+        resolved = _resolve_domain_override(state, all_scores, taxonomy)
+        if resolved:
+            behavior, conf, programs = resolved
+            matches = [_to_program_match(s) for s in programs]
             recommended = [m["program_id"] for m in matches]
             _emit_rejection_events(all_scores, taxonomy, state, set(recommended))
-            _emit_decision_event("multi_recommend", conf, recommended, gaps,
-                                  all_scores=all_scores, override="health_undifferentiated_pair")
+            _emit_decision_event(behavior, conf, recommended, gaps,
+                                  all_scores=all_scores,
+                                  override=f"domain_override:{active_gaps}")
             return _RecommendationResult(
-                behavior="multi_recommend",
+                behavior=behavior,
                 confidence=conf,
                 program_matches=matches,
                 recommended_programs=recommended,
             )
-        # Override conditions not met — keep clarify
+        # Domain group did not resolve to a confident answer — clarify rather
+        # than fall through to general scoring, which could surface an
+        # unrelated program with no connection to the signaled domain.
         _emit_rejection_events(all_scores, taxonomy, state, set())
         _emit_decision_event("clarify", "none", [], gaps, all_scores=all_scores,
-                              override="health_undifferentiated_no_match")
+                              override=f"domain_override_no_match:{active_gaps}")
         return _clarify_result()
 
     # ── No gaps (or all gaps are overridable and handled above) ───────────
