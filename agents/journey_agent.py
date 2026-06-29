@@ -34,6 +34,7 @@ from agents.recommendation_engine import (
 )
 from gradcenter_logging import emit
 from state.context_manager import _SESSION_STORE, get_context, save_context
+from responses.builder import build_response
 
 
 # ---------------------------------------------------------------------------
@@ -806,22 +807,26 @@ def _build_response(
             "Are you interested in research or clinical work?",
         ]
 
-    response: DiscoveryResponse = {
-        "query":                query,
-        "route":                "discovery",
-        "session_id":           session_id,
-        "summary":              summary,
-        "primary_action":       primary_action,
-        "source":               {"file": "", "url": "https://www.csulb.edu/graduate-center"},
-        "next_actions":         next_actions,
+    extra: dict = {
         "recommended_programs": rec_programs,
         "confidence":           confidence,
         "behavior":             behavior,
     }
     if question:
-        response["clarification_question"] = question
+        extra["clarification_question"] = question
     if prog_matches:
-        response["program_matches"] = prog_matches
+        extra["program_matches"] = prog_matches
+
+    response: DiscoveryResponse = build_response(
+        query=query,
+        route="discovery",
+        session_id=session_id,
+        summary=summary,
+        primary_action=primary_action,
+        source={"file": "", "url": "https://www.csulb.edu/graduate-center"},
+        next_actions=next_actions,
+        extra=extra,
+    )
     return response
 
 

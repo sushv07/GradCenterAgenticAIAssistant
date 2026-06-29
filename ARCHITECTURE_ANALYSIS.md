@@ -1825,3 +1825,23 @@ Introduced a backend Context Manager to centralize ownership of conversation sta
 
 Agents should consume conversation context rather than own session storage directly. Centralizing context ownership prepares the backend for future FastAPI deployment, persistent session storage, and additional agents without requiring agents to manage their own state stores.
 
+### Phase 4E — Shared Response Builder
+
+Introduced a shared backend response builder to centralize response assembly across the orchestrator and Journey Agent.
+
+#### Improvements
+
+- Added a single `build_response()` function for constructing backend response dictionaries.
+- Replaced duplicated response assembly logic in orchestrator and discovery flows.
+- Preserved existing response schemas, wording, routing behavior, and UI behavior.
+- Verified byte-for-byte equivalent response outputs across all major route types.
+
+#### Validation
+
+- Confirmed before/after response equality for welcome, guidance, answer, deadline, advisor, next-steps, and discovery routes.
+- Full regression suite completed successfully.
+- Recommendation evaluation, routing evaluation, and weight validation remained unchanged.
+
+#### Design Principle
+
+Backend modules should own business decisions, while a shared response builder owns response assembly. This prepares the system for FastAPI and future API serialization without duplicating response construction logic across agents and routes.

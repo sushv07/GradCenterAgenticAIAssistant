@@ -27,6 +27,7 @@ from agents.guidance_agent import guide_from_file
 from agents.journey_agent import handle_discovery
 from routing.router import Route, RouteDecision, decide_route, detect_route
 from contracts.response_types import OrchestratorResponse, TopicResponse
+from responses.builder import build_response
 
 
 
@@ -220,24 +221,27 @@ _HUMANIZERS = {
 }
 
 
-def _format_response(query: str, route: Route, raw: dict) -> dict:
+def _format_response(query: str, route: Route, raw: dict, session_id: str) -> dict:
     """Wrap raw agent output with a user-friendly presentation."""
     body = _HUMANIZERS[route](query, raw)
 
-    next_actions = body.pop("next_actions", []) or []
+    next_actions   = body.pop("next_actions", []) or []
+    summary        = body.pop("summary")
+    primary_action = body.pop("primary_action")
 
-    return {
-        "query":          query,
-        "route":          route.value,
-        "summary":        body.pop("summary"),
-        "primary_action": body.pop("primary_action"),
-        **body,
-        "source": {
+    return build_response(
+        query=query,
+        route=route.value,
+        session_id=session_id,
+        summary=summary,
+        primary_action=primary_action,
+        source={
             "file": raw.get("source_file", ""),
             "url":  raw.get("source_url", "https://www.csulb.edu/graduate-center"),
         },
-        "next_actions":   next_actions,
-    }
+        next_actions=next_actions,
+        extra=body,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -352,16 +356,16 @@ def _build_topic_response(topic: str, query: str, session_id: str) -> TopicRespo
         or f"Verify this information at the official CSULB page: {source_url}"
     )
 
-    return {
-        "query":          query,
-        "route":          topic,           # "deadlines" | "eligibility" | "application"
-        "session_id":     session_id,
-        "summary":        summary,
-        "primary_action": primary_action,
-        "tool_result":    result,          # full tool output — used by _render_topic_panel()
-        "source":         {"file": "", "url": source_url},
-        "next_actions":   next_actions,
-    }
+    return build_response(
+        query=query,
+        route=topic,           # "deadlines" | "eligibility" | "application"
+        session_id=session_id,
+        summary=summary,
+        primary_action=primary_action,
+        source={"file": "", "url": source_url},
+        next_actions=next_actions,
+        extra={"tool_result": result},  # full tool output — used by _render_topic_panel()
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -374,46 +378,46 @@ def _build_advisor_response(decision: RouteDecision) -> dict:
     advisor_result = decision.advisor_result or {}
 
     if decision.reason == "doctoral_no_match":
-        return {
-            "query":          decision.query,
-            "route":          "advisor",
-            "session_id":     decision.session_id,
-            "summary":        "There's no doctoral program matching that at CSULB — but here are the doctoral and professional programs we do have advisor information for.",
-            "primary_action": "Pick the closest program below and I can show you the advisor contact and application steps.",
-            "advisor_data":   {
-                "match":          None,
-                "confidence":     advisor_result.get("confidence", 0),
-                "suggestions":    [],
-                "known_programs": decision.known_programs,
-            },
-            "source":         {"file": "", "url": "https://www.csulb.edu/graduate-center"},
-            "next_actions": [
+        return build_response(
+            query=decision.query,
+            route="advisor",
+            session_id=decision.session_id,
+            summary="There's no doctoral program matching that at CSULB — but here are the doctoral and professional programs we do have advisor information for.",
+            primary_action="Pick the closest program below and I can show you the advisor contact and application steps.",
+            source={"file": "", "url": "https://www.csulb.edu/graduate-center"},
+            next_actions=[
                 "Engineering PhD advisor",
                 "Nursing DNP advisor",
                 "Physical therapy advisor",
             ],
-        }
-
-    if decision.reason == "advisor_intent_no_program":
-        return {
-            "query":          decision.query,
-            "route":          "advisor",
-            "session_id":     decision.session_id,
-            "summary":        "It looks like you're looking for an advisor — I just need the program name.",
-            "primary_action": "Try something like: \"nursing advisor\", \"dnp advisor\", or \"engineering phd advisor\".",
-            "advisor_data":   {
+            extra={"advisor_data": {
                 "match":          None,
-                "confidence":     0,
+                "confidence":     advisor_result.get("confidence", 0),
                 "suggestions":    [],
                 "known_programs": decision.known_programs,
-            },
-            "source":         {"file": "", "url": "https://www.csulb.edu/graduate-center"},
-            "next_actions": [
+            }},
+        )
+
+    if decision.reason == "advisor_intent_no_program":
+        return build_response(
+            query=decision.query,
+            route="advisor",
+            session_id=decision.session_id,
+            summary="It looks like you're looking for an advisor — I just need the program name.",
+            primary_action="Try something like: \"nursing advisor\", \"dnp advisor\", or \"engineering phd advisor\".",
+            source={"file": "", "url": "https://www.csulb.edu/graduate-center"},
+            next_actions=[
                 "Nursing advisor",
                 "Engineering phd advisor",
                 "Physical therapy advisor",
             ],
-        }
+            extra={"advisor_data": {
+                "match":          None,
+                "confidence":     0,
+                "suggestions":    [],
+                "known_programs": decision.known_programs,
+            }},
+        )
 
     # reason is "advisor_fuzzy_match" or "advisor_suggestions"
     match      = advisor_result.get("match")
@@ -424,23 +428,23 @@ def _build_advisor_response(decision: RouteDecision) -> dict:
         else "Contact GraduateCenter@csulb.edu for advisor information."
     )
 
-    advisor_response: dict = {
-        "query":          decision.query,
-        "route":          "advisor",
-        "session_id":     decision.session_id,
-        "summary":        (
+    advisor_response: dict = build_response(
+        query=decision.query,
+        route="advisor",
+        session_id=decision.session_id,
+        summary=(
             f"I found a {'Strong' if advisor_result.get('confidence', 0) >= 90 else 'Good'} "
             "match for your query."
         ) if match else "I couldn't find an exact match.",
-        "primary_action": primary,
-        "advisor_data":   advisor_result,
-        "source":         {"file": "", "url": source_url},
-        "next_actions": [
+        primary_action=primary,
+        source={"file": "", "url": source_url},
+        next_actions=[
             "Show me the application steps",
             "What are the GPA requirements?",
             "When is the application deadline?",
         ],
-    }
+        extra={"advisor_data": advisor_result},
+    )
 
     if match and match.get("advisor_name") and match.get("email"):
         from tools.email_tool import (
@@ -478,40 +482,42 @@ def _build_next_steps_response(decision: RouteDecision) -> dict:
     nsr     = decision.next_steps_result or {}
     extra   = nsr.get("extra_guidance") or ""
     primary = extra or "Request a free appointment with a Graduate Center Coordinator."
-    return {
-        "query":          decision.query,
-        "route":          "next_steps",
-        "session_id":     decision.session_id,
-        "summary":        "Not sure where to begin? Here are some ways to get started with graduate admissions at CSULB.",
-        "primary_action": primary,
-        "steps":          [
-            {"number": i + 1, "do": s}
-            for i, s in enumerate(nsr.get("steps", []))
-        ],
-        "resources":      [],
-        "source":         {"file": "", "url": "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs"},
-        "next_actions": [
+    return build_response(
+        query=decision.query,
+        route="next_steps",
+        session_id=decision.session_id,
+        summary="Not sure where to begin? Here are some ways to get started with graduate admissions at CSULB.",
+        primary_action=primary,
+        source={"file": "", "url": "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs"},
+        next_actions=[
             "Show me the application steps",
             "Find my program advisor",
             "What are the GPA requirements?",
         ],
-    }
+        extra={
+            "steps": [
+                {"number": i + 1, "do": s}
+                for i, s in enumerate(nsr.get("steps", []))
+            ],
+            "resources": [],
+        },
+    )
 
 
 def _dispatch(decision: RouteDecision) -> OrchestratorResponse:
     """Map a RouteDecision to the appropriate response builder."""
     if decision.route == "welcome":
-        return {
-            "route":          None,
-            "session_id":     decision.session_id,
-            "summary":        "Welcome to the Grad Center. What can I help you with today?",
-            "primary_action": "Ask me about admissions, your program, or any step in the process — or pick a starting point below.",
-            "next_actions": [
+        return build_response(
+            route=None,
+            session_id=decision.session_id,
+            summary="Welcome to the Grad Center. What can I help you with today?",
+            primary_action="Ask me about admissions, your program, or any step in the process — or pick a starting point below.",
+            next_actions=[
                 "How do I apply to a graduate program?",
                 "What are the GPA requirements for admission?",
                 "Who do I contact about thesis submission?",
             ],
-        }
+        )
 
     if decision.route in ("deadlines", "eligibility", "application"):
         return _build_topic_response(decision.route, decision.query, decision.session_id)
@@ -529,9 +535,7 @@ def _dispatch(decision: RouteDecision) -> OrchestratorResponse:
     # "guidance" | "answer"
     route_enum = Route(decision.route)
     raw        = _ROUTE_RUNNERS[route_enum](decision.query, decision.session_id)
-    response   = _format_response(decision.query, route_enum, raw)
-    response["session_id"] = decision.session_id
-    return response
+    return _format_response(decision.query, route_enum, raw, decision.session_id)
 
 
 # ---------------------------------------------------------------------------

@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "run_id": "27746d7e-0deb-4d08-b714-6b5ad2bb932b",
-  "timestamp": "2026-06-29T19:04:06Z",
+  "run_id": "fc2bd2fb-578a-4992-814d-d0ee464377ce",
+  "timestamp": "2026-06-29T19:32:17Z",
   "dataset_path": "/Users/sushmithavijayakumar/Documents/ClaudeCode/GradCenterAgenticAIAssistant/evals/golden_queries.json",
   "dataset_schema_version": "1.0.0",
   "warmup_performed": true,
@@ -16,9 +16,9 @@
     "gate_pass_rate": 0.9706
   },
   "latency_ms": {
-    "p50": 1.0,
-    "p95": 38.7,
-    "max": 47.7,
+    "p50": 1.1,
+    "p95": 28.6,
+    "max": 39.4,
     "note": "snapshot only \u2014 no SLA gate in Phase 2A"
   },
   "backend_summary": {
@@ -49,7 +49,7 @@
       "query": "What is the application deadline for the spring semester?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 11.4,
+      "elapsed_ms": 9.13,
       "assertions": [
         {
           "name": "route",
@@ -98,10 +98,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:05.969Z",
+            "ts": "2026-06-29T19:32:17.233Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "13e9acf1-e901-4c7d-9be9-dc73237feded",
+            "request_id": "826a4992-25a8-45e7-8d17-a48971f44cd5",
             "logger": "gradcenter",
             "route": "deadlines",
             "reason": "deadline_signal",
@@ -114,14 +114,14 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:05.980Z",
+            "ts": "2026-06-29T19:32:17.242Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "13e9acf1-e901-4c7d-9be9-dc73237feded",
+            "request_id": "826a4992-25a8-45e7-8d17-a48971f44cd5",
             "logger": "gradcenter",
             "num_returned": 8,
             "top_score": 0.5977,
-            "elapsed_ms": 10.9,
+            "elapsed_ms": 8.8,
             "min_score_used": 0.25,
             "k_requested": 16,
             "page_type": "deadlines"
@@ -129,15 +129,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:05.980Z",
+            "ts": "2026-06-29T19:32:17.242Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "13e9acf1-e901-4c7d-9be9-dc73237feded",
+            "request_id": "826a4992-25a8-45e7-8d17-a48971f44cd5",
             "logger": "gradcenter",
             "tool": "deadlines_tool",
             "found": true,
             "top_score": 0.5977,
-            "elapsed_ms": 11.3,
+            "elapsed_ms": 9.0,
             "num_results": 8,
             "needs_clarification": true
           }
@@ -159,7 +159,7 @@
       "query": "What is the application cutoff for fall admission?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 10.54,
+      "elapsed_ms": 7.87,
       "assertions": [
         {
           "name": "route",
@@ -208,10 +208,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:05.981Z",
+            "ts": "2026-06-29T19:32:17.242Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "b741a32b-ae15-43e2-842a-64c41726e438",
+            "request_id": "adf2b96e-aea0-4473-87eb-c181a218d85d",
             "logger": "gradcenter",
             "route": "deadlines",
             "reason": "deadline_signal",
@@ -224,14 +224,14 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:05.991Z",
+            "ts": "2026-06-29T19:32:17.250Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "b741a32b-ae15-43e2-842a-64c41726e438",
+            "request_id": "adf2b96e-aea0-4473-87eb-c181a218d85d",
             "logger": "gradcenter",
             "num_returned": 8,
             "top_score": 0.4382,
-            "elapsed_ms": 10.2,
+            "elapsed_ms": 7.7,
             "min_score_used": 0.25,
             "k_requested": 16,
             "page_type": "deadlines"
@@ -239,15 +239,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:05.991Z",
+            "ts": "2026-06-29T19:32:17.250Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "b741a32b-ae15-43e2-842a-64c41726e438",
+            "request_id": "adf2b96e-aea0-4473-87eb-c181a218d85d",
             "logger": "gradcenter",
             "tool": "deadlines_tool",
             "found": true,
             "top_score": 0.4382,
-            "elapsed_ms": 10.4,
+            "elapsed_ms": 7.8,
             "num_results": 8,
             "needs_clarification": true
           }
@@ -269,7 +269,7 @@
       "query": "What GPA do I need to be eligible for graduate admission?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 10.34,
+      "elapsed_ms": 8.05,
       "assertions": [
         {
           "name": "route",
@@ -318,10 +318,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:05.991Z",
+            "ts": "2026-06-29T19:32:17.250Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "b7d08b35-7173-46fd-9cc8-56aa4703ba30",
+            "request_id": "8d2f5eba-091c-45fd-874e-e136e8ae45db",
             "logger": "gradcenter",
             "route": "eligibility",
             "reason": "eligibility_signal",
@@ -335,14 +335,14 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:06.001Z",
+            "ts": "2026-06-29T19:32:17.258Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "b7d08b35-7173-46fd-9cc8-56aa4703ba30",
+            "request_id": "8d2f5eba-091c-45fd-874e-e136e8ae45db",
             "logger": "gradcenter",
             "num_returned": 4,
             "top_score": 0.7192,
-            "elapsed_ms": 10.1,
+            "elapsed_ms": 7.8,
             "min_score_used": 0.3,
             "k_requested": 8,
             "page_type": "eligibility"
@@ -350,15 +350,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:06.002Z",
+            "ts": "2026-06-29T19:32:17.258Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "b7d08b35-7173-46fd-9cc8-56aa4703ba30",
+            "request_id": "8d2f5eba-091c-45fd-874e-e136e8ae45db",
             "logger": "gradcenter",
             "tool": "eligibility_tool",
             "found": true,
             "top_score": 0.7192,
-            "elapsed_ms": 10.3,
+            "elapsed_ms": 8.0,
             "num_results": 4
           }
         ],
@@ -393,7 +393,7 @@
       "query": "What are the steps to apply to the DNP nursing program?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 41.12,
+      "elapsed_ms": 24.02,
       "assertions": [
         {
           "name": "route",
@@ -457,10 +457,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.002Z",
+            "ts": "2026-06-29T19:32:17.258Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "bd4960ef-57a9-4ea5-8770-c1a32f0210ef",
+            "request_id": "4dcc8a1e-5865-4d63-a819-63053b3e918b",
             "logger": "gradcenter",
             "route": "application",
             "reason": "application_process",
@@ -471,28 +471,28 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:06.016Z",
+            "ts": "2026-06-29T19:32:17.270Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "bd4960ef-57a9-4ea5-8770-c1a32f0210ef",
+            "request_id": "4dcc8a1e-5865-4d63-a819-63053b3e918b",
             "logger": "gradcenter",
             "num_returned": 14,
             "top_score": 0.7539,
-            "elapsed_ms": 14.3,
+            "elapsed_ms": 11.3,
             "min_score_used": 0.3,
             "k_requested": 28,
             "page_type": "program_application",
             "program_name": "Nursing (D.N.P.)"
           },
           {
-            "ts": "2026-06-29T19:04:06.028Z",
+            "ts": "2026-06-29T19:32:17.277Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "bd4960ef-57a9-4ea5-8770-c1a32f0210ef",
+            "request_id": "4dcc8a1e-5865-4d63-a819-63053b3e918b",
             "logger": "gradcenter",
             "num_returned": 3,
             "top_score": 0.385,
-            "elapsed_ms": 12.3,
+            "elapsed_ms": 7.1,
             "min_score_used": 0.3,
             "k_requested": 6,
             "page_type": "application_process"
@@ -500,15 +500,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:06.043Z",
+            "ts": "2026-06-29T19:32:17.282Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "bd4960ef-57a9-4ea5-8770-c1a32f0210ef",
+            "request_id": "4dcc8a1e-5865-4d63-a819-63053b3e918b",
             "logger": "gradcenter",
             "tool": "application_steps_tool",
             "found": true,
             "top_score": 0.7539,
-            "elapsed_ms": 40.9,
+            "elapsed_ms": 23.9,
             "num_results": 14,
             "program_name": "Nursing (D.N.P.)",
             "program_specific": true
@@ -531,7 +531,7 @@
       "query": "What are the steps to apply to a graduate program at CSULB?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 22.21,
+      "elapsed_ms": 18.5,
       "assertions": [
         {
           "name": "route",
@@ -595,10 +595,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.043Z",
+            "ts": "2026-06-29T19:32:17.282Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "3ac18d1d-b4c5-41c1-a873-ffe935ea13eb",
+            "request_id": "d932a25c-2599-4356-aba9-8806af7b8187",
             "logger": "gradcenter",
             "route": "application",
             "reason": "application_process",
@@ -609,27 +609,27 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:06.053Z",
+            "ts": "2026-06-29T19:32:17.292Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "3ac18d1d-b4c5-41c1-a873-ffe935ea13eb",
+            "request_id": "d932a25c-2599-4356-aba9-8806af7b8187",
             "logger": "gradcenter",
             "num_returned": 14,
             "top_score": 0.7707,
-            "elapsed_ms": 10.1,
+            "elapsed_ms": 9.8,
             "min_score_used": 0.3,
             "k_requested": 28,
             "page_type": "application_process"
           },
           {
-            "ts": "2026-06-29T19:04:06.063Z",
+            "ts": "2026-06-29T19:32:17.300Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "3ac18d1d-b4c5-41c1-a873-ffe935ea13eb",
+            "request_id": "d932a25c-2599-4356-aba9-8806af7b8187",
             "logger": "gradcenter",
             "num_returned": 3,
             "top_score": 0.5294,
-            "elapsed_ms": 10.1,
+            "elapsed_ms": 7.3,
             "min_score_used": 0.3,
             "k_requested": 6,
             "page_type": "application_process"
@@ -637,15 +637,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:06.065Z",
+            "ts": "2026-06-29T19:32:17.301Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "3ac18d1d-b4c5-41c1-a873-ffe935ea13eb",
+            "request_id": "d932a25c-2599-4356-aba9-8806af7b8187",
             "logger": "gradcenter",
             "tool": "application_steps_tool",
             "found": true,
             "top_score": 0.7707,
-            "elapsed_ms": 22.0,
+            "elapsed_ms": 18.4,
             "num_results": 14,
             "program_specific": false
           }
@@ -667,7 +667,7 @@
       "query": "What documents do I need to submit for my graduate application?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 1.01,
+      "elapsed_ms": 0.9,
       "assertions": [
         {
           "name": "route",
@@ -708,10 +708,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.065Z",
+            "ts": "2026-06-29T19:32:17.301Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "f205bc22-ca23-41ca-b3d3-a2c06c3e9991",
+            "request_id": "aa248098-b485-4e48-b960-a4ebee747657",
             "logger": "gradcenter",
             "route": "guidance",
             "reason": "detect_route_guidance",
@@ -723,10 +723,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.065Z",
+            "ts": "2026-06-29T19:32:17.301Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "f205bc22-ca23-41ca-b3d3-a2c06c3e9991",
+            "request_id": "aa248098-b485-4e48-b960-a4ebee747657",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 66.66666666666667,
@@ -752,7 +752,7 @@
       "query": "Who is the Physical Therapy advisor?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.22,
+      "elapsed_ms": 0.21,
       "assertions": [
         {
           "name": "route",
@@ -800,10 +800,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.066Z",
+            "ts": "2026-06-29T19:32:17.302Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "9ff40de9-3ad5-4fe2-9e3e-5008a8db2665",
+            "request_id": "3918cb67-13fe-4783-9407-cfac4bb96521",
             "logger": "gradcenter",
             "route": "advisor",
             "reason": "advisor_fuzzy_match",
@@ -816,10 +816,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.066Z",
+            "ts": "2026-06-29T19:32:17.302Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "9ff40de9-3ad5-4fe2-9e3e-5008a8db2665",
+            "request_id": "3918cb67-13fe-4783-9407-cfac4bb96521",
             "logger": "gradcenter",
             "outcome": "strong_match",
             "best_partial": 100.0,
@@ -892,10 +892,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.066Z",
+            "ts": "2026-06-29T19:32:17.302Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "01ee43a1-87e7-4803-a1e5-d2c5b2ad5b1b",
+            "request_id": "4afccfa3-b896-4803-af06-e328d06145a9",
             "logger": "gradcenter",
             "route": "advisor",
             "reason": "advisor_suggestions",
@@ -908,10 +908,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.066Z",
+            "ts": "2026-06-29T19:32:17.302Z",
             "level": "WARNING",
             "event": "advisor.match",
-            "request_id": "01ee43a1-87e7-4803-a1e5-d2c5b2ad5b1b",
+            "request_id": "4afccfa3-b896-4803-af06-e328d06145a9",
             "logger": "gradcenter",
             "outcome": "ambiguous",
             "best_partial": 100.0,
@@ -937,7 +937,7 @@
       "query": "Who is my graduate advisor?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.05,
+      "elapsed_ms": 0.06,
       "assertions": [
         {
           "name": "route",
@@ -985,10 +985,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.067Z",
+            "ts": "2026-06-29T19:32:17.302Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "52ecfe77-c293-4bf8-8e3f-2d3ec5368539",
+            "request_id": "f9d39997-279d-4ea5-96ed-f1c12fa49ef3",
             "logger": "gradcenter",
             "route": "advisor",
             "reason": "advisor_intent_no_program",
@@ -1001,10 +1001,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.067Z",
+            "ts": "2026-06-29T19:32:17.302Z",
             "level": "WARNING",
             "event": "advisor.match",
-            "request_id": "52ecfe77-c293-4bf8-8e3f-2d3ec5368539",
+            "request_id": "f9d39997-279d-4ea5-96ed-f1c12fa49ef3",
             "logger": "gradcenter",
             "outcome": "empty_normalized",
             "best_partial": 0,
@@ -1028,7 +1028,7 @@
       "query": "Who is the doctoral advisor for PhD students?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.13,
+      "elapsed_ms": 0.12,
       "assertions": [
         {
           "name": "route",
@@ -1076,10 +1076,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.067Z",
+            "ts": "2026-06-29T19:32:17.302Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "59c8bf4b-fbab-4e78-8160-9d294675b958",
+            "request_id": "27b0bcdb-7351-494f-b95c-73a0c898047a",
             "logger": "gradcenter",
             "route": "advisor",
             "reason": "doctoral_no_match",
@@ -1092,10 +1092,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.067Z",
+            "ts": "2026-06-29T19:32:17.302Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "59c8bf4b-fbab-4e78-8160-9d294675b958",
+            "request_id": "27b0bcdb-7351-494f-b95c-73a0c898047a",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 66.66666666666667,
@@ -1121,7 +1121,7 @@
       "query": "I don't know where to start with graduate school. I am completely lost.",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 9.14,
+      "elapsed_ms": 6.66,
       "assertions": [
         {
           "name": "route",
@@ -1162,10 +1162,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.076Z",
+            "ts": "2026-06-29T19:32:17.309Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "7084dd70-6650-4aee-839f-fb5285189581",
+            "request_id": "d686533b-6db6-443c-b476-0f6116b9562a",
             "logger": "gradcenter",
             "route": "next_steps",
             "reason": "start_intent",
@@ -1177,10 +1177,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.067Z",
+            "ts": "2026-06-29T19:32:17.302Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "7084dd70-6650-4aee-839f-fb5285189581",
+            "request_id": "d686533b-6db6-443c-b476-0f6116b9562a",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 66.66666666666667,
@@ -1193,10 +1193,10 @@
         "store.lifecycle": [],
         "faq_rag.query": [
           {
-            "ts": "2026-06-29T19:04:06.076Z",
+            "ts": "2026-06-29T19:32:17.309Z",
             "level": "INFO",
             "event": "faq_rag.query",
-            "request_id": "7084dd70-6650-4aee-839f-fb5285189581",
+            "request_id": "d686533b-6db6-443c-b476-0f6116b9562a",
             "logger": "gradcenter",
             "store_available": true,
             "found": true,
@@ -1204,7 +1204,7 @@
             "top_score": 0.7623,
             "threshold_passed": true,
             "matched_question": "I want to apply to graduate school, but I don\u2019t know where to start. Where can I get help?",
-            "elapsed_ms": 8.5
+            "elapsed_ms": 6.2
           }
         ],
         "keyword.retrieval": [],
@@ -1221,7 +1221,7 @@
       "query": "How do I apply for a doctoral program? What are the steps?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 20.14,
+      "elapsed_ms": 15.59,
       "assertions": [
         {
           "name": "route",
@@ -1285,10 +1285,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.076Z",
+            "ts": "2026-06-29T19:32:17.309Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "c49340cd-639e-4d0b-958f-6da16d851958",
+            "request_id": "7328f4e1-8c88-4cb8-a433-e74c5593bdd7",
             "logger": "gradcenter",
             "route": "application",
             "reason": "application_process",
@@ -1299,27 +1299,27 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:06.086Z",
+            "ts": "2026-06-29T19:32:17.316Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "c49340cd-639e-4d0b-958f-6da16d851958",
+            "request_id": "7328f4e1-8c88-4cb8-a433-e74c5593bdd7",
             "logger": "gradcenter",
             "num_returned": 8,
             "top_score": 0.5641,
-            "elapsed_ms": 10.4,
+            "elapsed_ms": 7.2,
             "min_score_used": 0.3,
             "k_requested": 28,
             "page_type": "application_process"
           },
           {
-            "ts": "2026-06-29T19:04:06.095Z",
+            "ts": "2026-06-29T19:32:17.323Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "c49340cd-639e-4d0b-958f-6da16d851958",
+            "request_id": "7328f4e1-8c88-4cb8-a433-e74c5593bdd7",
             "logger": "gradcenter",
             "num_returned": 3,
             "top_score": 0.5294,
-            "elapsed_ms": 8.3,
+            "elapsed_ms": 7.1,
             "min_score_used": 0.3,
             "k_requested": 6,
             "page_type": "application_process"
@@ -1327,15 +1327,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:06.096Z",
+            "ts": "2026-06-29T19:32:17.325Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "c49340cd-639e-4d0b-958f-6da16d851958",
+            "request_id": "7328f4e1-8c88-4cb8-a433-e74c5593bdd7",
             "logger": "gradcenter",
             "tool": "application_steps_tool",
             "found": true,
             "top_score": 0.5641,
-            "elapsed_ms": 20.0,
+            "elapsed_ms": 15.5,
             "num_results": 8,
             "program_specific": false
           }
@@ -1357,7 +1357,7 @@
       "query": "I'm stuck trying to figure out where to begin with graduate admissions.",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 10.35,
+      "elapsed_ms": 7.36,
       "assertions": [
         {
           "name": "route",
@@ -1398,10 +1398,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.106Z",
+            "ts": "2026-06-29T19:32:17.332Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "157f4913-94c1-4e48-97fb-cb9931dc52b1",
+            "request_id": "6d4da9eb-27f5-46dc-95da-b44499268009",
             "logger": "gradcenter",
             "route": "next_steps",
             "reason": "start_intent",
@@ -1413,10 +1413,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.096Z",
+            "ts": "2026-06-29T19:32:17.325Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "157f4913-94c1-4e48-97fb-cb9931dc52b1",
+            "request_id": "6d4da9eb-27f5-46dc-95da-b44499268009",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 58.33333333333333,
@@ -1429,10 +1429,10 @@
         "store.lifecycle": [],
         "faq_rag.query": [
           {
-            "ts": "2026-06-29T19:04:06.106Z",
+            "ts": "2026-06-29T19:32:17.332Z",
             "level": "INFO",
             "event": "faq_rag.query",
-            "request_id": "157f4913-94c1-4e48-97fb-cb9931dc52b1",
+            "request_id": "6d4da9eb-27f5-46dc-95da-b44499268009",
             "logger": "gradcenter",
             "store_available": true,
             "found": true,
@@ -1440,7 +1440,7 @@
             "top_score": 0.7148,
             "threshold_passed": true,
             "matched_question": "I want to apply to graduate school, but I don\u2019t know where to start. Where can I get help?",
-            "elapsed_ms": 9.7
+            "elapsed_ms": 6.9
           }
         ],
         "keyword.retrieval": [],
@@ -1457,7 +1457,7 @@
       "query": "I don't know if I need help with orientation after admission.",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.49,
+      "elapsed_ms": 0.41,
       "assertions": [
         {
           "name": "route",
@@ -1498,10 +1498,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.107Z",
+            "ts": "2026-06-29T19:32:17.332Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "fef13078-e78a-4907-ad18-5b85ee31b922",
+            "request_id": "c67ed383-8db5-4ad1-9c87-29f3ab73c534",
             "logger": "gradcenter",
             "route": "guidance",
             "reason": "detect_route_guidance",
@@ -1513,10 +1513,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.107Z",
+            "ts": "2026-06-29T19:32:17.332Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "fef13078-e78a-4907-ad18-5b85ee31b922",
+            "request_id": "c67ed383-8db5-4ad1-9c87-29f3ab73c534",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 66.66666666666667,
@@ -1542,7 +1542,7 @@
       "query": "What should I do after being accepted as an international student?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.52,
+      "elapsed_ms": 0.38,
       "assertions": [
         {
           "name": "route",
@@ -1583,10 +1583,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.107Z",
+            "ts": "2026-06-29T19:32:17.333Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "ae87ca6f-ca21-436a-9acc-d09fc6cdb6f0",
+            "request_id": "69abdd05-3688-40f8-8eb6-b64622493beb",
             "logger": "gradcenter",
             "route": "guidance",
             "reason": "detect_route_guidance",
@@ -1598,10 +1598,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.107Z",
+            "ts": "2026-06-29T19:32:17.333Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "ae87ca6f-ca21-436a-9acc-d09fc6cdb6f0",
+            "request_id": "69abdd05-3688-40f8-8eb6-b64622493beb",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 66.66666666666667,
@@ -1627,7 +1627,7 @@
       "query": "What programs does the Graduate Center support?",
       "status": "FAIL",
       "known_failure": false,
-      "elapsed_ms": 0.12,
+      "elapsed_ms": 0.09,
       "assertions": [
         {
           "name": "route",
@@ -1668,10 +1668,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.108Z",
+            "ts": "2026-06-29T19:32:17.333Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "f6dc6d0a-a355-431f-adc5-af43238f67b7",
+            "request_id": "4f92dc35-d30c-4c80-8d28-8db34d55ac40",
             "logger": "gradcenter",
             "route": "discovery",
             "reason": "discovery_signal",
@@ -1701,7 +1701,7 @@
       "query": "Does CSULB offer graduate certificates in addition to degree programs?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 1.22,
+      "elapsed_ms": 1.07,
       "assertions": [
         {
           "name": "route",
@@ -1742,10 +1742,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.108Z",
+            "ts": "2026-06-29T19:32:17.333Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "5a99a618-2e94-42a7-8d79-2d5ea1decf0b",
+            "request_id": "89676fb0-7783-4fed-ad7f-8c10d714c20e",
             "logger": "gradcenter",
             "route": "answer",
             "reason": "detect_route_answer_starter",
@@ -1757,10 +1757,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.108Z",
+            "ts": "2026-06-29T19:32:17.333Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "5a99a618-2e94-42a7-8d79-2d5ea1decf0b",
+            "request_id": "89676fb0-7783-4fed-ad7f-8c10d714c20e",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 66.66666666666667,
@@ -1774,10 +1774,10 @@
         "faq_rag.query": [],
         "keyword.retrieval": [
           {
-            "ts": "2026-06-29T19:04:06.108Z",
+            "ts": "2026-06-29T19:32:17.333Z",
             "level": "INFO",
             "event": "keyword.retrieval",
-            "request_id": "5a99a618-2e94-42a7-8d79-2d5ea1decf0b",
+            "request_id": "89676fb0-7783-4fed-ad7f-8c10d714c20e",
             "logger": "gradcenter",
             "num_ranked": 1,
             "num_loaded": 1,
@@ -1794,10 +1794,10 @@
         ],
         "keyword.result": [
           {
-            "ts": "2026-06-29T19:04:06.109Z",
+            "ts": "2026-06-29T19:32:17.334Z",
             "level": "INFO",
             "event": "keyword.result",
-            "request_id": "5a99a618-2e94-42a7-8d79-2d5ea1decf0b",
+            "request_id": "89676fb0-7783-4fed-ad7f-8c10d714c20e",
             "logger": "gradcenter",
             "answer_type": "list",
             "confidence": "high",
@@ -1818,7 +1818,7 @@
       "query": "Can I transfer graduate credits from another university?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.67,
+      "elapsed_ms": 0.81,
       "assertions": [
         {
           "name": "route",
@@ -1859,10 +1859,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.109Z",
+            "ts": "2026-06-29T19:32:17.334Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "ca590591-06e8-45bf-a1b4-417495ee75b7",
+            "request_id": "7c2ac311-b804-4c54-87d4-f69e1664c233",
             "logger": "gradcenter",
             "route": "answer",
             "reason": "detect_route_answer_starter",
@@ -1874,10 +1874,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.109Z",
+            "ts": "2026-06-29T19:32:17.334Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "ca590591-06e8-45bf-a1b4-417495ee75b7",
+            "request_id": "7c2ac311-b804-4c54-87d4-f69e1664c233",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 66.66666666666667,
@@ -1891,10 +1891,10 @@
         "faq_rag.query": [],
         "keyword.retrieval": [
           {
-            "ts": "2026-06-29T19:04:06.109Z",
+            "ts": "2026-06-29T19:32:17.334Z",
             "level": "INFO",
             "event": "keyword.retrieval",
-            "request_id": "ca590591-06e8-45bf-a1b4-417495ee75b7",
+            "request_id": "7c2ac311-b804-4c54-87d4-f69e1664c233",
             "logger": "gradcenter",
             "num_ranked": 1,
             "num_loaded": 1,
@@ -1911,15 +1911,15 @@
         ],
         "keyword.result": [
           {
-            "ts": "2026-06-29T19:04:06.110Z",
+            "ts": "2026-06-29T19:32:17.335Z",
             "level": "INFO",
             "event": "keyword.result",
-            "request_id": "ca590591-06e8-45bf-a1b4-417495ee75b7",
+            "request_id": "7c2ac311-b804-4c54-87d4-f69e1664c233",
             "logger": "gradcenter",
             "answer_type": "direct",
             "confidence": "high",
             "source_file": "admissions.json",
-            "elapsed_ms": 0.2,
+            "elapsed_ms": 0.3,
             "source_url": "https://www.csulb.edu/graduate-studies-csulb/csulb-graduate-admissions"
           }
         ]
@@ -1935,7 +1935,7 @@
       "query": "Tell me about funding opportunities for graduate students.",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.99,
+      "elapsed_ms": 0.91,
       "assertions": [
         {
           "name": "route",
@@ -1976,10 +1976,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.110Z",
+            "ts": "2026-06-29T19:32:17.335Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "bdd0a709-8766-489c-81e6-bf7e79b15505",
+            "request_id": "64ee2cdb-7875-4d26-93de-644ead6275c4",
             "logger": "gradcenter",
             "route": "answer",
             "reason": "detect_route_answer_default",
@@ -1991,10 +1991,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.110Z",
+            "ts": "2026-06-29T19:32:17.335Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "bdd0a709-8766-489c-81e6-bf7e79b15505",
+            "request_id": "64ee2cdb-7875-4d26-93de-644ead6275c4",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 66.66666666666667,
@@ -2008,10 +2008,10 @@
         "faq_rag.query": [],
         "keyword.retrieval": [
           {
-            "ts": "2026-06-29T19:04:06.110Z",
+            "ts": "2026-06-29T19:32:17.335Z",
             "level": "INFO",
             "event": "keyword.retrieval",
-            "request_id": "bdd0a709-8766-489c-81e6-bf7e79b15505",
+            "request_id": "64ee2cdb-7875-4d26-93de-644ead6275c4",
             "logger": "gradcenter",
             "num_ranked": 2,
             "num_loaded": 2,
@@ -2032,10 +2032,10 @@
         ],
         "keyword.result": [
           {
-            "ts": "2026-06-29T19:04:06.111Z",
+            "ts": "2026-06-29T19:32:17.336Z",
             "level": "INFO",
             "event": "keyword.result",
-            "request_id": "bdd0a709-8766-489c-81e6-bf7e79b15505",
+            "request_id": "64ee2cdb-7875-4d26-93de-644ead6275c4",
             "logger": "gradcenter",
             "answer_type": "direct",
             "confidence": "high",
@@ -2104,10 +2104,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.111Z",
+            "ts": "2026-06-29T19:32:17.336Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "a5273a06-2324-4d1d-959e-90eaffaac492",
+            "request_id": "20b8a217-9803-4c9c-9047-1b722ad76881",
             "logger": "gradcenter",
             "route": "advisor",
             "reason": "advisor_fuzzy_match",
@@ -2120,10 +2120,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.111Z",
+            "ts": "2026-06-29T19:32:17.336Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "a5273a06-2324-4d1d-959e-90eaffaac492",
+            "request_id": "20b8a217-9803-4c9c-9047-1b722ad76881",
             "logger": "gradcenter",
             "outcome": "unambiguous_by_token",
             "best_partial": 100.0,
@@ -2149,7 +2149,7 @@
       "query": "When is the fall deadline for the DNP program?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 9.48,
+      "elapsed_ms": 7.29,
       "assertions": [
         {
           "name": "route",
@@ -2198,10 +2198,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.111Z",
+            "ts": "2026-06-29T19:32:17.336Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "809710ad-c90b-47f0-b4eb-b4bd644bd732",
+            "request_id": "28d4f3f1-cb3e-4879-8f4e-4acf266ebbb8",
             "logger": "gradcenter",
             "route": "deadlines",
             "reason": "deadline_signal",
@@ -2214,14 +2214,14 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:06.120Z",
+            "ts": "2026-06-29T19:32:17.343Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "809710ad-c90b-47f0-b4eb-b4bd644bd732",
+            "request_id": "28d4f3f1-cb3e-4879-8f4e-4acf266ebbb8",
             "logger": "gradcenter",
             "num_returned": 8,
             "top_score": 0.5731,
-            "elapsed_ms": 9.3,
+            "elapsed_ms": 7.1,
             "min_score_used": 0.25,
             "k_requested": 16,
             "page_type": "deadlines"
@@ -2229,15 +2229,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:06.120Z",
+            "ts": "2026-06-29T19:32:17.343Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "809710ad-c90b-47f0-b4eb-b4bd644bd732",
+            "request_id": "28d4f3f1-cb3e-4879-8f4e-4acf266ebbb8",
             "logger": "gradcenter",
             "tool": "deadlines_tool",
             "found": true,
             "top_score": 0.5731,
-            "elapsed_ms": 9.4,
+            "elapsed_ms": 7.2,
             "num_results": 8
           }
         ],
@@ -2258,7 +2258,7 @@
       "query": "Who is eligible for the nursing program?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.15,
+      "elapsed_ms": 0.14,
       "assertions": [
         {
           "name": "route",
@@ -2306,10 +2306,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.121Z",
+            "ts": "2026-06-29T19:32:17.344Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "99bab5b5-56db-4483-a598-5f53c0256b39",
+            "request_id": "2b3ff49d-12bf-4cd2-853e-f930acac508a",
             "logger": "gradcenter",
             "route": "advisor",
             "reason": "advisor_suggestions",
@@ -2322,10 +2322,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.120Z",
+            "ts": "2026-06-29T19:32:17.343Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "99bab5b5-56db-4483-a598-5f53c0256b39",
+            "request_id": "2b3ff49d-12bf-4cd2-853e-f930acac508a",
             "logger": "gradcenter",
             "outcome": "suggestions",
             "best_partial": 73.6842105263158,
@@ -2351,7 +2351,7 @@
       "query": "Is orientation mandatory for all new graduate students?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.72,
+      "elapsed_ms": 0.65,
       "assertions": [
         {
           "name": "route",
@@ -2392,10 +2392,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.121Z",
+            "ts": "2026-06-29T19:32:17.344Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "34bfb13a-573f-495a-a2f8-0392f64de09d",
+            "request_id": "033cb691-7214-4a10-a751-fee1f6b5a38e",
             "logger": "gradcenter",
             "route": "answer",
             "reason": "detect_route_answer_starter",
@@ -2407,10 +2407,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.121Z",
+            "ts": "2026-06-29T19:32:17.344Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "34bfb13a-573f-495a-a2f8-0392f64de09d",
+            "request_id": "033cb691-7214-4a10-a751-fee1f6b5a38e",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 66.66666666666667,
@@ -2424,10 +2424,10 @@
         "faq_rag.query": [],
         "keyword.retrieval": [
           {
-            "ts": "2026-06-29T19:04:06.121Z",
+            "ts": "2026-06-29T19:32:17.344Z",
             "level": "INFO",
             "event": "keyword.retrieval",
-            "request_id": "34bfb13a-573f-495a-a2f8-0392f64de09d",
+            "request_id": "033cb691-7214-4a10-a751-fee1f6b5a38e",
             "logger": "gradcenter",
             "num_ranked": 1,
             "num_loaded": 1,
@@ -2444,10 +2444,10 @@
         ],
         "keyword.result": [
           {
-            "ts": "2026-06-29T19:04:06.121Z",
+            "ts": "2026-06-29T19:32:17.344Z",
             "level": "INFO",
             "event": "keyword.result",
-            "request_id": "34bfb13a-573f-495a-a2f8-0392f64de09d",
+            "request_id": "033cb691-7214-4a10-a751-fee1f6b5a38e",
             "logger": "gradcenter",
             "answer_type": "direct",
             "confidence": "high",
@@ -2468,7 +2468,7 @@
       "query": "What are the steps to apply to the Ed.D. program?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 47.68,
+      "elapsed_ms": 39.36,
       "assertions": [
         {
           "name": "route",
@@ -2532,10 +2532,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.121Z",
+            "ts": "2026-06-29T19:32:17.344Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "e4ee2948-a616-4fbd-b971-8e0ce2735a89",
+            "request_id": "31a0d2fd-dbf7-4c01-be24-fa3830617387",
             "logger": "gradcenter",
             "route": "application",
             "reason": "application_process",
@@ -2546,28 +2546,28 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:06.137Z",
+            "ts": "2026-06-29T19:32:17.356Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "e4ee2948-a616-4fbd-b971-8e0ce2735a89",
+            "request_id": "31a0d2fd-dbf7-4c01-be24-fa3830617387",
             "logger": "gradcenter",
             "num_returned": 14,
             "top_score": 0.7676,
-            "elapsed_ms": 16.1,
+            "elapsed_ms": 12.2,
             "min_score_used": 0.3,
             "k_requested": 28,
             "page_type": "program_application",
             "program_name": "Educational Leadership (Ed.D.)"
           },
           {
-            "ts": "2026-06-29T19:04:06.146Z",
+            "ts": "2026-06-29T19:32:17.364Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "e4ee2948-a616-4fbd-b971-8e0ce2735a89",
+            "request_id": "31a0d2fd-dbf7-4c01-be24-fa3830617387",
             "logger": "gradcenter",
             "num_returned": 3,
             "top_score": 0.4381,
-            "elapsed_ms": 8.0,
+            "elapsed_ms": 7.0,
             "min_score_used": 0.3,
             "k_requested": 6,
             "page_type": "application_process"
@@ -2575,15 +2575,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:06.169Z",
+            "ts": "2026-06-29T19:32:17.384Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "e4ee2948-a616-4fbd-b971-8e0ce2735a89",
+            "request_id": "31a0d2fd-dbf7-4c01-be24-fa3830617387",
             "logger": "gradcenter",
             "tool": "application_steps_tool",
             "found": true,
             "top_score": 0.7676,
-            "elapsed_ms": 47.5,
+            "elapsed_ms": 39.2,
             "num_results": 14,
             "program_name": "Educational Leadership (Ed.D.)",
             "program_specific": true
@@ -2606,7 +2606,7 @@
       "query": "What are the steps to apply to the Public Health doctoral program?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 24.07,
+      "elapsed_ms": 18.98,
       "assertions": [
         {
           "name": "route",
@@ -2670,10 +2670,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.169Z",
+            "ts": "2026-06-29T19:32:17.384Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "b59e2a02-c646-4335-97df-e7b2bf6cf75d",
+            "request_id": "e2c42528-f4b6-49ae-aa53-70367221d46f",
             "logger": "gradcenter",
             "route": "application",
             "reason": "application_process",
@@ -2684,28 +2684,28 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:06.181Z",
+            "ts": "2026-06-29T19:32:17.394Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "b59e2a02-c646-4335-97df-e7b2bf6cf75d",
+            "request_id": "e2c42528-f4b6-49ae-aa53-70367221d46f",
             "logger": "gradcenter",
             "num_returned": 14,
             "top_score": 0.5517,
-            "elapsed_ms": 12.3,
+            "elapsed_ms": 9.9,
             "min_score_used": 0.3,
             "k_requested": 28,
             "page_type": "program_application",
             "program_name": "Public Health (DR.P.H.)"
           },
           {
-            "ts": "2026-06-29T19:04:06.190Z",
+            "ts": "2026-06-29T19:32:17.400Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "b59e2a02-c646-4335-97df-e7b2bf6cf75d",
+            "request_id": "e2c42528-f4b6-49ae-aa53-70367221d46f",
             "logger": "gradcenter",
             "num_returned": 3,
             "top_score": 0.444,
-            "elapsed_ms": 8.1,
+            "elapsed_ms": 6.1,
             "min_score_used": 0.3,
             "k_requested": 6,
             "page_type": "application_process"
@@ -2713,15 +2713,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:06.193Z",
+            "ts": "2026-06-29T19:32:17.403Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "b59e2a02-c646-4335-97df-e7b2bf6cf75d",
+            "request_id": "e2c42528-f4b6-49ae-aa53-70367221d46f",
             "logger": "gradcenter",
             "tool": "application_steps_tool",
             "found": true,
             "top_score": 0.5517,
-            "elapsed_ms": 23.9,
+            "elapsed_ms": 18.9,
             "num_results": 7,
             "program_name": "Public Health (DR.P.H.)",
             "program_specific": true
@@ -2744,7 +2744,7 @@
       "query": "Do all doctoral programs have the same GPA requirement?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 8.68,
+      "elapsed_ms": 6.95,
       "assertions": [
         {
           "name": "route",
@@ -2793,10 +2793,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.193Z",
+            "ts": "2026-06-29T19:32:17.403Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "83d5b090-e53c-4c00-87fa-792649776f67",
+            "request_id": "6625bb21-8731-4ba0-9eac-76c7e424a06c",
             "logger": "gradcenter",
             "route": "eligibility",
             "reason": "eligibility_signal",
@@ -2810,14 +2810,14 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:06.202Z",
+            "ts": "2026-06-29T19:32:17.409Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "83d5b090-e53c-4c00-87fa-792649776f67",
+            "request_id": "6625bb21-8731-4ba0-9eac-76c7e424a06c",
             "logger": "gradcenter",
             "num_returned": 4,
             "top_score": 0.6391,
-            "elapsed_ms": 8.5,
+            "elapsed_ms": 6.7,
             "min_score_used": 0.3,
             "k_requested": 8,
             "page_type": "eligibility"
@@ -2825,15 +2825,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:06.202Z",
+            "ts": "2026-06-29T19:32:17.410Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "83d5b090-e53c-4c00-87fa-792649776f67",
+            "request_id": "6625bb21-8731-4ba0-9eac-76c7e424a06c",
             "logger": "gradcenter",
             "tool": "eligibility_tool",
             "found": true,
             "top_score": 0.6391,
-            "elapsed_ms": 8.6,
+            "elapsed_ms": 6.9,
             "num_results": 4
           }
         ],
@@ -2854,7 +2854,7 @@
       "query": "Are there any spring admission deadlines?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 7.87,
+      "elapsed_ms": 7.62,
       "assertions": [
         {
           "name": "route",
@@ -2903,10 +2903,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.202Z",
+            "ts": "2026-06-29T19:32:17.410Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "09c37f3a-b904-451c-87f7-16903b5d9b88",
+            "request_id": "abb88312-c30c-4e8e-b8ec-9d594eba6bc7",
             "logger": "gradcenter",
             "route": "deadlines",
             "reason": "deadline_signal",
@@ -2919,14 +2919,14 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:06.210Z",
+            "ts": "2026-06-29T19:32:17.417Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "09c37f3a-b904-451c-87f7-16903b5d9b88",
+            "request_id": "abb88312-c30c-4e8e-b8ec-9d594eba6bc7",
             "logger": "gradcenter",
             "num_returned": 8,
             "top_score": 0.5539,
-            "elapsed_ms": 7.7,
+            "elapsed_ms": 7.4,
             "min_score_used": 0.25,
             "k_requested": 16,
             "page_type": "deadlines"
@@ -2934,15 +2934,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:06.210Z",
+            "ts": "2026-06-29T19:32:17.417Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "09c37f3a-b904-451c-87f7-16903b5d9b88",
+            "request_id": "abb88312-c30c-4e8e-b8ec-9d594eba6bc7",
             "logger": "gradcenter",
             "tool": "deadlines_tool",
             "found": true,
             "top_score": 0.5539,
-            "elapsed_ms": 7.8,
+            "elapsed_ms": 7.5,
             "num_results": 8,
             "needs_clarification": true
           }
@@ -2964,7 +2964,7 @@
       "query": "Will my transfer credits count toward the degree?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.91,
+      "elapsed_ms": 1.09,
       "assertions": [
         {
           "name": "route",
@@ -3005,10 +3005,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.210Z",
+            "ts": "2026-06-29T19:32:17.418Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "74cbc63e-4903-49d4-a916-d4ad3dd53489",
+            "request_id": "1af9b405-ce77-4c15-8c1d-65a734166927",
             "logger": "gradcenter",
             "route": "answer",
             "reason": "detect_route_answer_starter",
@@ -3020,10 +3020,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.210Z",
+            "ts": "2026-06-29T19:32:17.417Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "74cbc63e-4903-49d4-a916-d4ad3dd53489",
+            "request_id": "1af9b405-ce77-4c15-8c1d-65a734166927",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 66.66666666666667,
@@ -3037,10 +3037,10 @@
         "faq_rag.query": [],
         "keyword.retrieval": [
           {
-            "ts": "2026-06-29T19:04:06.210Z",
+            "ts": "2026-06-29T19:32:17.418Z",
             "level": "INFO",
             "event": "keyword.retrieval",
-            "request_id": "74cbc63e-4903-49d4-a916-d4ad3dd53489",
+            "request_id": "1af9b405-ce77-4c15-8c1d-65a734166927",
             "logger": "gradcenter",
             "num_ranked": 1,
             "num_loaded": 1,
@@ -3057,10 +3057,10 @@
         ],
         "keyword.result": [
           {
-            "ts": "2026-06-29T19:04:06.211Z",
+            "ts": "2026-06-29T19:32:17.418Z",
             "level": "INFO",
             "event": "keyword.result",
-            "request_id": "74cbc63e-4903-49d4-a916-d4ad3dd53489",
+            "request_id": "1af9b405-ce77-4c15-8c1d-65a734166927",
             "logger": "gradcenter",
             "answer_type": "direct",
             "confidence": "high",
@@ -3081,7 +3081,7 @@
       "query": "Should I apply to multiple graduate programs?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.4,
+      "elapsed_ms": 0.51,
       "assertions": [
         {
           "name": "route",
@@ -3122,10 +3122,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.211Z",
+            "ts": "2026-06-29T19:32:17.419Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "15ca60d6-d2b6-42c0-b0d3-c11fedadc76a",
+            "request_id": "059571b9-3e9c-4de3-9fbb-f08ddc8875ad",
             "logger": "gradcenter",
             "route": "answer",
             "reason": "detect_route_answer_starter",
@@ -3137,10 +3137,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.211Z",
+            "ts": "2026-06-29T19:32:17.419Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "15ca60d6-d2b6-42c0-b0d3-c11fedadc76a",
+            "request_id": "059571b9-3e9c-4de3-9fbb-f08ddc8875ad",
             "logger": "gradcenter",
             "outcome": "no_match",
             "best_partial": 62.5,
@@ -3154,10 +3154,10 @@
         "faq_rag.query": [],
         "keyword.retrieval": [
           {
-            "ts": "2026-06-29T19:04:06.211Z",
+            "ts": "2026-06-29T19:32:17.419Z",
             "level": "INFO",
             "event": "keyword.retrieval",
-            "request_id": "15ca60d6-d2b6-42c0-b0d3-c11fedadc76a",
+            "request_id": "059571b9-3e9c-4de3-9fbb-f08ddc8875ad",
             "logger": "gradcenter",
             "num_ranked": 2,
             "num_loaded": 2,
@@ -3178,10 +3178,10 @@
         ],
         "keyword.result": [
           {
-            "ts": "2026-06-29T19:04:06.211Z",
+            "ts": "2026-06-29T19:32:17.419Z",
             "level": "INFO",
             "event": "keyword.result",
-            "request_id": "15ca60d6-d2b6-42c0-b0d3-c11fedadc76a",
+            "request_id": "059571b9-3e9c-4de3-9fbb-f08ddc8875ad",
             "logger": "gradcenter",
             "answer_type": "list",
             "confidence": "high",
@@ -3202,7 +3202,7 @@
       "query": "How do I apply and who is the advisor?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.24,
+      "elapsed_ms": 0.26,
       "assertions": [
         {
           "name": "route",
@@ -3250,10 +3250,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.211Z",
+            "ts": "2026-06-29T19:32:17.419Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "0f64f98d-568a-405b-ab15-9750d1aab043",
+            "request_id": "5396b51e-54bf-4bcf-8844-e94149265f04",
             "logger": "gradcenter",
             "route": "guidance",
             "reason": "detect_route_guidance",
@@ -3265,10 +3265,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.211Z",
+            "ts": "2026-06-29T19:32:17.419Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "0f64f98d-568a-405b-ab15-9750d1aab043",
+            "request_id": "5396b51e-54bf-4bcf-8844-e94149265f04",
             "logger": "gradcenter",
             "outcome": "suggestions",
             "best_partial": 80.0,
@@ -3294,7 +3294,7 @@
       "query": "Who is the accounting advisor?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 0.11,
+      "elapsed_ms": 0.12,
       "assertions": [
         {
           "name": "route",
@@ -3342,10 +3342,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.212Z",
+            "ts": "2026-06-29T19:32:17.419Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "83628f9d-ff29-41bc-9655-0ed5fb53dc3d",
+            "request_id": "487f9591-db6c-4466-ac14-63f2f8738ec8",
             "logger": "gradcenter",
             "route": "advisor",
             "reason": "advisor_fuzzy_match",
@@ -3358,10 +3358,10 @@
         "tool.result": [],
         "advisor.match": [
           {
-            "ts": "2026-06-29T19:04:06.211Z",
+            "ts": "2026-06-29T19:32:17.419Z",
             "level": "INFO",
             "event": "advisor.match",
-            "request_id": "83628f9d-ff29-41bc-9655-0ed5fb53dc3d",
+            "request_id": "487f9591-db6c-4466-ac14-63f2f8738ec8",
             "logger": "gradcenter",
             "outcome": "strong_match",
             "best_partial": 100.0,
@@ -3386,7 +3386,7 @@
       "query": "What are the steps to apply to the Physical Therapy DPT program?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 37.17,
+      "elapsed_ms": 35.4,
       "assertions": [
         {
           "name": "route",
@@ -3450,10 +3450,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.212Z",
+            "ts": "2026-06-29T19:32:17.419Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "48d0da35-cf08-4ed1-a621-4e8ebe0a784d",
+            "request_id": "3fb2490a-beae-41f9-bcab-7c1606820dfc",
             "logger": "gradcenter",
             "route": "application",
             "reason": "application_process",
@@ -3464,28 +3464,28 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:06.224Z",
+            "ts": "2026-06-29T19:32:17.432Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "48d0da35-cf08-4ed1-a621-4e8ebe0a784d",
+            "request_id": "3fb2490a-beae-41f9-bcab-7c1606820dfc",
             "logger": "gradcenter",
             "num_returned": 14,
             "top_score": 0.7397,
-            "elapsed_ms": 12.5,
+            "elapsed_ms": 12.3,
             "min_score_used": 0.3,
             "k_requested": 28,
             "page_type": "program_application",
             "program_name": "Physical Therapy (DPT)"
           },
           {
-            "ts": "2026-06-29T19:04:06.232Z",
+            "ts": "2026-06-29T19:32:17.439Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "48d0da35-cf08-4ed1-a621-4e8ebe0a784d",
+            "request_id": "3fb2490a-beae-41f9-bcab-7c1606820dfc",
             "logger": "gradcenter",
             "num_returned": 3,
             "top_score": 0.4134,
-            "elapsed_ms": 8.0,
+            "elapsed_ms": 6.6,
             "min_score_used": 0.3,
             "k_requested": 6,
             "page_type": "application_process"
@@ -3493,15 +3493,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:06.249Z",
+            "ts": "2026-06-29T19:32:17.455Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "48d0da35-cf08-4ed1-a621-4e8ebe0a784d",
+            "request_id": "3fb2490a-beae-41f9-bcab-7c1606820dfc",
             "logger": "gradcenter",
             "tool": "application_steps_tool",
             "found": true,
             "top_score": 0.7397,
-            "elapsed_ms": 37.0,
+            "elapsed_ms": 35.3,
             "num_results": 14,
             "program_name": "Physical Therapy (DPT)",
             "program_specific": true
@@ -3524,7 +3524,7 @@
       "query": "What are the minimum requirements for doctoral admission?",
       "status": "PASS",
       "known_failure": false,
-      "elapsed_ms": 7.97,
+      "elapsed_ms": 7.51,
       "assertions": [
         {
           "name": "route",
@@ -3573,10 +3573,10 @@
       "captured_events": {
         "route.decision": [
           {
-            "ts": "2026-06-29T19:04:06.249Z",
+            "ts": "2026-06-29T19:32:17.455Z",
             "level": "INFO",
             "event": "route.decision",
-            "request_id": "e682cb02-7c24-4c21-933a-b4b7f4d3aa52",
+            "request_id": "33e8ba95-2c77-4afc-be88-494436531332",
             "logger": "gradcenter",
             "route": "eligibility",
             "reason": "eligibility_signal",
@@ -3590,14 +3590,14 @@
         ],
         "retrieval.result": [
           {
-            "ts": "2026-06-29T19:04:06.257Z",
+            "ts": "2026-06-29T19:32:17.462Z",
             "level": "INFO",
             "event": "retrieval.result",
-            "request_id": "e682cb02-7c24-4c21-933a-b4b7f4d3aa52",
+            "request_id": "33e8ba95-2c77-4afc-be88-494436531332",
             "logger": "gradcenter",
             "num_returned": 4,
             "top_score": 0.7571,
-            "elapsed_ms": 7.8,
+            "elapsed_ms": 7.3,
             "min_score_used": 0.3,
             "k_requested": 8,
             "page_type": "eligibility"
@@ -3605,15 +3605,15 @@
         ],
         "tool.result": [
           {
-            "ts": "2026-06-29T19:04:06.257Z",
+            "ts": "2026-06-29T19:32:17.462Z",
             "level": "INFO",
             "event": "tool.result",
-            "request_id": "e682cb02-7c24-4c21-933a-b4b7f4d3aa52",
+            "request_id": "33e8ba95-2c77-4afc-be88-494436531332",
             "logger": "gradcenter",
             "tool": "eligibility_tool",
             "found": true,
             "top_score": 0.7571,
-            "elapsed_ms": 7.9,
+            "elapsed_ms": 7.4,
             "num_results": 4
           }
         ],
