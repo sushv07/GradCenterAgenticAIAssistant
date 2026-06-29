@@ -30,7 +30,32 @@ Each item in results has:
 
 from __future__ import annotations
 
-from rag import retrieve
+from retrieval.retriever_service import retrieve as _retriever_retrieve
+
+
+# ---------------------------------------------------------------------------
+# Phase 4B migration note
+#
+# This tool now sources chunks through retrieval.retriever_service.retrieve()
+# (the unified Retriever abstraction) instead of calling rag.retrieve()
+# directly. rag/'s ChromaDB pipeline, embeddings, and thresholds are
+# completely unchanged — only the call path is indirected through the
+# service. _flatten() converts the service's normalized RetrievedChunk
+# shape back into the exact flat dict shape this tool has always returned,
+# so search_rag()'s own public contract (and every existing caller of it)
+# is unaffected.
+# ---------------------------------------------------------------------------
+
+def _flatten(chunk: dict) -> dict:
+    """RetrievedChunk -> the flat per-result dict shape this tool has always returned."""
+    flat = {
+        "text":  chunk.get("text", ""),
+        "title": chunk.get("title", ""),
+        "url":   chunk.get("url", ""),
+        "score": chunk.get("score", 0.0),
+    }
+    flat.update(chunk.get("metadata", {}))
+    return flat
 
 
 # ---------------------------------------------------------------------------
@@ -77,7 +102,8 @@ def search_rag(
         }
 
     try:
-        results = retrieve(query, k=k, min_score=min_score)
+        chunks  = _retriever_retrieve(query, top_k=k, min_score=min_score)
+        results = [_flatten(c) for c in chunks]
     except Exception as exc:
         return {
             "found":     False,

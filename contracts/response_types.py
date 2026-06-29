@@ -101,6 +101,35 @@ class KeywordRetrievalResult(RetrievalResult, total=False):
 
 
 # ---------------------------------------------------------------------------
+# Retrieved chunk contract (Phase 4B — Retrieval Abstraction)
+#
+# RetrievalResult (above) is a per-backend ENVELOPE shape — each backend
+# (faq_rag, admissions, advisor, keyword) has its own fields layered on top.
+# RetrievedChunk is different: it is the single, normalized shape every
+# backend's individual hits are converted INTO by the Retriever service in
+# retrieval/retriever_service.py, so callers depend on one chunk shape
+# regardless of which vector/keyword/fuzzy backend produced it.
+# ---------------------------------------------------------------------------
+
+class RetrievedChunk(TypedDict):
+    """
+    One normalized retrieval hit, backend-agnostic.
+
+    text, title, url, and score are the fields every backend can populate
+    (a vector store, a keyword matcher, or a future Pinecone/pgvector/Azure
+    backend all have some notion of "matched text, where it came from, how
+    confident"). Anything backend- or domain-specific (page_type,
+    program_name, content_category, chunk_id, ...) lives in metadata so the
+    top-level shape never has to grow per backend.
+    """
+    text:     str         # matched chunk text
+    title:    str         # source page title ("" if unknown)
+    url:      str         # citation URL ("" if unknown)
+    score:    float       # relevance score in [0.0, 1.0]; backend-defined similarity metric
+    metadata: dict         # backend/domain-specific extras (e.g. page_type, chunk_id)
+
+
+# ---------------------------------------------------------------------------
 # Base response — fields present on every non-empty response
 # ---------------------------------------------------------------------------
 
