@@ -13,8 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 import streamlit as st
-import orchestrator
-from agents.journey_agent import handle_discovery
+from backend.entrypoint import handle_user_query
 from gradcenter_logging import emit, set_request_id, new_request_id
 from tools.program_interest_tool import (
     generate_program_specific_response,
@@ -1121,38 +1120,6 @@ _init_state()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Discovery session continuity
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _is_discovery_clarify(response: dict) -> bool:
-    """
-    Pure predicate: True when a response is a pending discovery clarification.
-    Extracted as a standalone function so tests can import it without running
-    the full Streamlit app.
-    """
-    return (
-        bool(response)
-        and response.get("route") == "discovery"
-        and response.get("behavior") == "clarify"
-    )
-
-
-def _should_continue_discovery() -> bool:
-    """
-    Return True when the most recent assistant message was a discovery
-    clarification.  In that case the next user message must be sent directly
-    to handle_discovery() with the same session_id so the journey agent can
-    accumulate the new signal into the existing JourneyState — rather than
-    letting the generic router create a fresh, unrelated dispatch.
-    """
-    messages = st.session_state.get("messages", [])
-    for msg in reversed(messages):
-        if msg.get("role") == "assistant":
-            return _is_discovery_clarify(msg.get("response") or {})
-    return False
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -2110,12 +2077,7 @@ def _submit_query(query: str) -> None:
     _req_t0 = time.perf_counter()
 
     with st.spinner("Searching for an answer…"):
-        if _should_continue_discovery():
-            # Previous turn was a discovery clarification — continue the journey
-            # in the same session so JourneyState accumulates the new signal.
-            response, _ = handle_discovery(query, session_id=sid)
-        else:
-            response = orchestrator.run(query, session_id=sid)
+        response = handle_user_query(query, session_id=sid)
 
     print("\n========== DEBUG ==========")
     print("RESPONSE BEHAVIOR:", response.get("behavior"))

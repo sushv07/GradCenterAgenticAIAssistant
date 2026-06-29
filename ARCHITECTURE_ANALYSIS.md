@@ -1845,3 +1845,26 @@ Introduced a shared backend response builder to centralize response assembly acr
 #### Design Principle
 
 Backend modules should own business decisions, while a shared response builder owns response assembly. This prepares the system for FastAPI and future API serialization without duplicating response construction logic across agents and routes.
+
+### Phase 4F — Unified Backend Entry Point
+
+Introduced a unified backend entry point for handling user queries across UI and future API clients.
+
+#### Improvements
+
+- Added `handle_user_query(query, session_id)` as the preferred backend-facing request handler.
+- Moved discovery-continuation logic out of Streamlit and into the backend.
+- Used backend JourneyState to determine whether a discovery flow is active.
+- Simplified Streamlit so it no longer needs to know Journey Agent internals.
+- Preserved existing orchestrator, routing, recommendation, and response behavior.
+
+#### Validation
+
+- Verified old UI transcript-based continuation logic and new backend phase-based continuation logic produce identical decisions.
+- Verified full response content remains identical across major multi-turn scenarios.
+- Added regression tests for backend entry point behavior and session isolation.
+- Full regression suite completed successfully with no routing, recommendation, retrieval, or evaluation regressions.
+
+#### Design Principle
+
+UI clients should submit user queries to a backend entry point rather than making backend workflow decisions themselves. This prepares the system for FastAPI, CLI clients, and future multi-agent orchestration by giving all clients one stable request interface.
