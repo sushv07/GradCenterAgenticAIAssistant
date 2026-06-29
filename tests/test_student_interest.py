@@ -575,3 +575,82 @@ class TestRoutingRegressions:
         assert r.get("route") == "eligibility", (
             f"Eligibility query must route to eligibility; got route={r.get('route')!r}"
         )
+
+
+# ===========================================================================
+# Group G — Possession-context phrase matching (Phase 3A.2)
+# Distinguish "I have a PhD" (existing credential) from "I want a PhD" (a
+# stated goal) for degree_type and out_of_scope extraction, without any
+# parsing/NLP — a deterministic preceding-phrase + proximity-window check.
+# ===========================================================================
+
+class TestPossessionContextExtraction:
+
+    def test_g21_existing_phd_no_longer_misrecommends_engineering(self):
+        """Phase 3A.2 regression (DISC-045): 'I already have a PhD' must NOT
+        extract degree_type=PhD (which previously mis-recommended Engineering
+        PhD via a pure degree-mention artifact). Falls back to a safe clarify."""
+        _fresh("g21")
+        r, s = handle_discovery(
+            "I already have a PhD and want to continue my education.", "g21"
+        )
+        assert s.get("degree_type") is None
+        assert r["behavior"] == "clarify"
+        assert "phd-engineering-computational-math" not in r.get("recommended_programs", [])
+
+    def test_g22_existing_undergrad_background_not_redirected(self):
+        """Phase 3A.2 regression (DISC-050): 'I have an undergraduate degree
+        in psychology' describes a background, not an undergrad-admissions
+        request — must NOT trigger the out_of_scope redirect."""
+        _fresh("g22")
+        r, s = handle_discovery(
+            "I have an undergraduate degree in psychology and want to continue in healthcare.",
+            "g22",
+        )
+        assert r["behavior"] != "redirect"
+        assert s.get("degree_type") is None
+
+    def test_g23_existing_masters_goal_not_redirected(self):
+        """Generalization (from the Phase 3A.2 goal examples): 'I already
+        completed my master's' describes a credential already held, not a
+        master's-program request — must NOT trigger the masters_level redirect."""
+        _fresh("g23")
+        r, _ = handle_discovery(
+            "I already completed my master's and want to pursue a doctorate.", "g23"
+        )
+        assert r["behavior"] != "redirect"
+
+    def test_g24_stated_phd_goal_still_extracts_degree(self):
+        """Negative case: a genuine stated PhD goal (no possession context)
+        must still extract degree_type=PhD — confirms the fix doesn't
+        suppress legitimate degree-goal queries."""
+        _fresh("g24")
+        r, s = handle_discovery(
+            "I already have a lot of questions but I want a PhD in engineering.", "g24"
+        )
+        assert s.get("degree_type") == "PhD"
+        assert "phd-engineering-computational-math" in r.get("recommended_programs", [])
+
+    def test_g25_distant_have_does_not_suppress_masters_redirect(self):
+        """Negative case: 'have' appearing far before the trigger phrase (not
+        immediately adjacent to an article) must NOT suppress a legitimate
+        masters_level redirect — confirms the proximity window prevents
+        false positives from unrelated uses of 'have'."""
+        _fresh("g25")
+        r, _ = handle_discovery(
+            "I have a strong interest in pursuing a master's degree.", "g25"
+        )
+        assert r["behavior"] == "redirect"
+
+    def test_g26_existing_degree_goals_unaffected(self):
+        """Negative case: existing single-turn degree-goal behavior (DNP/DPT)
+        is unchanged by the possession-context check."""
+        _fresh("g26a")
+        r1, s1 = handle_discovery("I want to get a Doctor of Nursing Practice.", "g26a")
+        assert s1.get("degree_type") == "DNP"
+
+        _fresh("g26b")
+        r2, s2 = handle_discovery("I want to apply for the DPT program at CSULB.", "g26b")
+        assert s2.get("degree_type") == "DPT"
+        assert r2["behavior"] == "recommend"
+        assert r2["confidence"] == "high"

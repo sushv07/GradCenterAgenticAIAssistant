@@ -264,6 +264,45 @@ _STATED_UNCERTAINTY_PHRASES: frozenset[str] = frozenset({
     "unsure",
 })
 
+# Phrases indicating the student is describing an ALREADY-HELD credential,
+# not a stated goal — e.g. "I have a PhD" vs "I want a PhD". Each phrase
+# includes the article/possessive ("have a", "earned my") so it can't match
+# unrelated constructions like "I have interest in..." or "I have a question
+# about...". Checked only immediately before a degree_type/out_of_scope
+# trigger phrase (see _has_preceding_possession_context) — this is a
+# deterministic substring/proximity check, not a parser.
+_POSSESSION_CONTEXT_PHRASES: frozenset[str] = frozenset({
+    "already have a", "already have an",
+    "i have a", "i have an",
+    "currently hold a", "currently hold an",
+    "hold a", "hold an",
+    "earned a", "earned an", "earned my",
+    "completed a", "completed an", "completed my",
+    "received a", "received an", "received my",
+    "graduated with a", "graduated with an",
+})
+
+# Max characters allowed between the end of a possession-context phrase and
+# the start of the trigger phrase it suppresses — enough slack for an
+# adjective ("a recent PhD") but tight enough that an unrelated "have"/
+# "earned" elsewhere in a longer sentence can't suppress a distant,
+# legitimate match.
+_PRECEDING_CONTEXT_WINDOW = 25
+
+
+def _has_preceding_possession_context(q: str, trigger_start: int) -> bool:
+    """True if a possession/history phrase ends shortly before trigger_start,
+    meaning the upcoming trigger phrase describes an existing credential
+    rather than a stated goal."""
+    for phrase in _POSSESSION_CONTEXT_PHRASES:
+        idx = q.find(phrase)
+        if idx == -1:
+            continue
+        gap = trigger_start - (idx + len(phrase))
+        if 0 <= gap <= _PRECEDING_CONTEXT_WINDOW:
+            return True
+    return False
+
 # Interest tags exclusive to DrPH (not present in DNP or DPT interest_tags).
 # When ALL health interests fall within this set, the program is already
 # distinguishable — health_undifferentiated should not fire.
@@ -368,8 +407,12 @@ def extract_signals(query: str) -> _SignalBundle:
     bundle = _SignalBundle()
 
     # Step 1 — Out-of-scope (short-circuit: no further extraction needed)
+    # Skipped when the phrase describes an already-held credential (e.g.
+    # "I already have an undergraduate degree") rather than a request —
+    # see _has_preceding_possession_context.
     for phrase, code in _OOS_PHRASES:
-        if phrase in q:
+        idx = q.find(phrase)
+        if idx != -1 and not _has_preceding_possession_context(q, idx):
             bundle.out_of_scope = code
             bundle.out_of_scope_phrase = phrase
             return bundle
@@ -378,8 +421,11 @@ def extract_signals(query: str) -> _SignalBundle:
     bundle.stated_uncertainty = any(p in q for p in _STATED_UNCERTAINTY_PHRASES)
 
     # Step 2 — Degree type (explicit; highest specificity signal)
+    # Skipped when the phrase describes an already-held credential (e.g.
+    # "I already have a PhD") rather than a stated goal.
     for phrase, dtype in _DEGREE_PHRASES:
-        if phrase in q:
+        idx = q.find(phrase)
+        if idx != -1 and not _has_preceding_possession_context(q, idx):
             bundle.degree_type = dtype
             break
 

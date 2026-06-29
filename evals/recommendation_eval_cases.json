@@ -765,14 +765,14 @@
       "turns": ["I already have a PhD and want to continue my education."],
       "category": "edge_case",
       "sub_category": "degree_mention_ambiguity",
-      "expected_programs": ["phd-engineering-computational-math"],
-      "expected_behavior": "partial_match_with_caveat",
-      "expected_confidence": "medium",
-      "expected_clarification": false,
-      "match_basis": ["degree_type", "known_gap"],
-      "known_gap": true,
-      "gap_description": "Degree-type extraction does not distinguish 'I have a PhD' (describing an existing credential) from 'I want a PhD' (stating a goal) — both map to degree_type=PhD, which is then matched against phd-engineering-computational-math regardless of field. Originally documented as expecting a clarify flagging the unusual second-doctorate scenario.",
-      "rationale": "The literal substring 'PhD' sets degree_type=PhD via _DEGREE_MAP regardless of surrounding context about already holding the degree.",
+      "expected_programs": [],
+      "expected_behavior": "clarify",
+      "expected_confidence": "none",
+      "expected_clarification": true,
+      "match_basis": ["clarification_gap"],
+      "known_gap": false,
+      "gap_description": null,
+      "rationale": "Phase 3A.2 fix: 'already have a' immediately precedes 'PhD' within the possession-context window, so degree_type is no longer extracted. With no degree/interest/career signal left, background='education' triggers education_undifferentiated, a safe clarify instead of a confident mismatch.",
       "notes": null
     },
     {
@@ -853,14 +853,14 @@
       "category": "edge_case",
       "sub_category": "undergrad_mention",
       "expected_programs": [],
-      "expected_behavior": "redirect",
+      "expected_behavior": "clarify",
       "expected_confidence": "none",
-      "expected_clarification": false,
-      "match_basis": ["out_of_scope", "known_gap"],
-      "known_gap": true,
-      "gap_description": "_OUT_OF_SCOPE_MAP's 'undergraduate' phrase matches any mention of undergraduate background, not just undergrad-admissions questions, so this legitimate doctoral-exploration query is redirected before any signal extraction occurs. An existing direct-call unit test for this query bypasses extract_signals()'s out-of-scope check entirely (by constructing state by hand) and asserts a partial_match_with_caveat/drph-public-health outcome, so the gap was invisible until traced through the full pipeline. Originally documented as expecting an adjacent-field partial match.",
-      "rationale": "The literal substring 'undergraduate' triggers the out-of-scope redirect at the very start of extract_signals(), before psychology/healthcare are ever considered.",
-      "notes": null
+      "expected_clarification": true,
+      "match_basis": ["clarification_gap"],
+      "known_gap": false,
+      "gap_description": null,
+      "rationale": "Phase 3A.2 fix: 'I have an' immediately precedes 'undergraduate' within the possession-context window, so the out_of_scope redirect is no longer triggered. Signal extraction proceeds normally: background=['healthcare','social_sciences'] triggers healthcare_goal_unclear, a safe clarify instead of an incorrect redirect.",
+      "notes": "An existing direct-call unit test for this query bypasses extract_signals() entirely and asserts a different (partial_match_with_caveat/drph-public-health) outcome — that test exercises Phase D in isolation and is unaffected by this Phase 3A.2 signal-extraction fix."
     }
   ]
 }
