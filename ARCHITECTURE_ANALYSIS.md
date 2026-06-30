@@ -2720,3 +2720,44 @@ Unchanged in spirit from Phase 6A/6B, now with one more failure mode covered: `L
 ## Future LLM Opportunities
 
 Unchanged from Phase 7A's roadmap — Phase 7D (LLM evaluation framework, to programmatically measure faithfulness/citation correctness/consistency at scale rather than via hand-written test cases) is the natural next step before extending grounded generation to any new surface (advisor/admissions explanation, program summaries).
+
+## Phase 7D — LLM Evaluation Framework
+
+### Why LLM Evaluation Is Necessary
+
+Phases 7B and 7C built real safety mechanisms (grounding checks, citation-fidelity validation, graceful fallback) directly into `agents/recommendation_explainer.py` and `agents/llm_synthesizer.py`, proven correct by hand-written pytest cases. What was missing was a **dataset-driven, metrics-producing evaluation layer** — the same gap `evals/run_recommendation_evals.py` fills for the recommendation engine versus `tests/test_recommendation_engine.py`'s unit tests. Unit tests prove "this one input behaves correctly." An evaluation framework measures "what fraction of a curated, extensible case set behaves correctly, broken down by failure type" — and produces a report artifact, not just a green checkmark.
+
+### What Is Measured
+
+Two case sets, run through the **real** production functions (not reimplementations) with `requests.post` mocked per-case:
+
+- **Recommendation explanation** (`evals/llm_explanation_eval_cases.json`, 11 cases): explanation generation rate, evidence coverage rate, forbidden-claim rate, deterministic-consistency rate (ProgramMatch fields must never change), fallback success rate.
+- **Grounded answer generation** (`evals/llm_answer_eval_cases.json`, 12 cases): citation fidelity rate, unsupported-URL rejection rate, insufficient-evidence correctness rate, deterministic-fallback correctness rate.
+
+Three of the explanation cases are **intentionally-crafted bad LLM output** (a scripted explanation that omits matched evidence, one that promises an admissions outcome, one that compares against another program) — these are designed to FAIL, proving the evidence-omission and unsupported-claim detection logic actually catches bad content, not just that good content passes. This is the same "prove the gate actually closes" principle as a negative test case.
+
+### What Is Intentionally NOT Measured
+
+- **Semantic quality, fluency, or "does this sound natural"** — not deterministically measurable without an LLM judge, which is explicitly out of scope.
+- **Whether an explanation is the *best possible* phrasing** — only whether it stays within the grounding/safety boundaries (covers required evidence, avoids forbidden claims, never fabricates a citation).
+- **Live Ollama behavior** — every case's response is fully scripted via the dataset's `simulate` field; there is no `--live` mode in this phase. Running against a real local model is documented future work, not implemented here, since it would make the suite non-reproducible and dependent on a running service.
+
+### Why Deterministic Metrics, No LLM Judge
+
+An LLM judge would itself need grounding/evaluation, recursively reintroducing the exact problem this framework exists to solve — and would make results non-reproducible across runs (a second guiding-principle violation: "deterministic, reproducible, automated, inexpensive, explainable"). Every metric here is a substring/set-membership check against facts already known at test-construction time (which phrases SHOULD appear, which URLs are NOT in the source) — the same philosophy as `evals/error_classification.py`'s pure-function classification rules.
+
+### Integration With Existing Infrastructure
+
+`evals/run_llm_evals.py` mirrors `evals/run_recommendation_evals.py`'s exact shape: dataset loading + validation, per-case execution, a `metrics_llm.py` module (parallel to `metrics_recommendation.py`), an `error_classification_llm.py` module (parallel to `error_classification.py`), report writing to `evals/reports/latest_llm_eval_report.json` + a timestamped archive, and the same `--no-archive`/`--verbose`/`--ci` CLI flags. It does not modify, call, or depend on any of the existing recommendation/routing eval runners — fully additive.
+
+Two real bugs were found and fixed while building this framework (both before it was considered done, not after): a metrics-module key mismatch that silently reported 0% deterministic consistency regardless of actual drift, and a classification function using exact tuple membership (`"x" in (a, b)`) where substring matching was required (`"rejected_fabricated_citation"` never literally equals `"fabricated_citation"`).
+
+### Validation Results
+
+404 tests passed (366 prior + 38 new); router, golden routes, recommendation evals, and weight validation all unchanged; the same two pre-existing, unrelated failures from prior phases reproduced identically. The LLM eval suite itself: 8/11 explanation cases pass (3 intentional negative cases correctly fail), 12/12 answer cases pass, 100% deterministic-consistency and 100% citation-fidelity rates.
+
+### Future Roadmap
+
+- A `--live` mode exercising a real local Ollama instance, for periodic (not per-commit) validation that the actual model's behavior still falls within the same grounding boundaries the mocked cases verify.
+- Extending both datasets as Phase 7C/7B's prompts evolve — they're small and hand-curated by design (Step 3's "keep datasets small, deterministic, version-controlled"), meant to grow incrementally alongside real production incidents, not to exhaustively enumerate every possible input upfront.
+- A third dataset once Phase 7C's roadmap item (a shared "grounded synthesis with fallback" module for advisor/admissions explanation) ships.

@@ -1,0 +1,176 @@
+{
+  "_schema_version": "1.0",
+  "_scope": "Phase 7D — deterministic evaluation of agents/recommendation_explainer.py. Exercises the REAL attach_explanations() function (requests.post mocked per-case) so results can never silently drift from the actual implementation.",
+  "_source": "Hand-curated, mirrors Phase 7B's grounding/safety boundaries (Phase 7A guiding principle: the LLM explains, it never decides).",
+  "cases": [
+    {
+      "case_id": "EXPL-001",
+      "description": "Single career-tag match, explanation correctly covers it, no forbidden claims.",
+      "program_match": {
+        "program_id": "dnp-nursing",
+        "confidence": "high",
+        "score_basis": ["unique_career:nurse_practitioner", "interest_1:nursing"]
+      },
+      "simulate": {
+        "mode": "success",
+        "explanation": "This program matches your goal of becoming a nurse practitioner and your interest in nursing."
+      },
+      "expected_evidence_phrases": ["nurse practitioner", "nursing"],
+      "forbidden_phrases": ["accepted", "guaranteed", "scholarship", "other program", "DPT", "DrPH"],
+      "expected_outcome": "explanation_attached"
+    },
+    {
+      "case_id": "EXPL-002",
+      "description": "Multiple evidence types (degree + interest + background) all covered.",
+      "program_match": {
+        "program_id": "dpt-physical-therapy",
+        "confidence": "high",
+        "score_basis": ["degree_type", "interest_1:physical_therapy", "background_1:biomechanics"]
+      },
+      "simulate": {
+        "mode": "success",
+        "explanation": "Your target degree, interest in physical therapy, and background in biomechanics all align with this program."
+      },
+      "expected_evidence_phrases": ["physical therapy", "biomechanics"],
+      "forbidden_phrases": ["accepted", "guaranteed", "other program"],
+      "expected_outcome": "explanation_attached"
+    },
+    {
+      "case_id": "EXPL-003",
+      "description": "Evidence omission — explanation drops a matched interest tag.",
+      "program_match": {
+        "program_id": "drph-public-health",
+        "confidence": "medium",
+        "score_basis": ["interests_2:public_health,community_health"]
+      },
+      "simulate": {
+        "mode": "success",
+        "explanation": "This program fits your background well."
+      },
+      "expected_evidence_phrases": ["public health", "community health"],
+      "forbidden_phrases": [],
+      "expected_outcome": "explanation_attached"
+    },
+    {
+      "case_id": "EXPL-004",
+      "description": "Unsupported claim — explanation promises an admissions outcome.",
+      "program_match": {
+        "program_id": "dnp-nursing",
+        "confidence": "high",
+        "score_basis": ["unique_career:nurse_practitioner"]
+      },
+      "simulate": {
+        "mode": "success",
+        "explanation": "Given your nurse practitioner goal, you will be accepted into this program with a scholarship."
+      },
+      "expected_evidence_phrases": ["nurse practitioner"],
+      "forbidden_phrases": ["accepted", "scholarship"],
+      "expected_outcome": "explanation_attached"
+    },
+    {
+      "case_id": "EXPL-005",
+      "description": "Unsupported claim — explanation compares against a lower-ranked program.",
+      "program_match": {
+        "program_id": "dnp-nursing",
+        "confidence": "high",
+        "score_basis": ["interest_1:nursing"]
+      },
+      "simulate": {
+        "mode": "success",
+        "explanation": "This program fits your nursing interest better than the DPT program would."
+      },
+      "expected_evidence_phrases": ["nursing"],
+      "forbidden_phrases": ["DPT", "better than", "other program"],
+      "expected_outcome": "explanation_attached"
+    },
+    {
+      "case_id": "EXPL-006",
+      "description": "No score_basis evidence — explanation must not be generated at all (nothing to explain).",
+      "program_match": {
+        "program_id": "phd-engineering-computational-math",
+        "confidence": "none",
+        "score_basis": []
+      },
+      "simulate": {
+        "mode": "success",
+        "explanation": "This should never be sent to the model."
+      },
+      "expected_evidence_phrases": [],
+      "forbidden_phrases": [],
+      "expected_outcome": "no_explanation_no_evidence"
+    },
+    {
+      "case_id": "EXPL-007",
+      "description": "Only orientation_mismatch present — not positive evidence, must not generate an explanation.",
+      "program_match": {
+        "program_id": "drph-public-health",
+        "confidence": "low",
+        "score_basis": ["orientation_mismatch:research!=applied"]
+      },
+      "simulate": {
+        "mode": "success",
+        "explanation": "This should never be sent to the model."
+      },
+      "expected_evidence_phrases": [],
+      "forbidden_phrases": [],
+      "expected_outcome": "no_explanation_no_evidence"
+    },
+    {
+      "case_id": "EXPL-008",
+      "description": "Ollama connection failure — must degrade gracefully, no exception.",
+      "program_match": {
+        "program_id": "dnp-nursing",
+        "confidence": "high",
+        "score_basis": ["unique_career:nurse_practitioner"]
+      },
+      "simulate": {"mode": "connection_error"},
+      "expected_evidence_phrases": [],
+      "forbidden_phrases": [],
+      "expected_outcome": "no_explanation_graceful_fallback"
+    },
+    {
+      "case_id": "EXPL-009",
+      "description": "Malformed JSON response from Ollama — must degrade gracefully.",
+      "program_match": {
+        "program_id": "dnp-nursing",
+        "confidence": "high",
+        "score_basis": ["interest_1:nursing"]
+      },
+      "simulate": {"mode": "malformed_json"},
+      "expected_evidence_phrases": [],
+      "forbidden_phrases": [],
+      "expected_outcome": "no_explanation_validation_failure"
+    },
+    {
+      "case_id": "EXPL-010",
+      "description": "Empty explanation string from Ollama — must degrade gracefully.",
+      "program_match": {
+        "program_id": "edd-educational-leadership-p12",
+        "confidence": "medium",
+        "score_basis": ["interest_1:k12_education"]
+      },
+      "simulate": {"mode": "success", "explanation": "   "},
+      "expected_evidence_phrases": [],
+      "forbidden_phrases": [],
+      "expected_outcome": "no_explanation_validation_failure"
+    },
+    {
+      "case_id": "EXPL-011",
+      "description": "Deterministic-consistency check — even a successful explanation must never alter program_id/confidence/score_basis.",
+      "program_match": {
+        "program_id": "edd-educational-leadership-cc",
+        "confidence": "medium",
+        "score_basis": ["interests_2:community_college,higher_education"],
+        "advisor_email": "eddinfo@csulb.edu",
+        "deadline_fall": "February 15"
+      },
+      "simulate": {
+        "mode": "success",
+        "explanation": "Your interest in community college and higher education leadership aligns with this program."
+      },
+      "expected_evidence_phrases": ["community college", "higher education"],
+      "forbidden_phrases": [],
+      "expected_outcome": "explanation_attached"
+    }
+  ]
+}
