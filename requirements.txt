@@ -32,3 +32,7 @@ ollama>=0.1.0
 # ── OpenAI agent (legacy — to be removed in Phase 7) ─────────────────────────
 openai>=1.0.0
 
+# ── FastAPI service layer (Phase 5C — api/app.py) ────────────────────────────
+fastapi>=0.110.0
+uvicorn>=0.29.0
+

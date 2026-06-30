@@ -2293,3 +2293,53 @@ This provides:
 - FastAPI service layer
 - API contracts
 - Health endpoints
+
+## Phase 5C — FastAPI Service Layer (Completed)
+
+### Objective
+
+Expose the existing backend over HTTP without moving any business logic into the API layer.
+
+### Changes Completed
+
+- Added an `api/` package: `api/app.py` defines the FastAPI app and three routes.
+- `POST /query` — the one functional endpoint. Accepts `{"query": str, "session_id": Optional[str]}`, calls `backend.entrypoint.handle_user_query()` via FastAPI's own `Depends(get_dependencies)`, and returns its result unmodified — no `response_model`, no reshaping.
+- `GET /health` — liveness check; constructs `AppDependencies` to catch import-time wiring failures, without exercising retrieval or recommendation.
+- `GET /` — service identity.
+- Added `fastapi`/`uvicorn` to `requirements.txt`.
+
+### Design Decisions
+
+- No Pydantic response model. `OrchestratorResponse` is a TypedDict union with a different shape per route; forcing it into one Pydantic model would mean duplicating `contracts/response_types.py` as a discriminated union, or using a permissive model that risks silently dropping fields. A bare `dict` return guarantees the exact same JSON shape every other caller already gets.
+- No new request validation beyond the request's own shape. An empty `query` string is *not* rejected with 422 — `handle_user_query("")` already returns a graceful `WelcomeResponse`, and the API preserves that instead of inventing a stricter rule. A genuinely missing `query` field still 422s, since that's a request-shape problem, not a business rule.
+- Wired into the Phase 5B dependency container via FastAPI's native `Depends()` — not a new DI mechanism, and overridable in tests via `app.dependency_overrides`.
+- No custom exception handling — unhandled backend exceptions surface through FastAPI's own default 500 behavior, unchanged.
+
+### Result
+
+- Confirmed by direct comparison: `POST /query` and a direct `handle_user_query()` call produce byte-for-byte identical response dicts for the same input.
+- Confirmed the dependency-injection seam survives the HTTP layer: overriding `get_dependencies` via `app.dependency_overrides` is honored by the running app.
+- 262/262 tests passed (252 prior + 10 new API tests); router, golden routes, recommendation evals, and weight validation all unchanged; the same two pre-existing, unrelated failures from Phase 5A/5B reproduced identically.
+
+### Final Request Flow
+
+```text
+Client
+    ↓
+FastAPI (api/app.py)
+    ↓
+backend.entrypoint.handle_user_query()
+    ↓
+orchestrator.run() / agents.journey_agent.handle_discovery()
+    ↓
+responses.builder.build_response()
+    ↓
+HTTP response (plain dict, JSON-encoded)
+```
+
+### Remaining Level 3 Work
+
+- Formal API contracts / OpenAPI schema review
+- Deployment-grade health/readiness endpoints
+- Docker
+- CI/CD pipeline
