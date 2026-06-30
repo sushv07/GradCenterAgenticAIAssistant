@@ -1,0 +1,115 @@
+{
+  "timestamp": "2026-06-30T21:37:10Z",
+  "store_path": "/Users/sushmithavijayakumar/Documents/ClaudeCode/GradCenterAgenticAIAssistant/chroma_db",
+  "store_built_at": "2026-06-30T07:35:16+00:00",
+  "store_age_hours": 14.0,
+  "overall_health": "healthy_with_warnings",
+  "warnings": [
+    "1 chunk_id(s) appear in more than one document \u2014 known for deadlines specialist extractor (see Phase 8A)",
+    "2 chunk(s) shorter than 50 chars \u2014 may be sentence fragments from chunk boundary splits"
+  ],
+  "knowledge_base": {
+    "total_chunks": 491,
+    "total_urls": 28,
+    "total_named_programs": 5,
+    "named_programs": [
+      "Educational Leadership (Ed.D.)",
+      "Engineering & Computational Mathematics (Ph.D.)",
+      "Nursing (D.N.P.)",
+      "Physical Therapy (DPT)",
+      "Public Health (DR.P.H.)"
+    ]
+  },
+  "coverage": {
+    "by_page_type": {
+      "application_process": 19,
+      "deadlines": 14,
+      "eligibility": 11,
+      "faq": 98,
+      "program_application": 349
+    },
+    "by_program": {
+      "Educational Leadership (Ed.D.)": 108,
+      "Physical Therapy (DPT)": 94,
+      "Engineering & Computational Mathematics (Ph.D.)": 75,
+      "Nursing (D.N.P.)": 44,
+      "Public Health (DR.P.H.)": 28
+    },
+    "url_distribution": {
+      "total_distinct_urls": 28,
+      "top_10_urls": [
+        {
+          "url": "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs",
+          "chunks": 98
+        },
+        {
+          "url": "http://www.ccpe.csulb.edu/international/?utm_source=website&utm_medium=homepage&utm_content=menulink&utm_campaign=JumboMenu",
+          "chunks": 54
+        },
+        {
+          "url": "https://www.csulb.edu/college-of-health-human-services/school-of-nursing/bsn-dnp-program",
+          "chunks": 37
+        },
+        {
+          "url": "https://www.csulb.edu/college-of-health-human-services/physical-therapy/application-checklist",
+          "chunks": 37
+        },
+        {
+          "url": "https://www.csulb.edu/college-of-health-human-services/physical-therapy/application-requirements",
+          "chunks": 31
+        },
+        {
+          "url": "https://www.csulb.edu/college-of-education/admissions-and-how-to-apply",
+          "chunks": 27
+        },
+        {
+          "url": "https://www.csulb.edu/college-of-education/educational-doctorate-educational-leadership/program-requirements-for-ed-d",
+          "chunks": 24
+        },
+        {
+          "url": "https://www.csulb.edu/admissions/doctoral-programs-application-process",
+          "chunks": 19
+        },
+        {
+          "url": "https://www.csulb.edu/college-of-education/educational-leadership/online-application-submission",
+          "chunks": 18
+        },
+        {
+          "url": "https://www.csulb.edu/college-of-health-human-services/health-science/doctor-of-public-health-drph/doctor-of-public-3-5",
+          "chunks": 16
+        }
+      ]
+    }
+  },
+  "chunk_stats": {
+    "average_chars": 389.1,
+    "min_chars": 29,
+    "max_chars": 500,
+    "empty_chunks": 0,
+    "short_chunks": {
+      "count": 2,
+      "threshold_chars": 50
+    }
+  },
+  "metadata_health": {
+    "total_chunks": 491,
+    "missing_url": 0,
+    "missing_chunk_id": 0,
+    "missing_page_type": 0,
+    "missing_title": 0,
+    "content_category_coverage": {
+      "with_value": 368,
+      "without_value": 123
+    }
+  },
+  "duplicate_tracking": {
+    "duplicate_chunk_id_count": 1,
+    "total_extra_copies": 6,
+    "known_duplicates": [
+      {
+        "chunk_id": "c31caccf_0000",
+        "count": 7
+      }
+    ]
+  }
+}

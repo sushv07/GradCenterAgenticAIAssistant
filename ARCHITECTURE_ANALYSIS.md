@@ -3171,4 +3171,43 @@ Bounds are sized to absorb minor page content changes without false failures (e.
 
 ### Future Ingestion Evaluation Work
 
-Adding snapshot-comparison support (diffing the current store's chunk count and URL list against a stored baseline JSON to detect silent re-ingestion drift over time); adding a case verifying that `c31caccf_0000`'s root cause (the deadlines specialist extractor assigning `chunk_index=0` to each program card) is eventually fixed and reflected in a corrected expected_count; capturing the 2 short (29-char) program_application chunks as a tracked `min_chunk_size` metric case; extending the dataset to verify `content_category` is non-empty for all `program_application` chunks (currently 368/491 have it; the 142 gaps are the generic PAGE_SOURCES chunks which intentionally have no content_category).
+Adding snapshot-comparison support (diffing the current store's chunk count and URL list against a stored baseline JSON to detect silent re-ingestion drift over time); adding a case verifying that `c31caccf_0000`'s root cause (the deadlines specialist extractor assigning `chunk_index=0` to each program card) is eventually fixed and reflected in a corrected expected_count; capturing the 2 short (29-char) program_application chunks as a tracked `min_chunk_size` metric case; extending the dataset to verify `content_category` is non-empty for all `program_application` chunks (currently 368/491 have it; the 123 gaps are the generic PAGE_SOURCES chunks which intentionally have no content_category).
+
+## Phase 9B — Knowledge Base Health Report
+
+### Audit
+
+Before implementing, the following information was confirmed available in the live Chroma store: total chunk count (491), distinct URL count (28), distinct program names (5), per-page-type and per-program chunk distributions, all required metadata fields (url, chunk_id, page_type, title present on all 491 chunks), chunk size distribution (min=29, max=500, avg=389 chars), 2 chunks below the 50-char short threshold, and the known `c31caccf_0000` duplicate (7 occurrences). All of this is accessible read-only via `store._collection.get(include=["metadatas","documents"])` — no re-ingestion, no re-embedding, no network requests.
+
+### Report Design
+
+`obs/kb_health_report.py` follows the established `obs/` module convention (mirrors `retrieval_summary.py` and `trace_summary.py`): `inspect_kb(store=None) → dict` returns a structured report dict, `format_console_report(report) → str` renders a fixed-width terminal view, `write_json_report(report, path=None) → Path` writes to `obs/reports/latest_kb_health.json`, and `__main__` exposes `--json`/`--json-path` CLI flags. Seven sections: header (store path + build age), overall health + warnings, Knowledge Base Summary, Coverage, Chunk Statistics, Metadata Health, Duplicate Tracking.
+
+### Health Classification
+
+Four deterministic status levels, checked in priority order (most severe first — first match wins):
+
+| Status | Conditions |
+|---|---|
+| `unhealthy` | 0 total chunks, OR any required metadata field (url/chunk_id/page_type) missing on any chunk, OR any empty page_content |
+| `degraded` | < 100 total chunks, OR any of the 5 required page_types has 0 chunks |
+| `healthy_with_warnings` | duplicate chunk_ids exist, OR short chunks (< 50 chars) exist, OR < 5 distinct named programs, OR store > 48h old |
+| `healthy` | everything above is clean |
+
+Thresholds are constants at the top of `kb_health_report.py` (`_MIN_TOTAL_CHUNKS=100`, `_MIN_NAMED_PROGRAMS=5`, `_SHORT_CHUNK_THRESHOLD=50 chars`) — documented with rationale, not invented. The live store classifies as `healthy_with_warnings` due to the known `c31caccf_0000` duplicate and 2 short chunks, both pre-existing characteristics first documented in Phase 8A and Phase 9A respectively.
+
+### Files Created
+
+`obs/kb_health_report.py`, `obs/reports/latest_kb_health.json`, `tests/test_kb_health_report.py`
+
+### Files Modified
+
+`ARCHITECTURE_ANALYSIS.md`
+
+### Validation Results
+
+645 tests passed (608 prior + 37 new in `tests/test_kb_health_report.py`); all eval runners, router, golden routes, recommendation evals, retrieval evals all unchanged; same two pre-existing unrelated failures reproduced identically. `inspect_kb()` confirmed deterministic across repeated calls (identical dict excluding timestamp/age fields). Retrieval output confirmed byte-for-byte identical before and after running the health report. No production files changed.
+
+### Future Knowledge Base Monitoring Work
+
+Scheduling the health report as a cron-driven periodic check (once per hour, alerts if status degrades from `healthy_with_warnings` to `degraded` or `unhealthy`); adding a store-age freshness threshold that triggers `degraded` rather than just a warning when the store is older than the STORE_TTL (currently 24h) by a significant margin; comparing the current report against a stored `baseline_kb_health.json` to surface drift in chunk counts or program coverage across re-ingestions; wiring the overall health status into the `GET /ready` readiness endpoint (Phase 5E) so a degraded knowledge base returns HTTP 503 rather than 200.
