@@ -47,10 +47,12 @@ from __future__ import annotations
 
 import hashlib
 import json
+import time
 
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from config.settings import CHUNK_SIZE, CHUNK_OVERLAP
+from obs.ingestion_events import emit_ingestion_page_chunked
 
 # ---------------------------------------------------------------------------
 # Chunking parameters
@@ -153,6 +155,7 @@ def chunk_documents(pages: list[dict]) -> list[Document]:
             continue
 
         # Split the full page text into overlapping chunks
+        _t_chunk = time.perf_counter()
         raw_chunks = splitter.split_text(text)
 
         page_docs: list[Document] = []
@@ -181,6 +184,12 @@ def chunk_documents(pages: list[dict]) -> list[Document]:
             )
             page_docs.append(doc)
 
+        _chunk_elapsed = round((time.perf_counter() - _t_chunk) * 1000, 1)
+        emit_ingestion_page_chunked(
+            url=url, page_type=page_type, program_name=program_name,
+            chunks_generated=len(page_docs), chars_in=len(text),
+            chunk_elapsed_ms=_chunk_elapsed,
+        )
         print(
             f"[chunking] [{page_type}] {len(page_docs)} chunks "
             f"(avg {int(len(text) / max(len(page_docs), 1))} chars each)"

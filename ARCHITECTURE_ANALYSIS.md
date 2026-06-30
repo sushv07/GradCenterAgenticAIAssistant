@@ -3250,3 +3250,58 @@ All thresholds are absolute integers, not percentages, because the knowledge bas
 ### Future Drift Monitoring Work
 
 Wiring `detect_drift()` into a scheduled cron trigger (using the existing `mcp__bf7c680d-5fdc-5ef4-b4a0-abadb619bf0a__create_trigger` infrastructure) to alert when `overall_drift` escalates above `minor_drift` after a store rebuild; adding a `--diff-reports` mode that compares two archived health report JSON files (rather than requiring a live store + a baseline file); implementing automatic baseline promotion when a re-ingestion passes all Phase 9A eval assertions (`run_ingestion_evals.py` 21/21 PASS) so the drift baseline tracks approved releases rather than ad-hoc snapshots; surfacing `major_drift` in the `GET /ready` endpoint as a 503 signal.
+
+## Phase 9D — Ingestion Observability
+
+### Ingestion Observability Audit
+
+The ingestion pipeline spans three files: `rag/ingestion.py` (fetch + parse), `rag/chunking.py` (text splitting), and `rag/store.py` (embedding + persistence). Before this phase, `store.py` already had structured `store.lifecycle` events (build_start/complete/failed — though at WARNING level even on success, which is a pre-existing oddity not changed here). `ingestion.py` and `chunking.py` had only `print()` statements — informative but not structured, not queryable, and not correlated to any request_id or run identifier. No events fired for: how many bytes a page returned, how long fetch/parse/chunk took per page, which specific pages retried or failed, or the aggregate counts for a complete run.
+
+**Stage-by-stage audit:**
+
+| Stage | Location | Prior logging | Added event |
+|---|---|---|---|
+| Run started | `ingest_pages()` | none | `ingestion.started` |
+| HTTP fetch (success) | `ingest_pages()` | `print` | `ingestion.page_fetched` |
+| HTTP retry | `fetch_page()` | `print` | `ingestion.page_retry` |
+| HTML parse (success) | `ingest_pages()` | `print` | `ingestion.page_parsed` |
+| Page failed (fetch/parse) | `ingest_pages()` | `print` | `ingestion.page_failed` |
+| Text chunking (per page) | `chunk_documents()` | `print` | `ingestion.page_chunked` |
+| Run completed | `ingest_pages()` | single `print` | `ingestion.completed` |
+
+`store.lifecycle` (build_start/complete/failed) already existed in `store.py` and was NOT modified.
+
+### Event Model
+
+Seven events in `obs/ingestion_events.py`, all wrapping `gradcenter_logging.emit()`. Named `ingestion.*` to match the `retrieval.*` naming convention from Phase 8B. Every event includes `ingestion_stage` (a fixed string per stage — analogous to Phase 8B's `retrieval_stage`) for easy log filtering. **Never logged**: raw HTML, cleaned text, chunk text, embeddings, or full exception messages (only `error_type` for the retry event, where the message could inadvertently contain page content).
+
+Key event fields:
+- `ingestion.started`: `source_count`, `use_discovery`
+- `ingestion.page_fetched`: `url`, `page_type`, `program_name`, `fetch_elapsed_ms`, `response_size_bytes`
+- `ingestion.page_retry`: `url`, `error_type`, `error` (truncated to 200 chars — not page content)
+- `ingestion.page_parsed`: `url`, `page_type`, `program_name`, `char_count`, `parse_elapsed_ms`, `entry_count` (`> 1` for deadlines specialist extractor)
+- `ingestion.page_failed`: `url`, `page_type`, `program_name`, `ingestion_stage`, `reason` (`fetch_failed` | `parse_failed`), `error_type`
+- `ingestion.page_chunked`: `url`, `page_type`, `program_name`, `chunks_generated`, `chars_in`, `chunk_elapsed_ms`
+- `ingestion.completed`: `pages_attempted`, `pages_succeeded`, `pages_failed`, `elapsed_ms`, `total_chars` — `WARNING` level when `pages_failed > 0`
+
+### Instrumentation Points
+
+`obs.ingestion_events` is imported at the top of `rag/ingestion.py` and `rag/chunking.py`, exactly as `obs.retrieval_events` is imported at the top of `rag/retriever.py`. The emit calls are the minimal possible additions at stage boundaries — one new local timer variable (`_t_fetch`, `_t_parse`, `_t_chunk`) and one `emit_ingestion_*()` call per stage. All existing `print()` statements, return values, control flow, and retry/exception behavior are preserved exactly.
+
+**Behavioral guarantee confirmed empirically**: `chunk_documents()` returns byte-identical `Document` objects whether the new emit calls run or are mocked out (verified in `TestBehaviorUnchanged`). `ingest_pages()` returns byte-identical page dicts verified the same way.
+
+### Intentionally Omitted Data
+
+Embedding timing (in `build_vector_store()`) was intentionally NOT instrumented this phase: embeddings are generated in a single batch call by LangChain/Chroma across all chunks at once, not per-page, so there is no meaningful per-page embedding event to emit without splitting that batch call (which would modify embedding behavior). `store.lifecycle`'s `build_complete` event already captures total embedding elapsed time.
+
+### Summary Utility
+
+`obs/ingestion_summary.py` reads `logs/gradcenter.log` and aggregates across all ingestion runs in the log, computing: run counts, page-level success/failure counts, total chunks and chars generated, per-stage timing averages, failure-reason breakdown, and retry-error-type breakdown. CLI: `python -m obs.ingestion_summary`.
+
+### Validation Results
+
+713 tests passed (683 prior + 30 new in `tests/test_ingestion_observability.py`); router, golden routes, recommendation evals, retrieval evals, advisor evals, ingestion evals, LLM evals, weight validation all unchanged; same two pre-existing unrelated failures reproduced identically. `chunk_documents()` return value confirmed byte-identical whether emit calls run or are mocked. `ingest_pages()` return value confirmed the same. No behavioral changes to any production file's logic.
+
+### Future Ingestion Observability Work
+
+Adding a per-run `ingestion_run_id` ContextVar (analogous to Phase 8E's `session_id`) so all events from one `ingest_pages()` call can be grouped together when log files span multiple runs; instrumenting `store.py`'s per-batch embedding stage to capture how many chunks were embedded per call and whether any embedding errors occurred; adding `ingestion.page_skipped` as a distinct event for duplicate-URL deduplication (currently silent) to give a complete accounting of `pages_attempted - pages_succeeded - pages_failed`; connecting `ingestion_summary.py` output to the Phase 9B health report so a "last ingestion run" section appears alongside the store's current state.

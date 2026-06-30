@@ -63,6 +63,15 @@ from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup
 
+from obs.ingestion_events import (
+    emit_ingestion_started,
+    emit_ingestion_page_fetched,
+    emit_ingestion_page_retry,
+    emit_ingestion_page_parsed,
+    emit_ingestion_page_failed,
+    emit_ingestion_completed,
+)
+
 # ---------------------------------------------------------------------------
 # Source definitions
 # ---------------------------------------------------------------------------
@@ -340,6 +349,9 @@ def fetch_page(url: str) -> Optional[str]:
         except requests.RequestException as exc:
             if attempt == 0:
                 print(f"[ingestion] Fetch attempt 1 failed for {url}: {exc} — retrying")
+                emit_ingestion_page_retry(
+                    url=url, error_type=type(exc).__name__, error=str(exc)[:200]
+                )
                 time.sleep(_RETRY_PAUSE)
             else:
                 print(f"[ingestion] Fetch failed after 2 attempts for {url}: {exc}")
@@ -793,8 +805,12 @@ def ingest_pages(
         else:
             sources = ALL_SOURCES
 
+    emit_ingestion_started(len(sources), use_discovery)
+    _t_total = time.perf_counter()
+
     pages:     list[dict] = []
     seen_urls: set[str]   = set()
+    _pages_failed = 0
 
     for source in sources:
         url              = source["url"]
@@ -820,22 +836,39 @@ def ingest_pages(
         # ── Fetch ────────────────────────────────────────────────────────────
         prog_label = f" [{prog_name}]" if prog_name else ""
         print(f"[ingestion] Fetching [{page_type}]{prog_label} {url}")
+        _t_fetch = time.perf_counter()
         html = fetch_page(url)
+        _fetch_elapsed = round((time.perf_counter() - _t_fetch) * 1000, 1)
 
         if html is None:
+            _pages_failed += 1
+            emit_ingestion_page_failed(url, page_type, prog_name, "fetch", "fetch_failed")
             msg = f"[ingestion] Could not fetch {url}"
             if skip_failed:
                 print(f"{msg} — skipping")
                 continue
             raise RuntimeError(msg)
 
+        emit_ingestion_page_fetched(
+            url=url, page_type=page_type, program_name=prog_name,
+            fetch_elapsed_ms=_fetch_elapsed,
+            response_size_bytes=len(html.encode("utf-8", errors="replace")),
+        )
+
         # ── Parse ────────────────────────────────────────────────────────────
+        _t_parse = time.perf_counter()
         if page_type == "deadlines":
             # Specialist extractor: one dict per program to prevent cross-program
             # chunk merging.  Falls back to generic parse_page() if it returns [].
             specialist_pages = _parse_deadlines_page(html, url, title)
             if specialist_pages:
+                _parse_elapsed = round((time.perf_counter() - _t_parse) * 1000, 1)
                 total_chars = sum(p["char_count"] for p in specialist_pages)
+                emit_ingestion_page_parsed(
+                    url=url, page_type=page_type, program_name=prog_name,
+                    char_count=total_chars, parse_elapsed_ms=_parse_elapsed,
+                    entry_count=len(specialist_pages),
+                )
                 print(
                     f"[ingestion] ✓ [{page_type}] specialist: "
                     f"{len(specialist_pages)} entries, {total_chars:,} chars total"
@@ -849,13 +882,22 @@ def ingest_pages(
                 )
 
         page = parse_page(html, url, page_type, title)
+        _parse_elapsed = round((time.perf_counter() - _t_parse) * 1000, 1)
 
         if page is None:
+            _pages_failed += 1
+            emit_ingestion_page_failed(url, page_type, prog_name, "parse", "parse_failed")
             msg = f"[ingestion] No usable content from {url}"
             if skip_failed:
                 print(f"{msg} — skipping")
                 continue
             raise RuntimeError(msg)
+
+        emit_ingestion_page_parsed(
+            url=url, page_type=page_type, program_name=prog_name,
+            char_count=page["char_count"], parse_elapsed_ms=_parse_elapsed,
+            entry_count=1,
+        )
 
         # Inject extended metadata from the source definition.
         # These propagate into ChromaDB chunk metadata via chunk_documents().
@@ -872,6 +914,15 @@ def ingest_pages(
         )
         pages.append(page)
 
+    _total_elapsed = round((time.perf_counter() - _t_total) * 1000, 1)
+    _total_chars   = sum(p.get("char_count", 0) for p in pages)
+    emit_ingestion_completed(
+        pages_attempted=len(sources),
+        pages_succeeded=len(pages),
+        pages_failed=_pages_failed,
+        elapsed_ms=_total_elapsed,
+        total_chars=_total_chars,
+    )
     print(f"\n[ingestion] Ingested {len(pages)} of {len(sources)} pages successfully")
     return pages
 
