@@ -1,0 +1,153 @@
+{
+  "_schema_version": "1.0",
+  "_scope": "Phase 9A — deterministic evaluation of the ingestion pipeline output. Inspects the built Chroma vector store (chroma_db/) rather than re-running ingestion — making this offline, network-free, and safe. Every expected value was verified against the actual live store before being recorded. Ingestion re-runs may produce slightly different chunk counts if upstream CSULB pages change content; expected_min/expected_max bounds are sized to absorb minor page edits without false failures while still catching structural regressions.",
+  "_source": "Hand-curated. All min/max bounds and exact counts verified by inspecting the live chroma_db/ store via rag/store.load_vector_store()._collection.get() calls. chunk_id c31caccf_0000's duplication count (7) was first discovered and documented in Phase 8A — the eval here tracks it as a known characteristic of the current store state, not a new finding.",
+  "cases": [
+    {
+      "case_id": "INGST-001",
+      "description": "Total chunk count is within a sane range. The live store has 491 chunks across all page types. A floor of 200 catches catastrophic ingestion failures; a ceiling of 1500 catches unexpected over-ingestion (e.g. a crawler running amok). These bounds absorb minor page content changes while catching structural regressions.",
+      "check_type": "total_chunk_count",
+      "expected_min": 200,
+      "expected_max": 1500
+    },
+    {
+      "case_id": "INGST-002",
+      "description": "FAQ page type has at least 50 chunks. The live store has 98 FAQ chunks. FAQ is the highest-volume page type — a count below 50 indicates the FAQ page failed to ingest or chunking broke for this page type.",
+      "check_type": "page_type_chunk_count",
+      "page_type": "faq",
+      "expected_min": 50,
+      "expected_max": 500
+    },
+    {
+      "case_id": "INGST-003",
+      "description": "Deadlines page type has at least 5 chunks. The live store has 14 deadlines chunks — one per program (from the specialist _parse_deadlines_page() extractor) plus preamble text. A count below 5 means the deadlines specialist extractor failed and the program-isolated chunks were not produced.",
+      "check_type": "page_type_chunk_count",
+      "page_type": "deadlines",
+      "expected_min": 5,
+      "expected_max": 100
+    },
+    {
+      "case_id": "INGST-004",
+      "description": "Eligibility page type has at least 5 chunks. The live store has 11 eligibility chunks. This page covers GPA requirements and eligibility criteria — a common retrieval target.",
+      "check_type": "page_type_chunk_count",
+      "page_type": "eligibility",
+      "expected_min": 5,
+      "expected_max": 100
+    },
+    {
+      "case_id": "INGST-005",
+      "description": "Application process page type has at least 5 chunks. The live store has 19 application_process chunks — a modest count but sufficient for step-by-step guidance queries.",
+      "check_type": "page_type_chunk_count",
+      "page_type": "application_process",
+      "expected_min": 5,
+      "expected_max": 200
+    },
+    {
+      "case_id": "INGST-006",
+      "description": "Program application page type has at least 100 chunks. The live store has 349 program_application chunks — by far the largest category, produced by dynamic discovery across all doctoral programs. A count below 100 means discovery failed or no program-specific pages were crawled.",
+      "check_type": "page_type_chunk_count",
+      "page_type": "program_application",
+      "expected_min": 100,
+      "expected_max": 2000
+    },
+    {
+      "case_id": "INGST-007",
+      "description": "Nursing (D.N.P.) program has at least 20 chunks. The live store has 44. Nursing is a priority program — a count below 20 means either the program seed URL failed or discovery found fewer subpages than expected.",
+      "check_type": "program_chunk_count",
+      "program_name": "Nursing (D.N.P.)",
+      "expected_min": 20
+    },
+    {
+      "case_id": "INGST-008",
+      "description": "Physical Therapy (DPT) program has at least 40 chunks. The live store has 94 — the largest single program. Physical Therapy has a richer program site with multiple subpages; a count below 40 indicates substantial crawl failure for this program.",
+      "check_type": "program_chunk_count",
+      "program_name": "Physical Therapy (DPT)",
+      "expected_min": 40
+    },
+    {
+      "case_id": "INGST-009",
+      "description": "Educational Leadership (Ed.D.) program has at least 50 chunks. The live store has 108 — the most heavily crawled program. A count below 50 indicates most of the discovered subpages were not ingested.",
+      "check_type": "program_chunk_count",
+      "program_name": "Educational Leadership (Ed.D.)",
+      "expected_min": 50
+    },
+    {
+      "case_id": "INGST-010",
+      "description": "Engineering & Computational Mathematics (Ph.D.) program has at least 20 chunks. The live store has 75. Engineering is a common query target — very low counts would suggest the engineering doctoral studies page was not crawled.",
+      "check_type": "program_chunk_count",
+      "program_name": "Engineering & Computational Mathematics (Ph.D.)",
+      "expected_min": 20
+    },
+    {
+      "case_id": "INGST-011",
+      "description": "Public Health (DR.P.H.) program has at least 10 chunks. The live store has 28. Public Health has a smaller web presence than other programs but should still produce meaningful coverage.",
+      "check_type": "program_chunk_count",
+      "program_name": "Public Health (DR.P.H.)",
+      "expected_min": 10
+    },
+    {
+      "case_id": "INGST-012",
+      "description": "At least 5 distinct named programs are present in the knowledge base. The live store has 5 named programs (Nursing, Physical Therapy, Educational Leadership, Engineering, Public Health). A count below 5 means one or more programs were entirely missing from the crawl.",
+      "check_type": "distinct_program_count",
+      "expected_min": 5
+    },
+    {
+      "case_id": "INGST-013",
+      "description": "All 491 chunks have a non-empty url field. URL is required for source attribution — any chunk with a missing URL cannot be cited and will produce empty citation data in responses.",
+      "check_type": "metadata_completeness",
+      "field": "url"
+    },
+    {
+      "case_id": "INGST-014",
+      "description": "All chunks have a non-empty chunk_id field. chunk_id is required for the Phase 8A duplicate detection metric and for cache-busting logic. A missing chunk_id indicates a regression in rag/chunking.py's _make_chunk_id().",
+      "check_type": "metadata_completeness",
+      "field": "chunk_id"
+    },
+    {
+      "case_id": "INGST-015",
+      "description": "All chunks have a non-empty page_type field. page_type is required for the filtered retrieval path (rag/retriever.py's where_filter) — a missing page_type would cause those chunks to never match a filtered query.",
+      "check_type": "metadata_completeness",
+      "field": "page_type"
+    },
+    {
+      "case_id": "INGST-016",
+      "description": "All chunks have a non-empty title field. title surfaces in retrieval results and is used by the response builder for source attribution.",
+      "check_type": "metadata_completeness",
+      "field": "title"
+    },
+    {
+      "case_id": "INGST-017",
+      "description": "No chunks have empty page_content. The chunker strips and skips empty chunks — any empty page_content would indicate a regression in rag/chunking.py that lets empty strings through. The live store has 0 empty chunks.",
+      "check_type": "no_empty_chunks"
+    },
+    {
+      "case_id": "INGST-018",
+      "description": "No chunk exceeds CHUNK_SIZE=500 characters. RecursiveCharacterTextSplitter's chunk_size bound should be enforced on every chunk. Chunks significantly larger than 500 chars would indicate the splitter changed behavior or the parameter was overridden.",
+      "check_type": "max_chunk_size",
+      "expected_max_chars": 500
+    },
+    {
+      "case_id": "INGST-019",
+      "description": "Deadlines source URL is present in the store with at least 5 chunks. The deadlines page is critical for 'when is the deadline' queries. A missing or very low chunk count would break that query path.",
+      "check_type": "url_chunk_count",
+      "url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-doctoral",
+      "expected_min": 5,
+      "expected_max": 100
+    },
+    {
+      "case_id": "INGST-020",
+      "description": "FAQ source URL is present in the store with at least 50 chunks. The FAQ page is the highest-volume source and must be present for general knowledge-base queries.",
+      "check_type": "url_chunk_count",
+      "url": "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs",
+      "expected_min": 50,
+      "expected_max": 500
+    },
+    {
+      "case_id": "INGST-021",
+      "description": "Known duplicate chunk_id c31caccf_0000 appears exactly 7 times. This ID is produced by hash('https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-doctoral')[:8] at chunk_index 0 — all 7 occurrences share the same URL but represent separate deadline entries from the specialist _parse_deadlines_page() extractor, which assigns index=0 to each program card. This is a KNOWN, pre-existing structural characteristic of the deadlines specialist extractor first documented in Phase 8A. The case PASSES when the count is exactly 7 — a change in either direction signals an unexpected store state change.",
+      "check_type": "chunk_id_count",
+      "chunk_id": "c31caccf_0000",
+      "expected_count": 7
+    }
+  ]
+}

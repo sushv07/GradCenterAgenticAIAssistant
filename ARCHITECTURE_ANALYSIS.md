@@ -3122,3 +3122,53 @@ The advisor-answer pipeline has three layers: (1) `routing/router.py:decide_rout
 ### Future Improvements
 
 Expanding the dataset to cover the three programs with null advisor data more thoroughly (Accountancy, Anthropology, Anthropology-Applied — only Accountancy is currently covered); adding cases for Aerospace Engineering (another non-null advisor record); tracking the Public Health source URL data quality issue in a dedicated ticket rather than in a dataset description field; capturing confidence score as a numeric assertion (e.g., `expected_confidence_gte: 90`) rather than only checking for match presence; a case for the "doctoral tokens, no match" router branch (`doctoral_no_match` reason code — e.g., "underwater basket weaving phd") distinct from the more general "xyz unknown program" no-match path.
+
+## Phase 9A — Ingestion Evaluation
+
+### Ingestion Audit
+
+The ingestion pipeline has four stages: (1) **fetch** — `fetch_page(url)` GETs each source URL with one retry on failure; (2) **parse** — `parse_page()` extracts the `<main>` content region, strips noise tags (nav/header/footer/script/aside + CSS class keyword matching), and normalizes whitespace; with a specialist `_parse_deadlines_page()` for the deadlines URL that walks DOM program cards and produces one structured text block per program instead of one merged blob; (3) **chunk** — `chunk_documents()` applies LangChain's `RecursiveCharacterTextSplitter` at `CHUNK_SIZE=500`/`CHUNK_OVERLAP=75` with a separator priority chain (`\n\n → \n → . → ? → ! → ; → , → space → ""`), assigns a `chunk_id` of `"{md5(url)[:8]}_{index:04d}"`, and preserves all source metadata into each `Document`; (4) **embed and persist** — `build_vector_store()` embeds all chunks with `all-MiniLM-L6-v2` and writes to `chroma_db/` via LangChain's Chroma integration (cosine distance, full delete-and-rebuild on every build to prevent duplicate embeddings).
+
+**Live store state at time of this eval's development** (all expected values verified directly via `store._collection.get()`):
+- 491 total chunks across 28 distinct URLs
+- page_type distribution: faq=98, deadlines=14, eligibility=11, application_process=19, program_application=349
+- 5 distinct named programs: Nursing (D.N.P.), Physical Therapy (DPT), Educational Leadership (Ed.D.), Engineering & Computational Mathematics (Ph.D.), Public Health (DR.P.H.)
+- 0 empty chunks, 0 missing required metadata fields
+- 1 known duplicate chunk_id: `c31caccf_0000` appears 7 times (all from the deadlines URL), pre-existing and documented in Phase 8A
+- 2 short chunks (29 chars each: `. When you are ready to apply`) from program_application pages — below typical useful length but not empty; not a chunking regression
+
+### Evaluation Design: Inspecting the Store, Not Re-running Ingestion
+
+The framework inspects the already-built `chroma_db/` vector store via `store._collection.get()` — no network requests, no re-embedding, no side effects. This is the correct "evaluate the artifact" approach: ingestion is a build process (its output IS the store), and re-running it in an eval context would require live CSULB page fetches (non-reproducible without caching, not offline). The built store is the stable, inspectable output artifact; every downstream component (retriever, orchestrator, response builder) relies on it, so ensuring it was built correctly is directly valuable. This mirrors how `run_retrieval_evals.py` inspects the live store for retrieval correctness — Phase 9A inspects the same store for structural correctness one level earlier.
+
+### Dataset Design
+
+21 cases (`evals/ingestion_eval_cases.json`) across 9 check types:
+
+- `total_chunk_count` — total chunks in [min, max]
+- `page_type_chunk_count` — each of the 5 page types has chunks within bounds
+- `program_chunk_count` — each of the 5 named programs meets a minimum chunk count
+- `distinct_program_count` — at least 5 distinct program names present
+- `metadata_completeness` — url, chunk_id, page_type, title all non-empty on every chunk
+- `no_empty_chunks` — no empty page_content
+- `max_chunk_size` — no chunk exceeds 500 chars
+- `url_chunk_count` — two critical source URLs (deadlines, FAQ) each have sufficient chunks
+- `chunk_id_count` — the known `c31caccf_0000` duplicate appears exactly 7 times (regression tracker)
+
+Bounds are sized to absorb minor page content changes without false failures (e.g., `faq: min=50, max=500` vs. the current 98) while still catching structural regressions (a complete page ingest failure, a chunking break, a missing program). The duplicate tracking case (`INGST-021`) is intentionally a PASS when the count is exactly 7 — both a fix (count → 1) and a regression (count increases) would trigger a FAIL, alerting a human to review.
+
+### Metrics
+
+`evals/metrics_ingestion.py` groups the 9 check types into 7 metric categories: overall pass rate, page coverage rate (page_type cases), program coverage rate, metadata completeness rate, chunk quality rate (no_empty + max_size), URL coverage rate, volume sanity rate (total count + distinct program count), and duplicate tracking rate. All deterministic count/ratio metrics.
+
+### Failure Taxonomy
+
+`evals/error_classification_ingestion.py` assigns one of: `none` / `page_missing` / `chunk_missing` / `chunk_too_many` / `total_volume_out_of_range` / `program_missing` / `program_under_ingested` / `distinct_program_count_low` / `metadata_missing` / `empty_chunk` / `chunk_size_violation` / `duplicate_mismatch` / `unexpected_failure`. Two negative-test cases in `tests/test_ingestion_evals.py` directly prove the framework can detect real failures: `c31caccf_0000` expected at count=1 correctly FAILS with `duplicate_mismatch`, and a completely nonexistent page_type correctly FAILS with `page_missing`.
+
+### Validation Results
+
+608 tests passed (567 prior + 41 new in `tests/test_ingestion_evals.py`); router, golden routes, recommendation evals, retrieval evals, advisor evals, LLM evals, weight validation all unchanged; the same two pre-existing unrelated failures reproduced identically. `evals/run_ingestion_evals.py` runs 21/21 PASS at baseline. No production files changed — `rag/ingestion.py`, `rag/chunking.py`, `rag/store.py`, and `chroma_db/` are all untouched.
+
+### Future Ingestion Evaluation Work
+
+Adding snapshot-comparison support (diffing the current store's chunk count and URL list against a stored baseline JSON to detect silent re-ingestion drift over time); adding a case verifying that `c31caccf_0000`'s root cause (the deadlines specialist extractor assigning `chunk_index=0` to each program card) is eventually fixed and reflected in a corrected expected_count; capturing the 2 short (29-char) program_application chunks as a tracked `min_chunk_size` metric case; extending the dataset to verify `content_category` is non-empty for all `program_application` chunks (currently 368/491 have it; the 142 gaps are the generic PAGE_SOURCES chunks which intentionally have no content_category).
