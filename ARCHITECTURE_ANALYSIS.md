@@ -2343,3 +2343,55 @@ HTTP response (plain dict, JSON-encoded)
 - Deployment-grade health/readiness endpoints
 - Docker
 - CI/CD pipeline
+
+## Phase 5D — API Contracts (Completed)
+
+### Objective
+
+Replace the bare-dict `/query` response with explicit, Pydantic-backed contracts — without redesigning any backend response shape.
+
+### Changes Completed
+
+- Added `api/contracts.py`: `QueryRequest`, and one Pydantic model per existing TypedDict in `contracts/response_types.py` (`WelcomeResponseModel`, `GuidanceResponseModel`, `AnswerResponseModel`, `TopicResponseModel`, `AdvisorResponseModel`, `NextStepsResponseModel`, `DiscoveryResponseModel`), unioned as `QueryResponse`.
+- Wired `response_model=QueryResponse` onto `POST /query`, with `response_model_exclude_unset=True`.
+- Every model was verified against **real runtime output** for every route, not written from the TypedDict comments alone — this caught one genuine discrepancy: `WelcomeResponse`'s TypedDict omits `session_id`, but the actual welcome response includes it. The model reflects the real shape.
+
+### Design Decisions
+
+- **Every model allows extra fields** (`extra="allow"`). The model mirrors the backend response, not the other way around — if a field is ever added to a backend response that the mirror hasn't caught up to yet, it still passes through instead of being silently dropped.
+- **`response_model_exclude_unset=True` was a hard requirement, not a nicety.** A first pass without it failed empirical validation: `journey_agent._build_response()` and `orchestrator._build_advisor_response()` *omit* keys like `program_matches`, `clarification_question`, and `email_draft` entirely when they don't apply, rather than setting them to `None`. A naive `response_model=` would have filled in the Pydantic field's default (`None`) and serialized it anyway — adding a key the real backend response never has. `exclude_unset` keeps "key absent" and "key present with value null" distinct, which is also why fields the backend *always* sets, even to `None` (`GuidanceStepItem.watch_out`/`link`), correctly remain present.
+- Request model (`QueryRequest`) validation is unchanged from Phase 5C: `query` is required (no `min_length` — an empty string is valid, existing input, not invalid input), `session_id` is optional with no added constraints.
+- These models live in `api/`, not `contracts/` — `contracts/response_types.py`'s TypedDicts are an annotation-only layer for the backend with no runtime enforcement; these Pydantic models exist purely so FastAPI can validate/document an HTTP response. The backend never imports `api/`.
+
+### Result
+
+- Confirmed by direct comparison, for every route (welcome, guidance, answer, topic, advisor with/without email_draft, next_steps, discovery clarify/recommend): API response == direct `handle_user_query()`/`handle_discovery()` call, byte-for-byte.
+- OpenAPI schema now documents all 7 response shapes as named components, visible at `/docs`.
+- 283 tests passed (262 prior + 22 new contract tests, accounting for minor overlap); router, golden routes, recommendation evals, and weight validation all unchanged; the same two pre-existing, unrelated failures from prior Level 3 phases reproduced identically.
+
+### Final API Architecture
+
+```text
+Client
+    ↓
+FastAPI (api/app.py)
+    ↓
+QueryRequest (api/contracts.py) — request validation
+    ↓
+backend.entrypoint.handle_user_query()
+    ↓
+orchestrator.run() / agents.journey_agent.handle_discovery()
+    ↓
+responses.builder.build_response()
+    ↓
+QueryResponse (api/contracts.py) — response_model, exclude_unset=True
+    ↓
+JSON response
+```
+
+### Remaining Level 3 Work
+
+- Deployment-grade health/readiness endpoints
+- Docker
+- CI/CD pipeline
+- API versioning (future only — not needed at single-client, pre-1.0 stage)
