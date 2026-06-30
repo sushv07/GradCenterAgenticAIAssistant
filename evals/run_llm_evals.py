@@ -65,6 +65,7 @@ from evals.metrics_llm import (  # noqa: E402
 from evals.error_classification_llm import (  # noqa: E402
     classify_explanation, classify_answer, build_error_summary, format_error_summary_console,
 )
+from prompts.loader import get_prompt_info  # noqa: E402
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 _EVALS_DIR             = Path(__file__).parent
@@ -254,6 +255,11 @@ def _build_report(
     explanation_metrics = compute_explanation_metrics(explanation_results)
     answer_metrics       = compute_answer_metrics(answer_results)
 
+    # Phase 7E — record which prompt name/version produced these results, so
+    # a future run against a v2 prompt can be diffed against this report.
+    explanation_prompt = get_prompt_info("recommendation_explanation")
+    answer_prompt        = get_prompt_info("grounded_answer_synthesis")
+
     return {
         "schema_version": "1.0",
         "run_id":         str(uuid.uuid4()),
@@ -270,11 +276,15 @@ def _build_report(
             "execution_time_ms": execution_time_ms,
         },
         "recommendation_explanation": {
+            "prompt_name":    explanation_prompt.name,
+            "prompt_version": explanation_prompt.version,
             "cases":   explanation_results,
             "metrics": explanation_metrics,
             "error_summary": build_error_summary(explanation_results),
         },
         "grounded_answer": {
+            "prompt_name":    answer_prompt.name,
+            "prompt_version": answer_prompt.version,
             "cases":   answer_results,
             "metrics": answer_metrics,
             "error_summary": build_error_summary(answer_results),

@@ -2761,3 +2761,43 @@ Two real bugs were found and fixed while building this framework (both before it
 - A `--live` mode exercising a real local Ollama instance, for periodic (not per-commit) validation that the actual model's behavior still falls within the same grounding boundaries the mocked cases verify.
 - Extending both datasets as Phase 7C/7B's prompts evolve — they're small and hand-curated by design (Step 3's "keep datasets small, deterministic, version-controlled"), meant to grow incrementally alongside real production incidents, not to exhaustively enumerate every possible input upfront.
 - A third dataset once Phase 7C's roadmap item (a shared "grounded synthesis with fallback" module for advisor/admissions explanation) ships.
+
+## Phase 7E — Prompt Versioning
+
+### Why Prompt Versioning Matters
+
+Before this phase, both system prompts (`agents/recommendation_explainer.py`, `agents/llm_synthesizer.py`) were Python string literals — changing a single word of wording required editing the same file as the grounding/validation/retry business logic, with no version history distinct from code changes, and no way for an `evals/run_llm_evals.py` report to record *which* prompt wording produced a given pass/fail result. That last gap is the practical one: without it, comparing "did the new prompt wording improve evidence coverage" against the old report is guesswork.
+
+### Current Prompt Organization
+
+```text
+prompts/
+    __init__.py
+    registry.py                          — PromptMetadata records (name, version,
+                                            description, intended_model, file path)
+    loader.py                            — load_prompt(name), cached
+    recommendation/
+        explanation_v1.md                — agents/recommendation_explainer.py's prompt
+    grounded_answers/
+        synthesis_v1.md                  — agents/llm_synthesizer.py's prompt
+```
+
+Two prompts exist in the codebase today, both **Production** (Phase 7A/7B/7C classification — neither Experimental nor Legacy): `recommendation_explanation` (caller: `agents/recommendation_explainer.py:_call_ollama()`; inputs: a structured JSON evidence payload; output: `{"explanation": str}`; model: `qwen2.5:7b-instruct`) and `grounded_answer_synthesis` (caller: `agents/llm_synthesizer.py:_call_ollama()`; inputs: JSON-serialized retrieved content + the user's query; output: `{"answer": str, "confidence": str}`; same model).
+
+### Loading Architecture
+
+`prompts/loader.py:load_prompt(name)` is a single `functools.lru_cache`-wrapped function — no external dependencies, no frontmatter parser, no template engine. A prompt file is just its raw text; metadata lives separately in `prompts/registry.py` as a plain dict of `PromptMetadata` dataclass instances. Both production modules now read `_SYSTEM_PROMPT = load_prompt("...")` at module-import time instead of embedding the string literal — a one-line change per file, with prompt *content* moved, not prompt *usage*.
+
+Extraction fidelity was verified programmatically, not by hand-transcription: the original `_SYSTEM_PROMPT` string values were written directly to the new `.md` files from the live Python objects, then diffed byte-for-byte against the in-memory originals before any code was changed to use them — eliminating the real risk of a backslash-continuation transcription error silently changing prompt wording.
+
+### Versioning Strategy
+
+A version bump means: a new `.md` file (`explanation_v2.md` alongside, not replacing, `explanation_v1.md`) plus a new or updated `PromptMetadata` entry in `registry.py` pointing the logical name at the new file. Old versions stay on disk — nothing is deleted — so a regression can always be diffed against exactly what the previous version said. This mirrors how the evaluation datasets (`evals/llm_*_eval_cases.json`) are themselves version-controlled, hand-curated files, not a database.
+
+### Prompt Metadata
+
+Each `PromptMetadata` record carries `name`, `version`, `description`, `intended_model`, and `relative_path`. `evals/run_llm_evals.py`'s report now includes `prompt_name`/`prompt_version` inside both the `recommendation_explanation` and `grounded_answer` sections — additive fields; no existing metric key, computation, or value changed (confirmed: the same 8/11 explanation and 12/12 answer pass rates as Phase 7D, byte-for-byte).
+
+### Future Experimentation Workflow
+
+To trial a new prompt wording: add `prompts/recommendation/explanation_v2.md`, add a `recommendation_explanation_v2` (or bump the existing entry's `version`/`relative_path`) entry in `registry.py`, run `evals/run_llm_evals.py`, and diff the new report's `evidence_coverage_rate`/`forbidden_claim_rate`/etc. against the v1 report saved in `evals/reports/`. No code in `agents/recommendation_explainer.py` or `agents/llm_synthesizer.py` needs to change to test a new wording — only the registry's `relative_path` for that name. This is the direct payoff of Phase 7E's "prompt wording lives outside Python" principle: prompt experimentation becomes a data change, not a code change.

@@ -89,6 +89,9 @@ CHUNK_OVERLAP = 75
 
 PROGRAM_TAXONOMY_PATH = _PROJECT_ROOT / "data" / "program_taxonomy.json"
 
+# Phase 7E — root directory for versioned LLM prompt assets (see prompts/).
+PROMPTS_DIR = _PROJECT_ROOT / "prompts"
+
 
 # ---------------------------------------------------------------------------
 # Logging / observability configuration
