@@ -1,0 +1,139 @@
+{
+  "_schema_version": "1.0",
+  "_scope": "Phase 8D — deterministic evaluation of the advisor/program-information answer pipeline. Exercises the REAL find_advisor() → _build_advisor_response() path via handle_user_query(), exactly as a real user reaches it. Every expected value verified against the live retrieval/routing pipeline before being recorded here — no invented outputs.",
+  "_source": "Hand-curated. All expected_program, expected_advisor_name, expected_email, and expected_source_url values were verified by running the real backend and inspecting advisors_extracted.json. The Public Health DR.P.H. case (ADVL-005) carries a data quality note in its description: the advisor record's source URL points to the nursing program page rather than a dedicated Public Health page — this is a known characteristic of the current data file, not a bug in the routing or matching logic.",
+  "cases": [
+    {
+      "case_id": "ADVL-001",
+      "description": "Exact alias match for DNP nursing program — the alias 'dnp nursing' directly appears in the advisor record's aliases list. Should return a strong match with correct advisor and email.",
+      "query": "dnp nursing",
+      "expected_route": "advisor",
+      "expected_match": true,
+      "expected_program": "Nursing (D.N.P.)",
+      "expected_advisor_name": "Cleddhy Arellano",
+      "expected_email": "cleddhy.arellano@csulb.edu",
+      "expected_source_url": "https://www.csulb.edu/college-of-health-human-services/school-of-nursing/bsn-dnp-program",
+      "has_null_advisor": false
+    },
+    {
+      "case_id": "ADVL-002",
+      "description": "Natural-language fuzzy match — 'nursing advisor' is NOT in the aliases list but fuzzy partial_ratio score >= FUZZY_THRESHOLD (90) against the program name. Tests the core RapidFuzz matching path.",
+      "query": "nursing advisor",
+      "expected_route": "advisor",
+      "expected_match": true,
+      "expected_program": "Nursing (D.N.P.)",
+      "expected_advisor_name": "Cleddhy Arellano",
+      "expected_email": "cleddhy.arellano@csulb.edu",
+      "expected_source_url": "https://www.csulb.edu/college-of-health-human-services/school-of-nursing/bsn-dnp-program",
+      "has_null_advisor": false
+    },
+    {
+      "case_id": "ADVL-003",
+      "description": "Physical Therapy DPT advisor lookup — verifies a different program, advisor name, and email compared to the nursing cases above.",
+      "query": "physical therapy advisor",
+      "expected_route": "advisor",
+      "expected_match": true,
+      "expected_program": "Physical Therapy (DPT)",
+      "expected_advisor_name": "Jeff Rodrigues",
+      "expected_email": "CHHS-PT@csulb.edu",
+      "expected_source_url": "https://www.csulb.edu/college-of-health-human-services/physical-therapy/applying-to-the-dpt-program",
+      "has_null_advisor": false
+    },
+    {
+      "case_id": "ADVL-004",
+      "description": "Engineering PhD advisor lookup — the alias 'engineering phd' is in the record's aliases list. Tests a College of Engineering program distinct from the health-sciences programs.",
+      "query": "engineering phd advisor",
+      "expected_route": "advisor",
+      "expected_match": true,
+      "expected_program": "Engineering & Computational Mathematics (Ph.D.)",
+      "expected_advisor_name": "Kerop Janoyan",
+      "expected_email": "kerop.janoyan@csulb.edu",
+      "expected_source_url": "https://www.csulb.edu/college-of-engineering/engineering-doctoral-studies",
+      "has_null_advisor": false
+    },
+    {
+      "case_id": "ADVL-005",
+      "description": "Public Health DrPH advisor lookup. DATA NOTE: the advisor record's source URL (expected_source_url below) points to the nursing program page rather than a dedicated public health page — this is a known data quality issue in advisors_extracted.json, not a bug in routing or matching. The eval records the ACTUAL system output so it can detect if this ever inadvertently changes.",
+      "query": "drph public health advisor",
+      "expected_route": "advisor",
+      "expected_match": true,
+      "expected_program": "Public Health (DR.P.H.)",
+      "expected_advisor_name": "Lucy Huckabay",
+      "expected_email": "Lucy.Huckabay@csulb.edu",
+      "expected_source_url": "https://www.csulb.edu/college-of-health-human-services/school-of-nursing/bsn-dnp-program",
+      "has_null_advisor": false
+    },
+    {
+      "case_id": "ADVL-006",
+      "description": "Ambiguous query — 'educational leadership advisor' matches two Ed.D. programs (P-12 and Community College) at the AMBIGUITY_THRESHOLD (89) without an exact alias match (best_full < NEAR_EXACT_THRESHOLD 95). The system must return no match and surface both programs as suggestions rather than silently picking one.",
+      "query": "educational leadership advisor",
+      "expected_route": "advisor",
+      "expected_match": false,
+      "expected_suggestions_include": [
+        "Educational Leadership - P-12 Specialization (Ed.D.)",
+        "Educational Leadership - Community College Higher Ed Specialization (Ed.D.)"
+      ],
+      "has_null_advisor": false
+    },
+    {
+      "case_id": "ADVL-007",
+      "description": "Token disambiguation — 'community college' contains tokens exclusive to the CC Ed.D. program, resolving what would otherwise be an ambiguous 'edd community college' query. Tests the unique-token disambiguation branch of find_advisor().",
+      "query": "edd community college",
+      "expected_route": "advisor",
+      "expected_match": true,
+      "expected_program": "Educational Leadership - Community College Higher Ed Specialization (Ed.D.)",
+      "expected_advisor_name": "Kimberly Word",
+      "expected_email": "eddinfo@csulb.edu",
+      "expected_source_url": "https://www.csulb.edu/college-of-education/educational-doctorate-educational-leadership",
+      "has_null_advisor": false
+    },
+    {
+      "case_id": "ADVL-008",
+      "description": "Token disambiguation — 'p-12' (after normalization: 'p 12') contains tokens exclusive to the P-12 Ed.D. program. Tests the other half of the ambiguous Educational Leadership case.",
+      "query": "edd p-12",
+      "expected_route": "advisor",
+      "expected_match": true,
+      "expected_program": "Educational Leadership - P-12 Specialization (Ed.D.)",
+      "expected_advisor_name": "Kimberly Word",
+      "expected_email": "eddinfo@csulb.edu",
+      "expected_source_url": "https://www.csulb.edu/college-of-education/educational-doctorate-educational-leadership",
+      "has_null_advisor": false
+    },
+    {
+      "case_id": "ADVL-009",
+      "description": "Match with null advisor contact data — 'accountancy advisor' matches the Accountancy program record at high confidence, but that record has advisor_name=null and email=null in advisors_extracted.json. The system should return a match on the program, route correctly to 'advisor', and not invent contact details. has_null_advisor=true suppresses advisor_name/email correctness checks in the evaluator.",
+      "query": "accountancy advisor",
+      "expected_route": "advisor",
+      "expected_match": true,
+      "expected_program": "Accountancy",
+      "has_null_advisor": true
+    },
+    {
+      "case_id": "ADVL-010",
+      "description": "No match, no signal — 'xyz totally unknown program' is too dissimilar to any program name or alias (best partial_ratio well below FUZZY_THRESHOLD 90 and below SUGGESTION_THRESHOLD 70). find_advisor() returns no match and no suggestions. The router receives no advisor hit and no advisor-intent signal, so it falls through to the guidance/answer path — expected_route is NOT 'advisor'.",
+      "query": "xyz totally unknown program",
+      "expected_route_is_not": "advisor",
+      "expected_match": false,
+      "expected_suggestions": [],
+      "has_null_advisor": false
+    },
+    {
+      "case_id": "ADVL-011",
+      "description": "Advisor intent with no program identified — 'who is my advisor' is all stop-words after normalization, so find_advisor() returns confidence=0 and no match. The router recognizes advisor-intent tokens ('advisor', 'my') and routes to 'advisor' with reason='advisor_intent_no_program'. Expected: route=advisor, no match, no suggestions.",
+      "query": "who is my advisor",
+      "expected_route": "advisor",
+      "expected_match": false,
+      "expected_suggestions": [],
+      "has_null_advisor": false
+    },
+    {
+      "case_id": "ADVL-012",
+      "description": "Empty query — handle_user_query('') strips to '' and routes to welcome (route=None). No advisor data, no match. Tests that the pipeline handles the empty-query edge case cleanly without crashing.",
+      "query": "",
+      "expected_route": null,
+      "expected_match": false,
+      "expected_suggestions": [],
+      "has_null_advisor": false
+    }
+  ]
+}

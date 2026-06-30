@@ -3062,3 +3062,63 @@ Three distinct questions, three distinct tools: Phase 8A asks "was retrieval *co
 A CLI flag on `obs/trace_summary.py` to filter by route or session_id rather than summarizing every trace in the log; exporting a single `RequestTrace` as a human-readable timeline view (currently only the aggregate report has a console formatter); investigating whether `evals/run_evals.py` and `evals/weight_validation.py` could mint per-case `request_id`s consistently (today a large fraction of historical log volume — primarily from these two runners — has no `request_id` at all, which is accurate reporting of a real, pre-existing characteristic rather than a defect introduced by this phase, but is worth closing in its own right); a real distributed-tracing export, deferred per this phase's explicit non-goals.
 
 The `ContextVar`-based design (`session_id`, mirroring the existing `request_id`) is the same mechanism OpenTelemetry's own context propagation is built on — `gradcenter_logging.py`'s own docstring already calls this pattern "OTel-compatible." A future OpenTelemetry integration would mean wrapping `emit()` to also populate an OTel span's attributes from the same ContextVars already in place, not redesigning how context flows through this codebase. Not implemented here — explicit non-goal — but the groundwork doesn't need to change later.
+
+## Phase 8D — Advisor Answer Evaluation
+
+### Advisor Answer Evaluation Audit
+
+The advisor-answer pipeline has three layers: (1) `routing/router.py:decide_route()` calls `retrieval/advisor_retrieval.py:find_advisor()` via RapidFuzz fuzzy matching against all program names and their aliases, then routes to "advisor" if a match or suggestions are found; (2) `orchestrator.py:_build_advisor_response()` assembles the response from the pre-fetched `advisor_result` dict, adding an email draft if contact data exists; (3) the whole path is exercised by `backend.entrypoint.handle_user_query()`, same as every other route. The core function is fully deterministic — there is no LLM involved at any point, and all outputs depend only on the query, the `advisors_extracted.json` data file, and RapidFuzz's score functions (`partial_ratio` primary, `fuzz.ratio` tiebreaker).
+
+**Matching logic summary**: `normalize_query()` strips stop words (including "advisor," "graduate," "doctoral," etc.) then `_best_score_for()` computes `(partial_ratio, ratio)` across program name + all aliases for each of the 10 advisor records. A `best_partial >= FUZZY_THRESHOLD (90)` returns a match, with an ambiguity check (2+ programs at `>= AMBIGUITY_THRESHOLD (89)` and `best_full < NEAR_EXACT_THRESHOLD (95)`) triggering a suggestions list. A unique-token-disambiguation step can resolve ambiguity when the query contains tokens exclusive to exactly one of the ambiguous programs. `>= SUGGESTION_THRESHOLD (70)` but `< FUZZY_THRESHOLD` returns suggestions only.
+
+**Key audit findings**:
+1. **Data quality issue**: `advisors_extracted.json`'s Public Health (DR.P.H.) record carries a source URL pointing to the nursing program page (`bsn-dnp-program`), not a dedicated public health page — a pre-existing data error. The eval dataset records the ACTUAL system output for this case (ADVL-005) so it will detect any unintended change to this value, while the description field explicitly documents the known issue.
+2. **Null advisor data**: Three records (Accountancy, Anthropology, Anthropology - Applied) have `advisor_name: null` and `email: null` — the system correctly matches and routes these queries to the "advisor" route without inventing contact information. ADVL-009 specifically covers this case with `has_null_advisor: true` suppressing name/email correctness checks.
+3. **All matching is entirely deterministic**: no LLM, no embeddings — every output is reproducible across runs on the same data file and RapidFuzz version.
+
+### Dataset Design
+
+12 cases (`evals/advisor_answer_eval_cases.json`) ground truth verified against the live pipeline before recording. Case categories:
+
+| Case | Query type | Expected outcome |
+|---|---|---|
+| ADVL-001 | Exact alias match | Strong match, full contact info |
+| ADVL-002 | Fuzzy program-name match | Same program as ADVL-001, different query form |
+| ADVL-003 | Physical Therapy DPT | Different program/advisor/email |
+| ADVL-004 | Engineering PhD (alias) | Engineering & Computational Mathematics |
+| ADVL-005 | Public Health DrPH | Known data quality note on source URL |
+| ADVL-006 | Ambiguous Ed.D. | Two suggestions, no match |
+| ADVL-007 | Token disambiguation (CC Ed.D.) | Resolved from ambiguous to specific |
+| ADVL-008 | Token disambiguation (P-12 Ed.D.) | Resolved from ambiguous to specific |
+| ADVL-009 | Null advisor contact data | Match found, null contact is correct |
+| ADVL-010 | No-match query | Routes to answer/guidance, not advisor |
+| ADVL-011 | Advisor intent, no program | Route=advisor, no match, no suggestions |
+| ADVL-012 | Empty query | Route=None (welcome), no match |
+
+### Metrics
+
+`evals/metrics_advisor.py` computes nine deterministic rate metrics across three groups:
+
+**Routing**: `route_accuracy` — % of cases with an expected_route assertion where the actual route matched.
+
+**Match quality**: `advisor_match_rate` (% of should-match cases that found a match), `no_spurious_match_rate` (% of should-not-match cases that correctly returned no match), `suggestion_coverage` (% of ambiguous cases where all expected programs appeared in suggestions).
+
+**Field accuracy** (named-advisor programs only — `has_null_advisor=False` cases): `program_accuracy`, `advisor_name_accuracy`, `email_accuracy`, `source_accuracy`.
+
+**Edge cases**: `null_advisor_handling_rate` — % of `has_null_advisor=True` cases where the system correctly returned null contact fields rather than inventing data.
+
+### Failure Taxonomy
+
+`evals/error_classification_advisor.py` assigns exactly one of: `none` / `incorrect_route` / `advisor_not_found` / `spurious_match` / `wrong_program` / `wrong_advisor` / `wrong_email` / `missing_information` / `suggestion_failure` / `null_advisor_incorrect` / `unexpected_failure`. Priority order: routing check first (if routing fails, downstream advisor data is meaningless), then match presence, then null-advisor handling, then field accuracy, then suggestions. Mirrors `error_classification_retrieval.py`'s structure exactly.
+
+### Evaluation Runner
+
+`evals/run_advisor_evals.py` mirrors `run_retrieval_evals.py`'s exact structure (load dataset → run case → print live → build report → write JSON → print console). Calls `handle_user_query()` directly — not `find_advisor()` in isolation — because routing failures are a genuine failure mode the lower-level function cannot detect. Each case clears the session (`clear_context(_EVAL_SESSION_ID)`) before running so no discovery state bleeds across cases. Writes `evals/reports/latest_advisor_eval_report.json` plus a timestamped archive.
+
+### Validation Results
+
+567 tests passed (532 prior + 35 new in `tests/test_advisor_evals.py`); router, golden routes, recommendation evals, retrieval evals, LLM evals, weight validation all unchanged; the same two pre-existing unrelated failures reproduced identically. `evals/run_advisor_evals.py` runs 12/12 PASS at baseline. No production files changed — `advisor_retrieval.py`, `orchestrator.py`, `responses/builder.py`, and `advisors_extracted.json` are all untouched.
+
+### Future Improvements
+
+Expanding the dataset to cover the three programs with null advisor data more thoroughly (Accountancy, Anthropology, Anthropology-Applied — only Accountancy is currently covered); adding cases for Aerospace Engineering (another non-null advisor record); tracking the Public Health source URL data quality issue in a dedicated ticket rather than in a dataset description field; capturing confidence score as a numeric assertion (e.g., `expected_confidence_gte: 90`) rather than only checking for match presence; a case for the "doctoral tokens, no match" router branch (`doctoral_no_match` reason code — e.g., "underwater basket weaving phd") distinct from the more general "xyz unknown program" no-match path.
