@@ -35,6 +35,7 @@ from agents.recommendation_engine import (
 from gradcenter_logging import emit
 from state.context_manager import get_context, save_context
 from responses.builder import build_response
+from agents.recommendation_explainer import attach_explanations
 
 
 # ---------------------------------------------------------------------------
@@ -912,6 +913,16 @@ def handle_discovery(
              gaps_considered=gaps,
              clarification_question=result.question or "",
              clarification_type=_clarification_type(gaps))
+    # Phase 7B: optional, additive LLM explanation — runs AFTER
+    # select_recommendation() has produced its final, immutable
+    # program_matches and BEFORE response assembly. Mutates each
+    # ProgramMatch in place, adding only "explanation"; program_id,
+    # confidence, score_basis, advisor_email, deadline_fall are untouched.
+    # No-op when LLM_EXPLANATION_ENABLED=false (the default) or on any
+    # generation failure — the deterministic recommendation is unaffected
+    # either way.
+    if result.program_matches:
+        attach_explanations(result.program_matches)
     response = _build_response(query, session_id, result)
     save_context(session_id, updated)
     return response, updated

@@ -2601,3 +2601,54 @@ Existing deterministic eval suites (`run_recommendation_evals.py`, `weight_valid
 - **Phase 7C — Advisor + Admissions Explanation.** Extend the same pattern to two more existing, lower-risk surfaces. Extract the shared "grounded synthesis with fallback" shape out of `agents/llm_synthesizer.py` into something reusable, rather than copy-pasting it three times.
 - **Phase 7D — LLM Evaluation Framework.** Build the `evals/run_llm_evals.py` suite designed above; establish baseline faithfulness/citation/consistency metrics for the Phase 7B/7C features before considering any further expansion.
 - **Phase 7E — Program Summaries.** Only after 7B–7D establish the pattern and evaluation discipline. Larger scope — needs new retrieval grounding (program-page RAG chunks) rather than narrating an already-existing structured result, so it carries materially more hallucination risk than 7B/7C and should not be attempted before the evaluation framework exists to catch regressions.
+
+# Phase 7B — Recommendation Explanation Generation (Implemented)
+
+## Where Explanation Generation Happens
+
+`agents/recommendation_explainer.py:attach_explanations()`, called from `agents/journey_agent.py:handle_discovery()` at exactly one point — immediately after `select_recommendation()` returns its final `_RecommendationResult`, immediately before `_build_response()` assembles the API response:
+
+```
+Journey Agent (extract signals)
+    ↓
+Recommendation Engine — select_recommendation() (deterministic, final, immutable)
+    ↓
+ProgramMatch list
+    ↓
+attach_explanations() (Phase 7B — optional, additive only)
+    ↓
+Response Builder — build_response()
+    ↓
+API response
+```
+
+## Why After Deterministic Scoring, Not Before or Inside
+
+This is the only point where an LLM call cannot influence the recommendation itself. Inserting it inside `agents/recommendation_engine.py` would put a generative call in the same function that decides scores/ranking/confidence — exactly what Phase 7A's guiding principle forbids. Inserting it later, inside `responses/builder.py`, would mean a generic, route-agnostic module taking on recommendation-domain logic that doesn't belong there. `agents/recommendation_engine.py` was not modified in any way by this phase — confirmed by `git diff`.
+
+## What the LLM Receives
+
+Only a `ProgramMatch` dict (`program_id`, `confidence`, `score_basis`) and a read-only taxonomy lookup (`agents.recommendation_engine._load_taxonomy()`, for the program's display name and degree type — descriptive framing, not evidence). `score_basis` strings — already the recommendation engine's own deterministic output — are parsed into `matched_degree` / `matched_career_goals` / `matched_interests` / `matched_background` / `orientation_match`. Nothing is re-derived, guessed, or pulled from anywhere else.
+
+## What the LLM Never Receives
+
+- Raw user conversation history or `JourneyState` — only the already-final `ProgramMatch`
+- `orientation_mismatch` entries — deliberately excluded from the evidence passed to the LLM; a mismatch is a scoring penalty, not supporting evidence for "why this fits," and including it would risk a confusing or misleading explanation
+- Any other program's score, confidence, or match data — each explanation is generated per-program, in isolation, so the LLM has no way to compare against or reference programs that ranked lower (the prompt also explicitly forbids this)
+- Anything about admissions outcomes, acceptance likelihood, or funding — not part of the input, and the prompt explicitly forbids speculating about it
+
+## Fallback Behavior
+
+`LLM_EXPLANATION_ENABLED` (env var, default `false` — a separate flag from `LLM_SYNTHESIS_ENABLED`, so the two features can be toggled independently). When disabled, `attach_explanations()` is a true no-op. When enabled, any failure — network error, retry exhaustion (Phase 6B's `utils.retry.retry_call`), invalid/malformed JSON response — leaves that `ProgramMatch` exactly as it would have been with the feature disabled; `explanation` is simply absent, never a placeholder or error string. Confirmed empirically: a response generated with the LLM enabled-and-failing is byte-for-byte identical to the same query with the feature disabled.
+
+## Validation
+
+- Confirmed live: enabled-and-succeeding adds only the `explanation` key — `program_id`, `confidence`, `score_basis`, `advisor_email`, `deadline_fall`, `behavior`, `recommended_programs`, and top-level `confidence` are byte-identical across disabled / enabled / failing runs of the same query.
+- 343 tests passed (325 prior + 18 new); router, golden routes, recommendation evals, and weight validation all unchanged; the same two pre-existing, unrelated failures from prior phases reproduced identically.
+- `evals/run_recommendation_evals.py` and `evals/weight_validation.py` call `handle_discovery()` directly with the feature at its default (disabled) — both produced identical rates/percentages to every prior phase, confirming zero impact on the deterministic eval suites.
+
+## Future Extension Points
+
+- Phase 7C's planned extraction of a shared "grounded synthesis with fallback" module — `agents/llm_synthesizer.py` and `agents/recommendation_explainer.py` now share an almost-identical structure (env-var flag, retry-protected Ollama POST, JSON validation, hard fallback) that's a natural candidate to consolidate once a third use case (advisor/admissions explanation) confirms the right shape.
+- The `explanation` field is additive on `ProgramMatch` (`contracts/response_types.py`) — any future UI work can check for its presence and render it only when available, with no schema migration needed.
+- Per-program retry/backoff currently runs independently for each `ProgramMatch` in a `multi_recommend` response — acceptable at today's scale (at most 2 programs), worth revisiting if that ever grows.

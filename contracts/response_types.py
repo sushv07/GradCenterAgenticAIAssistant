@@ -187,6 +187,12 @@ class ProgramMatch(TypedDict, total=False):
     advisor_email: str
     deadline_fall: str
     score_basis:   list[str]  # human-readable scoring factors
+    # Phase 7B — optional LLM-generated natural-language explanation of why
+    # this program matched, derived ONLY from score_basis (never new facts).
+    # Absent when LLM_EXPLANATION_ENABLED=false or generation fails — the
+    # deterministic fields above are always present and authoritative
+    # regardless of whether this key exists.
+    explanation:   str
 
 
 class _DiscoveryBase(BaseResponse):
