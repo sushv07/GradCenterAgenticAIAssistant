@@ -2141,6 +2141,57 @@ Remaining Level 3 milestones:
 
 The architectural foundation is now considered stable, allowing future work to focus on deployment, scalability, and production readiness rather than backend reorganization.
 
+# Phase 5B — Production Engineering: Dependency Injection
+
+## Summary
+
+Introduced a lightweight dependency container, `backend/dependencies.py`, bundling the backend's genuinely swappable components — the Retriever, the Context Manager's three functions, and the Response Builder — behind one object, `AppDependencies`. Wired it into `backend/entrypoint.py` as an additive, optional parameter.
+
+## What Moved (Construction, Not Logic)
+
+- `retrieval/retriever_service.ChromaRetriever()` — now constructed by `get_dependencies()` rather than only at module-import time. The pre-existing module-level `_default_retriever` singleton in `retrieval/retriever_service.py` is untouched; `get_dependencies()` constructs its own instance, since `ChromaRetriever` is a stateless wrapper and a second instance is free to create.
+- `state.context_manager`'s `get_context`/`save_context`/`clear_context` — bundled into one `ContextManagerService` object instead of three separate imports.
+- `responses.builder.build_response` — included in the container for parity, even though it's a pure function with nothing to swap yet.
+
+## What Stayed Module-Level, and Why
+
+- **Orchestrator, Router, Recommendation Engine** — deterministic algorithm/business-rule modules. Wrapping `orchestrator.run()` behind an interface would mean injecting the entire backend's core logic for no current swap need — explicitly out of scope ("Do not rewrite deterministic algorithm modules").
+- **rag/store.py's internal Chroma client/embedding singletons** — already one layer below an existing, justified abstraction (Retriever, Phase 4B). Injecting at that lower layer too would be unjustified double-wrapping.
+- **Config, logging** — `config/settings.py` is what dependencies read *from*, not itself a dependency; `gradcenter_logging.py` is a deliberately import-light cross-cutting concern (Phase 5A), correctly left as ambient/global rather than forced into the container.
+- **`agents/journey_agent.py`'s own internal `get_context`/`save_context` calls** — untouched. Threading the container into `handle_discovery()`'s signature would touch a function called directly by 5+ test files and 2 eval runners for no behavioral gain this phase.
+
+## Validation
+
+- 252/252 tests passed (241 prior + 11 new dependency-container tests)
+- Router tests: 44/44 unchanged; golden routes: 42/42 unchanged
+- Recommendation evaluation and weight validation: unchanged
+- Confirmed live: injecting a fake context manager into `handle_user_query()` causes it to actually be called (not silently ignored) — the seam is real, not decorative
+- Two pre-existing, unrelated failures (same as Phase 5A) reproduced identically
+
+## Final Dependency Architecture
+
+```text
+config/settings.py
+        ↓
+backend/dependencies.py   (AppDependencies: retriever, context_manager, response_builder)
+        ↓
+backend/entrypoint.py     (handle_user_query(..., deps: Optional[AppDependencies] = None))
+        ↓
+orchestrator.run() / agents.journey_agent.handle_discovery()   (unchanged, module-level)
+```
+
+## Production Engineering Status
+
+**Level 3 — Dependency Injection is complete** (lightweight, Pythonic — no DI framework).
+
+Remaining Level 3 milestones:
+
+- FastAPI API layer
+- Health checks
+- Docker deployment
+- CI/CD pipeline
+- Production infrastructure
+
 ## Phase 5A — Configuration Management (Completed)
 
 ### Objective
@@ -2193,6 +2244,52 @@ without changing application behavior.
 ### Remaining Level 3 Work
 
 - Dependency Injection
+- FastAPI service layer
+- API contracts
+- Health endpoints
+
+## Phase 5B — Dependency Injection (Completed)
+
+### Objective
+
+Introduce a lightweight dependency construction layer to reduce module coupling and prepare the backend for future service replacement, testing, and FastAPI integration.
+
+### Changes Completed
+
+- Added a central `backend/dependencies.py` module.
+- Introduced an `AppDependencies` container for shared backend services.
+- Added a `ContextManagerService` wrapper around context operations.
+- Updated the unified backend entry point (`handle_user_query`) to optionally receive injected dependencies while preserving existing default behavior.
+- Kept the dependency layer additive and fully backward compatible.
+
+### Design Decisions
+
+The following remain intentionally module-level:
+
+- recommendation engine
+- routing logic
+- response generation logic
+- configuration module
+- logging
+- RAG store internals
+
+These components are deterministic, stable, or already sufficiently isolated. Introducing dependency injection for them today would add complexity without providing meaningful flexibility.
+
+Only services that are realistic candidates for future replacement or testing (such as the retriever and context manager) are exposed through the dependency container.
+
+### Result
+
+The backend now has a single location responsible for constructing runtime services.
+
+This provides:
+
+- cleaner separation between construction and usage
+- easier unit testing with injected fakes or mocks
+- simpler migration to FastAPI dependency injection
+- future support for alternative retrieval backends without changing application logic
+
+### Remaining Level 3 Work
+
 - FastAPI service layer
 - API contracts
 - Health endpoints

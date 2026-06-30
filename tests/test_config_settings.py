@@ -94,9 +94,11 @@ class TestModulesActuallyReadFromConfig(unittest.TestCase):
         self.assertEqual(orchestrator.run.__defaults__, (settings.DEFAULT_SESSION_ID,))
 
     def test_backend_entrypoint_default_session_id_matches_config(self):
+        import inspect
         from backend.entrypoint import handle_user_query
+        sig = inspect.signature(handle_user_query)
         self.assertEqual(
-            handle_user_query.__defaults__, (settings.DEFAULT_SESSION_ID,)
+            sig.parameters["session_id"].default, settings.DEFAULT_SESSION_ID
         )
 
 

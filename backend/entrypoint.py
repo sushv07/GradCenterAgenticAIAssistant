@@ -45,22 +45,29 @@ Usage:
 """
 from __future__ import annotations
 
+from typing import Optional
+
 import orchestrator
 from agents.journey_agent import handle_discovery, init_journey_state
 from contracts.response_types import OrchestratorResponse
-from state.context_manager import get_context
 from context.trace_context import TraceContext, create_trace_context, record_route
 from config.settings import DEFAULT_SESSION_ID
+from backend.dependencies import AppDependencies, get_dependencies
 
 
-def _is_discovery_active(session_id: str) -> bool:
+def _is_discovery_active(session_id: str, deps: Optional[AppDependencies] = None) -> bool:
     """True when the next message for this session should continue an
     in-progress discovery clarification rather than be freshly routed."""
-    context = get_context(session_id, default_factory=init_journey_state)
+    deps = deps or get_dependencies()
+    context = deps.context_manager.get_context(session_id, default_factory=init_journey_state)
     return context.journey_state.get("phase") == "clarifying"
 
 
-def handle_user_query(query: str, session_id: str = DEFAULT_SESSION_ID) -> OrchestratorResponse:
+def handle_user_query(
+    query: str,
+    session_id: str = DEFAULT_SESSION_ID,
+    deps: Optional[AppDependencies] = None,
+) -> OrchestratorResponse:
     """
     The single backend entry point for all incoming user requests.
 
@@ -74,11 +81,18 @@ def handle_user_query(query: str, session_id: str = DEFAULT_SESSION_ID) -> Orche
     Phase 4G output report — but every field on it reflects this real
     request, ready for a future caller (FastAPI, observability) to consume
     without any further redesign.
+
+    Phase 5B: accepts an optional AppDependencies (deps). When omitted, the
+    real production dependencies are constructed via get_dependencies() —
+    identical to this function's pre-Phase-5B behavior. Passing a custom
+    AppDependencies (e.g. with a fake context manager) lets a test exercise
+    this function without touching the real session store.
     """
+    deps = deps or get_dependencies()
     query = (query or "").strip()
     trace: TraceContext = create_trace_context(session_id)
 
-    if _is_discovery_active(session_id):
+    if _is_discovery_active(session_id, deps):
         response, _ = handle_discovery(query, session_id)
     else:
         response = orchestrator.run(query, session_id=session_id)
