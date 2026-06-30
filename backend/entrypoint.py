@@ -45,6 +45,7 @@ Usage:
 """
 from __future__ import annotations
 
+import time
 from typing import Optional
 
 import orchestrator
@@ -54,7 +55,7 @@ from context.trace_context import TraceContext, create_trace_context, record_rou
 from config.settings import DEFAULT_SESSION_ID
 from backend.dependencies import AppDependencies, get_dependencies
 from responses.builder import build_response
-from gradcenter_logging import emit, set_session_id
+from gradcenter_logging import emit, set_session_id, set_request_id, new_request_id, get_request_id
 
 
 def _is_discovery_active(session_id: str, deps: Optional[AppDependencies] = None) -> bool:
@@ -126,13 +127,53 @@ def handle_user_query(
     This function is the single, designated boundary between "the backend
     might raise" and "the caller (UI, API) never sees an unhandled
     exception."
+
+    Phase 8E: this is also the one place every production caller passes
+    through (app.py's Streamlit UI, api/app.py's FastAPI endpoint, eval
+    runners, the CLI), so it is the correct, single place to guarantee two
+    things the Phase 8E traceability audit found missing:
+      1. request_id is always populated. app.py already mints a fresh one
+         unconditionally before calling in (new_request_id() +
+         set_request_id() in _submit_query()) and api/app.py's /query
+         handler now does the same (see api/app.py) — so this function
+         mints one ONLY when none is already active, deliberately NOT
+         unconditionally: app.py sets its own id before this call so that
+         its request.start/request.complete events share one request_id
+         with everything handle_user_query() does internally. Minting a
+         second, different id in here unconditionally would silently
+         split that one logical request into two disconnected groups in
+         the logs — exactly the correlation breakage this phase exists to
+         prevent. The conditional mint here is strictly a safety net for
+         a caller that does NOT mint its own (a bare test or script
+         calling this function directly) — every real production caller
+         already mints explicitly, matching app.py's pattern.
+      2. request.started / request.completed bookend events exist at the
+         backend level. app.py already emits its own request.start /
+         request.complete, but only around its own call into this
+         function, and only for Streamlit traffic — and discovery
+         continuation turns (the _is_discovery_active() branch below)
+         never emit route.decision at all, so previously nothing in the
+         logs recorded the route for those turns except the final
+         in-memory response object. record_route() already computes the
+         right value (trace.route); request.completed just logs it.
+    Deliberately named request.started/.completed (not request.start/
+    .complete) to stay visually and programmatically distinct from
+    app.py's existing pair — no consumer of the old events is affected,
+    and obs/request_trace.py treats both pairs as valid bookends.
     """
     deps = deps or get_dependencies()
     query = (query or "").strip()
     set_session_id(session_id)  # Phase 8B — lets retrieval (and future) observability
                                  # events correlate back to this session without a new
                                  # parameter threaded through every retrieval call site.
+    if not get_request_id():
+        set_request_id(new_request_id())
     trace: TraceContext = create_trace_context(session_id)
+
+    _t0 = time.perf_counter()
+    _q_trunc = query[:200].rsplit(" ", 1)[0] if len(query) > 200 and " " in query[:200] else query[:200]
+    emit("request.started", level="INFO",
+         session_id=session_id, query=_q_trunc, query_len=len(query))
 
     try:
         if _is_discovery_active(session_id, deps):
@@ -143,4 +184,11 @@ def handle_user_query(
         response = _build_error_response(query, session_id, exc)
 
     record_route(trace, response.get("route"))
+
+    _elapsed = round((time.perf_counter() - _t0) * 1000, 1)
+    _had_error = bool(response.get("error"))
+    emit("request.completed", level="WARNING" if _had_error else "INFO",
+         session_id=session_id, route=trace.route or "",
+         elapsed_ms=_elapsed, had_error=_had_error)
+
     return response

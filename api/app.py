@@ -53,6 +53,7 @@ from backend.dependencies import AppDependencies, get_dependencies
 from config.settings import DEFAULT_SESSION_ID
 from api.contracts import QueryRequest, QueryResponse, HealthResponse, ReadinessResponse
 from api.health import build_health_response, build_readiness_response
+from gradcenter_logging import new_request_id, set_request_id
 
 app = FastAPI(title="CSULB Grad Center Assistant API")
 
@@ -114,6 +115,16 @@ def query(
     — a real behavior change. exclude_unset keeps "key absent" and "key
     present with value null" distinct, exactly matching backend behavior
     (verified directly: see the Phase 5D output report's validation step).
+
+    Phase 8E: mints a fresh request_id before calling in, mirroring
+    app.py's existing _submit_query() pattern exactly. Without this, every
+    API-driven request previously logged request_id="" on every event it
+    produced (routing, retrieval, recommendation, ...), making per-request
+    trace reconstruction (obs/request_trace.py) impossible for API
+    traffic specifically — found during the Phase 8E traceability audit.
+    This is request-lifecycle bookkeeping, not business logic; it changes
+    no field of the returned response.
     """
+    set_request_id(new_request_id())
     session_id = req.session_id or DEFAULT_SESSION_ID
     return handle_user_query(req.query, session_id=session_id, deps=deps)

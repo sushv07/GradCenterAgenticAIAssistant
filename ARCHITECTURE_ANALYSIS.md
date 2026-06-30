@@ -2918,3 +2918,147 @@ Phase 8A asks "was this retrieval **correct**" against a curated, known-answer d
 ### Future Integration With Distributed Tracing
 
 The `ContextVar`-based design (`session_id`, mirroring the existing `request_id`) is the same mechanism OpenTelemetry's own context propagation is built on — `gradcenter_logging.py`'s own docstring already calls this pattern "OTel-compatible." A future OpenTelemetry integration would mean wrapping `emit()` to also populate an OTel span's attributes from the same ContextVars already in place, not redesigning how context flows through this codebase. Not implemented here — explicit non-goal — but the groundwork doesn't need to change later.
+
+## Phase 8C — Prompt Experimentation
+
+### Why Prompt Experimentation Is Needed
+
+Phase 7E gave every prompt a name, a version, and a single file on disk. Phase 7D gave the project a deterministic way to evaluate whatever prompt is currently active. Neither answers the question this phase closes: *if we changed the wording, would the outcome get better or worse, and by how much — before we ever point production at it?* Without this, the only way to compare two prompt versions was to hand-edit the registry, re-run the eval suite, eyeball two separate JSON reports, and remember to revert. That's risky (a forgotten revert silently ships an unvetted prompt) and not reproducible (no record of what was compared against what).
+
+### Offline Experimentation Workflow
+
+`evals/run_prompt_experiments.py` runs two legs through the exact same case function Phase 7D already built — `evals.run_llm_evals._run_explanation_case()`, imported and called directly, never reimplemented:
+
+1. **Baseline leg** — runs `evals/llm_explanation_eval_cases.json` (Phase 7D's original dataset) with `agents.recommendation_explainer._SYSTEM_PROMPT` left exactly as production loaded it (`recommendation_explanation`, registry version `v1`). No patching at all.
+2. **Candidate leg** — runs `evals/llm_explanation_eval_cases_candidate_v2.json` (new, Phase 8C) with `_SYSTEM_PROMPT` temporarily patched, via `unittest.mock.patch.object`, to the text of a new, separately-registered prompt (`recommendation_explanation_v2`, registry version `v2`). The patch is guaranteed to revert on exit — even on exception — which is the same mechanism Phase 7D's and 7E's own tests already rely on (`patch.object(explainer, "_ENABLED", True)`).
+
+### Why a Separate Candidate Dataset, Not Just a Patched Prompt String
+
+Every case's "LLM response" in this evaluation framework is fully scripted — the case's `simulate` field IS the response, mocked in for `requests.post` (Phase 7D's explicit, deliberate design: deterministic, reproducible, offline, no live LLM). Patching `_SYSTEM_PROMPT` alone therefore has **zero effect** on what a given case's mocked call returns — the scripted text doesn't know what prompt theoretically produced it. To make a prompt comparison mean anything under this constraint, the candidate dataset (`llm_explanation_eval_cases_candidate_v2.json`) carries the **same `case_id`s and the same `program_match` inputs** as the baseline dataset, but its `simulate.explanation` text is hand-written to reflect what the candidate prompt's tighter 1-2 sentence limit would plausibly produce for that input — the same way a real experiment would sample a handful of candidate-prompt outputs (by hand, or from a future `--live` run — not implemented here) and encode them for repeatable comparison. The prompt text is still loaded and patched onto the module for traceability/correctness, in case a future live mode is added later.
+
+### Baseline vs. Candidate Comparison
+
+The candidate prompt's one intentional change (Step 3 — "intentionally small," "validating the workflow, not necessarily improving quality") is tightening the explanation length from 2-3 sentences to 1-2 (`prompts/recommendation/explanation_v2.md`). For 5 of the 6 `explanation_attached` cases, the shortened text still covers all required evidence. For one (`EXPL-002`, originally citing degree + interest + biomechanics background), the shortened candidate text drops the biomechanics phrase — a realistic, deliberately-built illustration of a regression a length constraint can introduce. This is not a synthetic test of the comparison math; it is the actual mocked output the candidate prompt's dataset entry was hand-written to reflect.
+
+### Metric Comparison
+
+`compare_explanation_metrics()` diffs every scalar field `evals.metrics_llm.compute_explanation_metrics()` already produces — `explanation_generation_rate`, `evidence_coverage_rate`, `forbidden_claim_rate`, `deterministic_consistency_rate`, `fallback_success_rate` — against the same metric computed from the candidate run. Each row reports baseline, candidate, delta, and a status (`Improved` / `Regressed` / `No meaningful change`, threshold ±1.0 percentage point). Direction is metric-aware: `forbidden_claim_rate` is the one metric where a *negative* delta is the improvement (fewer forbidden claims); every other metric is higher-is-better. Running the framework as shipped:
+
+```
+evidence_coverage_rate    Baseline: 83.3%   Candidate: 50.0%   Delta: -33.3%   Status: Regressed
+explanation_generation_rate   Baseline: 66.7%   Candidate: 66.7%   Delta: +0.0%   Status: No meaningful change
+forbidden_claim_rate          Baseline: 33.3%   Candidate: 33.3%   Delta: +0.0%   Status: No meaningful change
+deterministic_consistency_rate Baseline: 100.0%  Candidate: 100.0%  Delta: +0.0%   Status: No meaningful change
+fallback_success_rate         Baseline: 100.0%  Candidate: 100.0%  Delta: +0.0%   Status: No meaningful change
+
+Recommendation: Reject — at least one metric regressed
+```
+
+### Report Generation
+
+`_build_report()` produces a JSON document recording: baseline and candidate `prompt_name`/`prompt_version`/`dataset`/per-case results/metrics, the full `comparison` row list, and a single `recommendation` string. Written to `evals/reports/latest_prompt_experiment_report.json` plus a timestamped archive — same convention as every other eval runner in this codebase (`run_recommendation_evals.py`, `run_llm_evals.py`, `run_retrieval_evals.py`).
+
+### Promotion Workflow
+
+```
+Create Prompt v2
+      ↓
+Run Prompt Experiments  (evals/run_prompt_experiments.py)
+      ↓
+Review Metrics  (evals/reports/latest_prompt_experiment_report.json)
+      ↓
+Accept or Reject  (a human reads the recommendation and comparison rows)
+      ↓
+Promote to Production  (manually edit prompts/registry.py's ACTIVE entry —
+                        e.g. point "recommendation_explanation" at
+                        explanation_v2.md and bump its version — a separate,
+                        deliberate, human-reviewed change; never automatic)
+```
+
+### Why Production Prompts Remain Unchanged
+
+Three independent guarantees, not just one: (1) the candidate prompt is registered under a **different name** (`recommendation_explanation_v2`) — `agents/recommendation_explainer.py` only ever calls `load_prompt("recommendation_explanation")`, a string literal that never changes; (2) the runtime swap inside the candidate leg uses `unittest.mock.patch.object`, which restores the original `_SYSTEM_PROMPT` value on the importing module the moment the `with` block exits, regardless of success or exception — confirmed by `tests/test_prompt_experiments.py::TestNoProductionMutation`, which checks `_SYSTEM_PROMPT` identity before and after a full experiment run; (3) nothing in this phase writes to `prompts/registry.py`, any `.md` prompt file, or any other production file — `_write_report()` only ever writes to `evals/reports/`. Promotion is, and stays, a one-line manual edit a human makes deliberately.
+
+### Validation Results
+
+500 tests passed (478 prior + 21 new in `tests/test_prompt_experiments.py`, plus 1 from a corrected assertion in Phase 8B's suite); router, golden routes, recommendation evals, retrieval evals, weight validation all unchanged. `evals/run_llm_evals.py` reproduces the exact same 8/11 baseline pass rate for recommendation-explanation cases as every prior phase — confirming the new candidate dataset and registry entry have zero effect on the existing evaluation run. The same two pre-existing, unrelated failures from prior phases (`test_journey_agent.py`'s `clarify_no_signals: Q1`, `run_evals.py`'s `answer_001`) reproduced identically.
+
+## Phase 8E — End-to-End Request Traces
+
+### Why Trace Reconstruction Is Needed
+
+By Phase 8B, the system had per-stage observability — routing, retrieval, recommendation, LLM generation, retries, and graceful degradation each logged structured events. What was still missing was the ability to ask "what happened during *this one* request, start to finish" without manually grep-ing `logs/gradcenter.log` for a `request_id` and mentally stitching the pieces together. Phase 8E closes that gap with a reconstruction layer, not new instrumentation — the audit in Step 1 found that nearly everything needed already existed in the logs; the work was assembling it, plus closing two real correlation gaps the audit surfaced.
+
+### The Traceability Audit (Step 1)
+
+Every `emit()` call site in the codebase was inventoried (16 distinct event-name families, ~20 call sites) and checked for `request_id` coverage, `session_id` coverage, `route` coverage, and latency fields. Two genuine gaps were found, both about *coverage*, not missing data shape:
+
+1. **`api/app.py`'s `/query` endpoint never called `set_request_id()`.** `app.py` (Streamlit) and `evals/run_evals.py` both mint a fresh `request_id` before calling into the backend; the FastAPI layer did not. Every event emitted during an API-driven request logged `request_id=""`, making per-request grouping impossible for that caller specifically — confirmed empirically (`grep`-ing the log for events with empty `request_id` showed real volume, not a hypothetical).
+2. **Discovery-continuation turns never emit `route.decision`.** `backend/entrypoint.py`'s `_is_discovery_active()` branch calls `handle_discovery()` directly, bypassing `routing/router.py` entirely — so for any turn after the first in a discovery conversation, no event anywhere in the log recorded what route the request resolved to. Confirmed empirically: a real two-turn discovery conversation showed `route.decision` firing on turn 1 only.
+
+Every other stage already had what a trace needs: `route.decision` carries `route`/`reason`/matched signals; `retrieval.*` (Phase 8B) carries `session_id` explicitly plus counts/scores/`chunk_ids`/`elapsed_ms`; `recommendation.score`/`.rejected`/`.decision`/`.clarify`/`.redirect` carry `behavior`/`confidence`/`recommended_programs`; `llm.synthesis.*`/`llm.explanation.*` carry `model`/`confidence`/`elapsed_ms`; `retry.*` carries `operation`/`attempt`/`max_attempts`; `tool.result` carries `tool`/`found`/`elapsed_ms`. All of it already correlates via `request_id` in `emit()`'s automatic envelope — Phase 8E's job was almost entirely to read it back out, not to add to it.
+
+### Fix: `request.started` / `request.completed` (Step 6)
+
+Rather than instrumenting every stage further, the two gaps above were closed with one minimal, well-justified addition, placed at the single place every production caller already passes through — `backend/entrypoint.py:handle_user_query()`:
+
+- `set_request_id(new_request_id())` now runs there too, but **only when no request_id is already active** (`if not get_request_id():`) — deliberately conditional, not unconditional. An earlier draft of this fix minted unconditionally and broke `app.py`'s correlation: `app.py` mints its own id *before* calling in specifically so its own `request.start`/`request.complete` events share one `request_id` with everything the backend does internally; an unconditional mint inside `handle_user_query()` would silently discard that id and split one logical request into two disconnected groups in the logs — the exact failure this phase exists to prevent. The conditional mint is strictly a safety net for a caller that mints nothing itself.
+- `api/app.py`'s `/query` handler now mints explicitly, mirroring `app.py`'s already-proven pattern (`set_request_id(new_request_id())` before calling `handle_user_query()`) — two lines, no business logic, no change to the returned response.
+- `handle_user_query()` itself now emits `request.started` (session_id, truncated query, query_len) right after the query is resolved, and `request.completed` (session_id, route, elapsed_ms, had_error) right before returning. Named `.started`/`.completed` — deliberately distinct from `app.py`'s pre-existing `request.start`/`request.complete` — so there is no ambiguity about which pair means what, and zero risk to any existing consumer of the old event names. `request.completed`'s `route` comes from `record_route()`'s already-computed value, so it correctly captures the route for discovery-continuation turns too, closing gap 2 directly.
+
+Verified empirically, not assumed: a live two-call API sequence produced two distinct, fully self-contained `request_id`s; a simulated `app.py` call (mint, then call `handle_user_query()`) showed the pre-set id preserved end-to-end through both new events; a real two-turn discovery conversation showed `request.completed`'s `route` correctly reading `"discovery"` on the turn that has no `route.decision` at all. In every case, `handle_user_query()`'s return value was confirmed byte-for-byte identical with the new `emit()` calls mocked out versus left running.
+
+### How Traces Are Reconstructed From Logs
+
+`obs/request_trace.py` is pure log-reading: `reconstruct_traces()` reads `logs/gradcenter.log` as NDJSON, groups every event by `request_id` (preserving log order, which is chronological order since the log is append-only), and calls `build_trace()` once per group. It never imports or calls anything from `routing/`, `rag/`, `agents/`, or `responses/` — only `gradcenter_logging`'s log file and `config.settings.LOG_FILE`.
+
+### What Stages Are Included (Step 3)
+
+Each event is mapped to a stage by the prefix before its first `.`:
+
+```
+request    → request         (request.started/.completed, request.start/.complete)
+route      → routing         (route.decision)
+retrieval  → retrieval       (retrieval.started/.vector_search/.filtering/.completed/.failed/.result)
+keyword    → retrieval       (the "answer" route's non-vector retrieval path)
+faq_rag    → retrieval
+advisor    → retrieval       (fuzzy-match lookup against the advisor directory)
+tool       → tool            (deadlines/eligibility/application_steps tool outcomes)
+recommendation → recommendation (score/rejected/decision/clarify/redirect)
+llm        → llm             (both llm.synthesis.* and llm.explanation.*)
+retry      → retry
+store      → infrastructure  (vector store build/validation — can fire outside any request)
+taxonomy   → error           (taxonomy.load_failed)
+backend    → error           (backend.unhandled_exception)
+(anything else) → other      (never dropped — an unfamiliar event name still appears in the trace)
+```
+
+A `RequestTrace` additionally derives `route` (preferring `request.completed`'s value, falling back to the last `route.decision`, falling back to `"discovery"` if recommendation events ran with no routing event — that last fallback exists only for log data captured *before* this phase's fix), `final_behavior` (from the last `recommendation.*` event), `query`/`session_id` (best-effort, from whichever event carries them), and per-stage summaries (`retrieval_summary`, `recommendation_summary`, `llm_summary`) that pull out the handful of fields most useful for a quick read rather than requiring a caller to re-parse the raw stage event list.
+
+### What Metadata Is Intentionally Excluded
+
+- **Retrieved chunk text** — never logged by any event to begin with (Phase 8B's non-goal), so there is nothing for a trace to include or exclude here.
+- **Full conversation history / JourneyState** — `ConversationContext` is never logged; a trace reflects exactly one request's events, never cross-request state.
+- **Raw LLM prompt or generated answer text** — `llm.*` events log `model`/`confidence`/`elapsed_ms`/error info only, matching what was already true before this phase.
+
+### Reporting (Step 5)
+
+`obs/trace_summary.py` mirrors `obs/retrieval_summary.py`'s role from Phase 8B: pure aggregation over `reconstruct_traces()`'s output (never re-reads the log itself) producing total trace count, retrieval/recommendation/LLM/error/fallback coverage rates, average total elapsed time, the N slowest traces, and a count of raw log events with no `request_id` at all (a coverage gap, not a trace — surfaced directly rather than silently dropped). Run via `python -m obs.trace_summary`.
+
+### How This Differs From OpenTelemetry / LangSmith
+
+No spans, no exporters, no external service, no distributed context propagation across process or network boundaries — this is a single-process, single-log-file batch tool, run after the fact against `logs/gradcenter.log`, exactly matching this phase's non-goals. The `request_id`/`session_id` `ContextVar` plumbing this reconstruction reads (Phase 4G, extended Phase 8B) is itself already the same mechanism OpenTelemetry's own context propagation is built on — `gradcenter_logging.py`'s docstring has called this pattern "OTel-compatible" since Phase 8B. A future migration to a real tracing backend would mean exporting spans from the same ContextVars already in place and the same event boundaries this phase identified, not redesigning how context flows through the system.
+
+### Why This Differs From Retrieval Evaluation (Phase 8A) and Retrieval Observability (Phase 8B)
+
+Three distinct questions, three distinct tools: Phase 8A asks "was retrieval *correct*" against a curated, known-answer dataset. Phase 8B asks "what happened *during retrieval specifically*" — one stage, any traffic. Phase 8E asks "what happened during *one entire request*, across every stage" — the broadest lens, and the only one of the three that requires correlating multiple event families together rather than reading one event family in isolation.
+
+### Validation Results
+
+532 tests passed (500 prior + 32 new in `tests/test_request_trace.py`); router, golden routes, recommendation evals, retrieval evals, weight validation all unchanged; the same two pre-existing, unrelated failures from prior phases reproduced identically. `handle_user_query()`'s return value confirmed byte-for-byte identical with the new `request.started`/`.completed` events mocked out versus left running, for both a standard request and a discovery-continuation request. The corrected (conditional, not unconditional) `request_id` minting was verified directly: a simulated `app.py`-style caller's pre-set id survives the call into `handle_user_query()` unchanged.
+
+### Remaining Trace Work
+
+A CLI flag on `obs/trace_summary.py` to filter by route or session_id rather than summarizing every trace in the log; exporting a single `RequestTrace` as a human-readable timeline view (currently only the aggregate report has a console formatter); investigating whether `evals/run_evals.py` and `evals/weight_validation.py` could mint per-case `request_id`s consistently (today a large fraction of historical log volume — primarily from these two runners — has no `request_id` at all, which is accurate reporting of a real, pre-existing characteristic rather than a defect introduced by this phase, but is worth closing in its own right); a real distributed-tracing export, deferred per this phase's explicit non-goals.
+
+The `ContextVar`-based design (`session_id`, mirroring the existing `request_id`) is the same mechanism OpenTelemetry's own context propagation is built on — `gradcenter_logging.py`'s own docstring already calls this pattern "OTel-compatible." A future OpenTelemetry integration would mean wrapping `emit()` to also populate an OTel span's attributes from the same ContextVars already in place, not redesigning how context flows through this codebase. Not implemented here — explicit non-goal — but the groundwork doesn't need to change later.
