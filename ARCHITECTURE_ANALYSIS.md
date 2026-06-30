@@ -2860,3 +2860,61 @@ Top-1 Accuracy, Top-K Accuracy, Top-K Recall (per expected-source-spec, not per-
 - A differently-shaped evaluation for `retrieval/advisor_retrieval.py` (match-confidence accuracy, not chunk-level metrics) and `retrieval/query_handler.py` (file-ranking accuracy) — separate frameworks, not a forced extension of this one.
 - Activating the reserved `low_score` failure category once a baseline-tracking mechanism exists to detect when a previously-strong match degrades below its own historical score, not just below the fixed `MIN_RELEVANCE` cutoff.
 - Investigating (in a future, dedicated phase — not this one) the root cause of the duplicate `chunk_id` finding, now that it's documented with a reproducible case.
+
+## Phase 8B — Retrieval Observability
+
+### Retrieval Timeline
+
+```
+retrieve(query, k, min_score, page_type, program_name)
+  │
+  ├─ empty/whitespace query? → return [] (no observability event — not a meaningful attempt)
+  │
+  ├─ retrieval.started        — query (truncated), top_k, min_score, page_type, program_name
+  │
+  ├─ get_or_build_store()
+  │     └─ store is None → retrieval.failed (reason="store_unavailable") → return []
+  │
+  ├─ store.similarity_search_with_relevance_scores(query, k=k*2, filter=...)
+  │     ├─ raises          → retrieval.failed (reason="search_exception") → return []
+  │     └─ succeeds         → retrieval.vector_search — candidate_count, elapsed_ms, page_type
+  │
+  ├─ threshold filter (score >= min_score)
+  │     └─ retrieval.filtering — candidate_count, filtered_count, survived_count, min_score
+  │
+  ├─ re-sort + truncate to k
+  │
+  └─ retrieval.completed     — returned_count, top/min/max score, chunk_ids, page_types, elapsed_ms
+```
+
+Before this phase, exactly one event existed (`retrieval.result`, fired at completion or on exception) — capturing the final outcome but none of the intermediate pipeline stages. This phase adds the missing visibility without removing or altering that original event: `retrieval.result` still fires, unchanged, at the same two call sites it always has.
+
+### Event Model
+
+Five new events, one per pipeline stage: `retrieval.started`, `retrieval.vector_search`, `retrieval.filtering`, `retrieval.completed`, `retrieval.failed`. Each is purely additive — confirmed empirically: `retrieve()`'s return value is byte-for-byte identical whether the new event functions are mocked out entirely or left running for real, and a fresh end-to-end run reproduced the exact same chunks/scores/URLs as a baseline captured in an earlier phase.
+
+### Logging Philosophy
+
+No second logging system — every event is a `gradcenter_logging.emit()` call, same NDJSON file, same envelope (`ts`/`level`/`event`/`request_id`/`logger`). The one schema addition is `session_id`, propagated via a new `ContextVar` in `gradcenter_logging.py` (`set_session_id()`/`get_session_id()`), mirroring `request_id`'s existing, established pattern exactly — set once in `backend.entrypoint.handle_user_query()`, read by the new retrieval events without any new parameter threaded through `retrieve()`'s signature or any of its many call sites (four tools, the retriever service, the Phase 8A eval runner, the CLI). `session_id` was deliberately **not** added to `emit()`'s automatic envelope, since that would change every existing event's shape system-wide — far beyond this phase's "internal observability only" scope; it's included explicitly, as a field, only on the five new retrieval events.
+
+`route` is conspicuously absent from the schema. Unlike `session_id`, there is no similarly safe, already-existing ambient channel carrying it down to the retrieval layer by the time `retrieve()` is called — `routing/router.py` decides it, but threading it through would mean either a new ContextVar set inside the routing layer (touching a heavily-tested file for a logging-only purpose) or a new `retrieve()` parameter (touching every call site). `page_type` — already a parameter on most retrieval calls — is included as the closest practical proxy instead. Documented as a real, honest limitation rather than forced.
+
+### Captured Metadata
+
+Only structured fields: query text (truncated to 200 chars, mirroring `app.py`'s own truncation convention), counts, scores, `chunk_id`s, `page_type`s, and elapsed milliseconds. **Never the retrieved chunk text itself** — explicit non-goal, and the only field genuinely sensitive enough to warrant a hard rule (chunk text could be arbitrarily long and is already fully visible in the response the user receives; logging it again would be pure duplication with no operational value, only log-volume cost).
+
+### Latency Measurement
+
+Two timers per call: one around the Chroma search call specifically (`retrieval.vector_search`'s `elapsed_ms` — the dominant cost), and a separate, more precise total-pipeline timer spanning the full function body (`retrieval.completed`'s `elapsed_ms`), started before the empty-query check and stopped just before return. Both use `time.perf_counter()`, matching every other latency measurement already in this codebase (Phase 6B's retry helper, the pre-existing `retrieval.result` event).
+
+### Why Observability Is Separate From Retrieval Evaluation
+
+Phase 8A asks "was this retrieval **correct**" against a curated, known-answer dataset — a controlled experiment with a pass/fail verdict. Phase 8B asks "what **happened** during any given retrieval call" — real traffic or test traffic, correct or not, with no verdict at all, just facts. `obs/retrieval_summary.py` reads the same `logs/gradcenter.log` that real production traffic writes to; `evals/run_retrieval_evals.py` (Phase 8A) drives its own fixed dataset and writes to `evals/reports/`. Conflating them would mean either polluting evaluation reports with operational noise, or polluting operational logs with eval-specific pass/fail judgments neither belongs in the other's output. This phase's instrumentation immediately demonstrated its own value: running a real query through `backend.entrypoint.handle_user_query()` surfaced Phase 8A's duplicate-`chunk_id` finding again, this time via live observability rather than a controlled eval case — independent confirmation from a second, differently-purposed signal.
+
+### Validation Results
+
+478 tests passed (454 prior + 24 new); router, golden routes, recommendation evals, LLM evals, retrieval evals, and weight validation all unchanged; the same two pre-existing, unrelated failures from prior phases reproduced identically. `evals/run_retrieval_evals.py` still passes 12/12 with byte-identical metrics, confirming the instrumentation changed nothing about retrieval itself.
+
+### Future Integration With Distributed Tracing
+
+The `ContextVar`-based design (`session_id`, mirroring the existing `request_id`) is the same mechanism OpenTelemetry's own context propagation is built on — `gradcenter_logging.py`'s own docstring already calls this pattern "OTel-compatible." A future OpenTelemetry integration would mean wrapping `emit()` to also populate an OTel span's attributes from the same ContextVars already in place, not redesigning how context flows through this codebase. Not implemented here — explicit non-goal — but the groundwork doesn't need to change later.

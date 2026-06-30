@@ -64,6 +64,35 @@ def get_request_id() -> str:
 
 
 # ---------------------------------------------------------------------------
+# Session context (Phase 8B) — same ContextVar pattern as request_id above.
+#
+# Deliberately NOT added to emit()'s automatic envelope (unlike request_id):
+# doing so would change every existing event's shape across the whole
+# system, far beyond this phase's stated scope ("internal observability
+# only" — retrieval events specifically). Callers that want session_id in
+# a given event pass it explicitly as a field, e.g.
+# emit("retrieval.started", session_id=get_session_id(), ...) — exactly
+# what obs/retrieval_events.py does.
+# ---------------------------------------------------------------------------
+
+_SESSION_ID: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "gradcenter_session_id", default=""
+)
+
+
+def set_session_id(sid: str) -> None:
+    """Set the session_id for the current context. Call once per request in
+    backend.entrypoint.handle_user_query()."""
+    _SESSION_ID.set(sid)
+
+
+def get_session_id() -> str:
+    """Return the session_id currently set for this context, or "" if none
+    has been set. Pure read — mirrors get_request_id()."""
+    return _SESSION_ID.get()
+
+
+# ---------------------------------------------------------------------------
 # Logger configuration
 # ---------------------------------------------------------------------------
 

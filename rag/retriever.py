@@ -50,6 +50,13 @@ from config.settings import (
     RETRIEVAL_MIN_RELEVANCE as MIN_RELEVANCE,
     RETRIEVAL_DEFAULT_TOP_K as _DEFAULT_TOP_K,
 )
+from obs.retrieval_events import (
+    emit_retrieval_started,
+    emit_retrieval_vector_search,
+    emit_retrieval_filtering,
+    emit_retrieval_completed,
+    emit_retrieval_failed,
+)
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -124,9 +131,20 @@ def retrieve(
     if not query or not query.strip():
         return []
 
+    _t_pipeline_start = time.perf_counter()  # Phase 8B — total pipeline timer
+                                              # for retrieval.completed/.failed;
+                                              # observability only, never read
+                                              # by any retrieval decision.
+
+    emit_retrieval_started(query, k, min_score, page_type, program_name)
+
     store = get_or_build_store()
     if store is None:
         print("[retriever] Vector store unavailable — cannot retrieve")
+        emit_retrieval_failed(
+            "store_unavailable",
+            elapsed_ms=round((time.perf_counter() - _t_pipeline_start) * 1000, 1),
+        )
         return []
 
     # Build ChromaDB metadata filter.
@@ -175,10 +193,15 @@ def retrieve(
              num_returned=0, top_score=0.0, elapsed_ms=_elapsed,
              min_score_used=min_score,
              error=str(exc)[:200], error_type=type(exc).__name__, **_opt)
+        emit_retrieval_failed(
+            "search_exception", error=str(exc), error_type=type(exc).__name__,
+            elapsed_ms=_elapsed,
+        )
         print(f"[retriever] Query failed: {exc}")
         return []
 
     _elapsed = round((time.perf_counter() - _t0) * 1000, 1)
+    emit_retrieval_vector_search(len(raw_results), _elapsed, page_type)
 
     # Filter, format, and cap at k results
     results: list[dict] = []
@@ -200,6 +223,8 @@ def retrieve(
             "chunk_id":           doc.metadata.get("chunk_id", ""),
         })
 
+    emit_retrieval_filtering(len(raw_results), len(results), min_score)
+
     # Re-sort after filtering (similarity_search_with_relevance_scores sorts by
     # score descending, but filtering can leave a gap in the ordering)
     results.sort(key=lambda r: r["score"], reverse=True)
@@ -213,6 +238,14 @@ def retrieve(
          elapsed_ms=_elapsed,
          min_score_used=min_score,
          **_opt)
+
+    emit_retrieval_completed(
+        returned_count=len(results),
+        scores=[r["score"] for r in results],
+        chunk_ids=[r["chunk_id"] for r in results],
+        page_types=[r["page_type"] for r in results],
+        elapsed_ms=round((time.perf_counter() - _t_pipeline_start) * 1000, 1),
+    )
 
     return results
 

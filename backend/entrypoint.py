@@ -54,7 +54,7 @@ from context.trace_context import TraceContext, create_trace_context, record_rou
 from config.settings import DEFAULT_SESSION_ID
 from backend.dependencies import AppDependencies, get_dependencies
 from responses.builder import build_response
-from gradcenter_logging import emit
+from gradcenter_logging import emit, set_session_id
 
 
 def _is_discovery_active(session_id: str, deps: Optional[AppDependencies] = None) -> bool:
@@ -129,6 +129,9 @@ def handle_user_query(
     """
     deps = deps or get_dependencies()
     query = (query or "").strip()
+    set_session_id(session_id)  # Phase 8B — lets retrieval (and future) observability
+                                 # events correlate back to this session without a new
+                                 # parameter threaded through every retrieval call site.
     trace: TraceContext = create_trace_context(session_id)
 
     try:
