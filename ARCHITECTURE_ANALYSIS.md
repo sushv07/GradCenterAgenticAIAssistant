@@ -2476,3 +2476,45 @@ This was a 2-function change, not dozens of scattered try/except blocks, by desi
 - New `api/contracts.py:ErrorResponseModel`, added to the `QueryResponse` union — confirmed it validates correctly through FastAPI's `response_model`, returning HTTP 200 (not 500) with a well-formed body when the backend raises.
 - 307 tests passed (296 prior + 11 new); router, golden routes, recommendation evals, and weight validation all unchanged; the same two pre-existing, unrelated failures from prior phases reproduced identically.
 - This improves production reliability directly: an outage in one component (taxonomy file deleted, an unexpected bug in a deep call path) now degrades to a single, clearly-logged, user-visible "something went wrong, try again" response instead of taking down the entire request — and, for FastAPI specifically, instead of an opaque 500.
+
+# Phase 6B — Reliability: Retry Strategy
+
+## Objective
+
+Add retries only where a transient failure has a realistic chance of succeeding on a second attempt — without retrying anything deterministic.
+
+## Retry Audit (selected)
+
+| Operation | Classification | Why |
+|---|---|---|
+| `agents/llm_synthesizer.py` → Ollama `POST /api/chat` | **B. Safe to retry** | Local network call to a service that can be briefly slow/unavailable; already wired into the live "answer" route, already designed to degrade gracefully (returns `None`) on failure |
+| `retrieval/faq_rag_module.py` → CSULB FAQ page `GET` | **B. Safe to retry** | External HTTP fetch in the live "next_steps" route's call chain; same graceful-degradation precedent (`return []`) |
+| `retrieval/admissions_rag.py` → CSULB admissions pages `GET` | **B. Safe to retry** | Same reasoning; same precedent (`return ""`) |
+| Chroma vector search / `get_or_build_store()` | **C. Maybe retry in the future** | Already exhaustively hardened (Phase 6A) to fail gracefully; local disk + SQLite operations are *usually* permanent failures when they fail, though SQLite's "database is locked" under concurrent access is a known transient case — not implemented now because this is a single-process app where that's unlikely in practice |
+| `rag/ingestion.py:fetch_page()` | **C. Maybe retry in the future** | Already has its own working, tested 2-attempt retry (predates this phase) — left untouched rather than migrated to the new shared helper, to avoid risk to stable code for a marginal consistency gain |
+| Recommendation scoring, routing, response building | **A. Never retry** | Deterministic — retrying a pure function returns the identical result; explicit non-goal |
+| Taxonomy loading | **A. Never retry** | A missing/corrupt file is a permanent condition; explicit non-goal; Phase 6A already made this fail loudly and clearly on purpose |
+| Validation failures / malformed requests | **A. Never retry** | Not transient — the request itself is wrong |
+
+## Retry Policy
+
+One function, `utils/retry.py:retry_call()` — not a framework, not a third-party dependency. `max_attempts=3` (1 initial + 2 retries), exponential backoff (`base_delay × 2^(attempt-1)` → 0.5s, 1.0s), both configurable via `config/settings.py` (`RETRY_MAX_ATTEMPTS`, `RETRY_BASE_DELAY_SECONDS`). Retryable: `requests.exceptions.ConnectionError`, `requests.exceptions.Timeout` only — failures where no response was received at all. Explicitly **not** retryable: `requests.exceptions.HTTPError` (4xx/5xx) — the request completed and got an answer, just not a good one; retrying immediately rarely helps and conflating "no response" with "bad response" was judged unnecessary complexity for this phase.
+
+## Implementation
+
+Wired into exactly the 3 call sites the audit identified — `agents/llm_synthesizer.py:_call_ollama()`, `retrieval/faq_rag_module.py:_fetch_faq_entries()`, `retrieval/admissions_rag.py:_fetch_text()`. Each wraps *only* the network call itself; all existing surrounding logic (caching, parsing, error-shape construction) is untouched. Every retry attempt, success-after-retry, and exhaustion emits a structured log event (`retry.attempt` / `retry.success` / `retry.exhausted`) via the existing `gradcenter_logging.emit()` — no new logging mechanism.
+
+## Result
+
+- Confirmed live: a simulated `ConnectionError` on the first attempt followed by success on the second is retried and returns the successful result; exhausting all attempts still degrades exactly as before (`None`/`[]`/`""`) — the *fallback value* is unchanged, only *how many attempts* happen before reaching it.
+- Confirmed `requests.exceptions.HTTPError` is never retried — propagates on the first occurrence.
+- Confirmed deterministic modules (`agents/recommendation_engine.py`, `routing/router.py`, `responses/builder.py`) import nothing from `utils/retry.py`.
+- Direct retrieval-output diff against the pre-Phase-5A baseline: still byte-for-byte identical.
+- 324 tests passed (307 prior + 17 new); router, golden routes, recommendation evals, and weight validation all unchanged; the same two pre-existing, unrelated failures from prior phases reproduced identically.
+
+## Future Enhancements (not implemented)
+
+- Retrying 5xx (but not 4xx) HTTP error responses, with the status-code distinction handled explicitly
+- Circuit breaker (stop attempting a known-down dependency for a cooldown window) — explicit non-goal this phase
+- Jitter on backoff delay (avoids retry storms across concurrent requests — not relevant yet at single-process scale)
+- Migrating `rag/ingestion.py`'s existing ad-hoc retry to the shared helper, if it's ever touched for another reason

@@ -37,6 +37,7 @@ from config.settings import (
     FAQ_VECTORSTORE_TTL_SECONDS as _VECTORSTORE_TTL,
     RETRIEVAL_MIN_RELEVANCE as _MIN_RELEVANCE,
 )
+from utils.retry import retry_call
 
 
 # ---------------------------------------------------------------------------
@@ -105,13 +106,20 @@ def _fetch_faq_entries() -> list[dict]:
     Returns:
         [{"question": "...", "answer": "...", "links": [...]}, ...]
     """
-    try:
+    def _fetch() -> requests.Response:
         resp = requests.get(
             _FAQ_URL,
             timeout=10,
             headers={"User-Agent": "CSULB-GradAssistant/2.0"},
         )
         resp.raise_for_status()
+        return resp
+
+    # Phase 6B: connection/timeout failures are retried before giving up;
+    # everything else (including an HTTP error response) still falls
+    # straight through to the existing except-and-return-[] fallback.
+    try:
+        resp = retry_call(_fetch, operation="faq_rag.fetch_page")
     except Exception:
         return []
 

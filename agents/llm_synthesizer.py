@@ -37,6 +37,7 @@ from typing import Optional
 import requests
 
 from gradcenter_logging import emit
+from utils.retry import retry_call
 
 
 # ---------------------------------------------------------------------------
@@ -166,6 +167,10 @@ def _call_ollama(query: str, retrieved_answer: str | dict) -> str:
     POST to Ollama /api/chat and return the raw content string.
 
     Raises on any HTTP or network failure — caller is responsible for catching.
+    Phase 6B: connection/timeout failures (Ollama briefly unavailable, slow
+    to respond) are retried via utils.retry.retry_call before giving up;
+    an HTTP error response (model not found, bad request) is not retried —
+    see utils/retry.py's module docstring for why.
     """
     context      = _build_context(retrieved_answer)
     user_message = f"Retrieved content:\n{context}\n\nQuestion: {query}"
@@ -181,8 +186,12 @@ def _call_ollama(query: str, retrieved_answer: str | dict) -> str:
         "options": {"temperature": 0},
     }
 
-    resp = requests.post(_CHAT_URL, json=payload, timeout=_TIMEOUT)
-    resp.raise_for_status()
+    def _post() -> requests.Response:
+        resp = requests.post(_CHAT_URL, json=payload, timeout=_TIMEOUT)
+        resp.raise_for_status()
+        return resp
+
+    resp = retry_call(_post, operation="llm_synthesis.ollama_post")
     return resp.json().get("message", {}).get("content", "")
 
 

@@ -23,6 +23,7 @@ from bs4 import BeautifulSoup
 
 from gradcenter_logging import emit
 from retrieval.utils import tokenize
+from utils.retry import retry_call
 
 
 # ---------------------------------------------------------------------------
@@ -59,7 +60,14 @@ def _fetch_text(url: str) -> str:
             return text
 
     try:
-        resp = requests.get(url, timeout=8, headers={"User-Agent": "CSULB-GradAssistant/1.0"})
+        # Phase 6B: connection/timeout failures are retried before this
+        # try/except's existing except-and-return-"" fallback fires; an
+        # HTTP error response still falls straight through to the
+        # not-resp.ok branch below, unretried, exactly as before.
+        resp = retry_call(
+            lambda: requests.get(url, timeout=8, headers={"User-Agent": "CSULB-GradAssistant/1.0"}),
+            operation="admissions_rag.fetch",
+        )
         elapsed_ms = round((time.monotonic() - now) * 1000, 2)
 
         if not resp.ok:

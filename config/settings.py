@@ -109,3 +109,17 @@ DEFAULT_SESSION_ID = "default"
 # retrieval/advisor_retrieval.py's CLI formatter — both independently
 # hardcoded the same partial_ratio cutoff for "Strong match" vs "Good match".
 ADVISOR_STRONG_MATCH_THRESHOLD = 90
+
+
+# ---------------------------------------------------------------------------
+# Retry configuration (Phase 6B)
+# ---------------------------------------------------------------------------
+# Used only by utils/retry.py, and only for the handful of external HTTP
+# calls in the live request path that the Phase 6B retry audit classified
+# as "safe to retry" (transient connection/timeout failures where a retry
+# has a realistic chance of succeeding) — see ARCHITECTURE_ANALYSIS.md's
+# Phase 6B section for the full classification. Deterministic logic
+# (routing, recommendation scoring, taxonomy loading) never reads these.
+
+RETRY_MAX_ATTEMPTS       = 3     # 1 initial attempt + 2 retries
+RETRY_BASE_DELAY_SECONDS = 0.5   # exponential backoff: 0.5s, 1.0s, ...
