@@ -2518,3 +2518,86 @@ Wired into exactly the 3 call sites the audit identified — `agents/llm_synthes
 - Circuit breaker (stop attempting a known-down dependency for a cooldown window) — explicit non-goal this phase
 - Jitter on backoff delay (avoids retry storms across concurrent requests — not relevant yet at single-process scale)
 - Migrating `rag/ingestion.py`'s existing ad-hoc retry to the shared helper, if it's ever touched for another reason
+
+# Phase 7A — Controlled LLM Integration (Design Review Only)
+
+No code was changed in this phase. This section documents where LLMs belong in this architecture and where they explicitly do not, to guide Phase 7B onward.
+
+## Current State
+
+Exactly one LLM touchpoint exists in the entire codebase: `agents/llm_synthesizer.py:synthesize_answer()`, wired into `orchestrator.py:_run_answer()` (the "answer" route only), gated off by default via `LLM_SYNTHESIS_ENABLED` (env var, defaults `false`). Every other module in the codebase — `agents/recommendation_engine.py`, `routing/router.py` (via `retrieval/advisor_retrieval.py`), `agents/journey_agent.py`, the entire eval suite — explicitly documents the *absence* of LLM usage in its own docstrings ("no LLM, no embeddings, no LangGraph"). This confirms the deterministic-core constraint has been consistently honored throughout every prior phase, not just assumed.
+
+`synthesize_answer()` is already architecturally correct under the principle this phase formalizes: it never retrieves, ranks, or decides — it only rephrases an already-retrieved, already-deterministic answer, with a strict grounding prompt ("Use ONLY facts present in the retrieved content... NEVER invent..."), zero temperature, and a hard fallback to the deterministic answer on any failure (invalid JSON, missing fields, network error — Phase 6A/6B already hardened this further). It already has dedicated tests (`tests/test_llm_synthesizer.py`) and is **kept as-is** — no changes recommended.
+
+Two minor, non-urgent cleanup items noted (not actioned this phase, since it's design-only): the module's own docstring is stale ("NOT wired into any production code path" — it is); `requirements.txt`'s `openai>=1.0.0` entry is genuinely unused (zero `import openai` anywhere) and marked for removal already.
+
+## Design Principles
+
+**LLMs generate language. LLMs do not make business decisions.** Operationalized as one rule applied to every current and future touchpoint:
+
+| Action | LLM allowed? |
+|---|---|
+| Decide (route, eligibility, behavior) | **Never** |
+| Rank (which program is "better") | **Never** |
+| Recommend (select program_id, set confidence tier) | **Never** |
+| Explain (narrate an already-computed deterministic result) | Yes, narration only |
+| Summarize (condense retrieved, grounded content) | Yes, grounded only |
+| Rewrite (rephrase an existing deterministic answer/snippet) | Yes, fact-preserving only |
+
+## Approved LLM Responsibilities
+
+- Rephrasing/synthesizing a grounded answer from already-retrieved content (existing: `agents/llm_synthesizer.py`)
+- Narrating `ProgramMatch.score_basis` (already computed by `agents/recommendation_engine.py`) into a natural-language explanation of *why* a recommendation was made — the recommendation itself is immutable input, never something the LLM can alter
+- Narrating an advisor fuzzy-match result into natural language — the match itself (RapidFuzz score, advisor record) is immutable input
+- Summarizing grounded FAQ/admissions snippets already retrieved by the deterministic retrieval layer
+
+## Prohibited LLM Responsibilities
+
+- Selecting which program(s) to recommend, or any confidence tier — exclusively `agents/recommendation_engine.py`
+- Routing a query to a destination — exclusively `routing/router.py`
+- Matching a query to an advisor — exclusively `retrieval/advisor_retrieval.py` (RapidFuzz)
+- Determining eligibility or admission-gating — exclusively the recommendation engine's gap-detection logic
+- Driving JourneyState transitions (phase, turn_count, accumulated signals) — exclusively `agents/journey_agent.py`
+- Open-ended "research summaries" with no grounding source in this codebase's data (no factual basis to constrain against — high hallucination risk, explicitly recommended against)
+- Deciding which of two programs is "better" in any document-comparison feature, should one ever be built — only a deterministic, taxonomy-driven diff may be computed; the LLM may narrate that diff, never produce its own comparison
+
+## Opportunity Analysis (candidates considered, not implemented)
+
+| Candidate | Recommendation | Why |
+|---|---|---|
+| Recommendation explanation | **Best first target (Phase 7B)** | `score_basis` is already structured, deterministic output sitting right at the most trust-critical moment in the product; LLM's job is pure narration of fixed input |
+| Advisor explanation | Good second target (Phase 7C) | Same shape, lower stakes than a recommendation |
+| Grounded FAQ synthesis | Already implemented | `agents/llm_synthesizer.py` — kept as-is |
+| Admissions explanation | Reasonable future target (Phase 7C) | Same shape; existing snippets are already fairly clear, so lower marginal value than recommendation explanation |
+| Program summaries | Possible later (Phase 7E) | Bigger scope — needs new retrieval grounding (program-page chunks), not just narration of an existing structured result |
+| Research summaries | **Not recommended** | No research-content data source exists in this codebase to ground against — would be unconstrained LLM invention |
+| Document comparison | Low priority, needs careful scoping if ever built | Risks drifting into ranking/recommending; the diff itself must stay deterministic, LLM only narrates it; no existing evidence of user demand |
+
+## Grounding Design
+
+- **Input to the LLM**: the query, plus *only* structured/retrieved data already produced by deterministic code — `RetrievedChunk` objects (`text`/`title`/`url`/`score`/`metadata`, the existing Phase 4B contract) for retrieval-grounded features, or a `ProgramMatch`/advisor-match dict for explanation features. The LLM never receives a free-text instruction to "look something up" — everything it can reference is handed to it explicitly.
+- **Prompt structure**: mirrors `agents/llm_synthesizer.py`'s existing `_SYSTEM_PROMPT` pattern — role + strict rules ("use ONLY facts present," explicit MUST-PRESERVE list for dollar amounts/dates/contacts/URLs, explicit NEVER-invent list) + the structured input + the user's query.
+- **Response structure**: structured JSON, extending the existing `{"answer": str, "confidence": str}` shape per feature (e.g., recommendation explanation could add `"citations": [...]`) — validated against an explicit schema before use, exactly as `_validate()` already does.
+- **Citation information**: every `RetrievedChunk` already carries `url`/`title`; any LLM-touching feature must thread these into the response's existing `source: SourceInfo` field (already part of every response shape) — no new contract needed, just disciplined propagation of fields that already exist.
+- **Hallucination minimization**: (1) the LLM only ever sees pre-selected, already-correct structured input — no open retrieval at generation time; (2) zero temperature (already the pattern); (3) explicit MUST-PRESERVE instructions for high-stakes facts; (4) a post-hoc programmatic consistency check — e.g., assert any confidence tier mentioned in generated text matches the input `ProgramMatch.confidence` exactly; (5) hard fallback to the deterministic templated text on any validation failure (already the pattern, already hardened by Phase 6A/6B).
+
+## Evaluation Design
+
+Additive to the existing eval framework (`evals/run_evals.py`'s dataset+runner+report shape), not a replacement — a future `evals/run_llm_evals.py` would check:
+
+- **Faithfulness/grounding**: every claimed fact (dollar amount, date, name) in the LLM's output must be a subset of what was present in its structured input — a "no new entities" check, not subjective scoring.
+- **Citation correctness**: any URL/source the response displays must match a URL that was actually in the input, never invented.
+- **Hallucination**: a stricter faithfulness check flagging any named entity not traceable to the input.
+- **Format adherence**: JSON schema validation against the expected response shape (already the pattern `_validate()` follows today).
+- **Latency**: aggregate `elapsed_ms` (already emitted via the existing `llm.synthesis.result` log event) into percentiles.
+- **Cost**: compute-time tracking for the current local-Ollama deployment; architecture leaves room for $/token tracking if a future phase ever swaps to a hosted API (not currently planned).
+- **Response consistency**: same input run N times, measure output variance — flags features needing tighter prompting or lower temperature.
+
+Existing deterministic eval suites (`run_recommendation_evals.py`, `weight_validation.py`, `run_evals.py`'s routing checks) remain the sole authority on recommendation/routing correctness and are never touched by this new, narrowly-scoped generation-quality suite.
+
+## Roadmap
+
+- **Phase 7B — Recommendation Explanation.** Lowest-risk, highest-value first target. LLM narrates `ProgramMatch.score_basis` into prose, behind a feature flag matching `LLM_SYNTHESIS_ENABLED`'s existing pattern, with the same hard-fallback-on-failure discipline.
+- **Phase 7C — Advisor + Admissions Explanation.** Extend the same pattern to two more existing, lower-risk surfaces. Extract the shared "grounded synthesis with fallback" shape out of `agents/llm_synthesizer.py` into something reusable, rather than copy-pasting it three times.
+- **Phase 7D — LLM Evaluation Framework.** Build the `evals/run_llm_evals.py` suite designed above; establish baseline faithfulness/citation/consistency metrics for the Phase 7B/7C features before considering any further expansion.
+- **Phase 7E — Program Summaries.** Only after 7B–7D establish the pattern and evaluation discipline. Larger scope — needs new retrieval grounding (program-page RAG chunks) rather than narrating an already-existing structured result, so it carries materially more hallucination risk than 7B/7C and should not be attempted before the evaluation framework exists to catch regressions.
