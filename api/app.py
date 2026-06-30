@@ -2,6 +2,7 @@
 api/app.py
 Phase 5C — thin FastAPI service layer.
 Phase 5D — explicit, Pydantic-backed API contracts (see api/contracts.py).
+Phase 5E — health (liveness) and readiness endpoints (see api/health.py).
 
 Problem this solves:
     The backend has had one entry point since Phase 4F
@@ -45,12 +46,13 @@ Run locally:
 """
 from __future__ import annotations
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Response
 
 from backend.entrypoint import handle_user_query
 from backend.dependencies import AppDependencies, get_dependencies
 from config.settings import DEFAULT_SESSION_ID
-from api.contracts import QueryRequest, QueryResponse
+from api.contracts import QueryRequest, QueryResponse, HealthResponse, ReadinessResponse
+from api.health import build_health_response, build_readiness_response
 
 app = FastAPI(title="CSULB Grad Center Assistant API")
 
@@ -65,14 +67,29 @@ def root() -> dict:
     return {"service": "csulb-grad-center-assistant", "status": "ok"}
 
 
-@app.get("/health")
-def health() -> dict:
-    """Liveness check. Deliberately does not exercise retrieval or the
-    recommendation engine — that would make this a slow readiness probe,
-    not a liveness check. Constructing AppDependencies still catches
-    import-time wiring failures."""
-    get_dependencies()
-    return {"status": "ok"}
+@app.get("/health", response_model=HealthResponse)
+def health() -> HealthResponse:
+    """Liveness check. Deliberately does not exercise retrieval, the
+    recommendation engine, or any other component — see GET /ready for
+    that. If this code is running at all, the answer is "ok" by
+    definition; there is nothing else liveness is supposed to check."""
+    return build_health_response()
+
+
+@app.get("/ready", response_model=ReadinessResponse)
+def ready(response: Response) -> ReadinessResponse:
+    """
+    Readiness check. Runs five deterministic checks (configuration,
+    dependency container, taxonomy file, context manager, vector store)
+    and aggregates them into status "ok" / "degraded" / "unavailable" —
+    see api/health.py. Returns HTTP 200 when ready, 503 otherwise, matching
+    the standard convention load balancers and orchestrators expect from a
+    readiness probe.
+    """
+    result = build_readiness_response()
+    if result.status != "ok":
+        response.status_code = 503
+    return result
 
 
 @app.post("/query", response_model=QueryResponse, response_model_exclude_unset=True)

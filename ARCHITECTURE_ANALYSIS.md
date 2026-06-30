@@ -2395,3 +2395,46 @@ JSON response
 - Docker
 - CI/CD pipeline
 - API versioning (future only — not needed at single-client, pre-1.0 stage)
+
+## Phase 5E — Health & Readiness Endpoints (Completed)
+
+### Objective
+
+Distinguish liveness ("is the process up") from readiness ("can it actually serve a request right now"), and add a deterministic `GET /ready` alongside the existing `GET /health`.
+
+### Changes Completed
+
+- `GET /health` — unchanged in purpose, enriched in shape (`status`/`service`/`timestamp` via `HealthResponse`). Still checks nothing beyond "this code is executing."
+- `GET /ready` (new) — runs 5 independent, deterministic checks: `configuration`, `dependencies`, `taxonomy_file`, `context_manager`, `vector_store`. Aggregates to `status`: `"ok"` (all pass) / `"degraded"` (some pass) / `"unavailable"` (none pass). Returns HTTP 503 whenever not `"ok"`, matching standard readiness-probe convention.
+- Added `api/health.py` — isolated check logic, kept out of `api/app.py` (which stays route-definitions-only).
+- Extended `api/contracts.py` with `HealthResponse`, `CheckResult`, `ReadinessResponse`.
+
+### Design Decisions
+
+- **`vector_store`'s check calls the real `rag.store.get_or_build_store()`**, not a passive disk check. It's the same lazy singleton every real query already uses — instant once warm, a normal disk load if cold-and-fresh. The one expensive case (on-disk store stale → full rebuild) is pre-existing behavior of that function, not new behavior introduced by this check. Deliberately does **not** run an actual similarity search — that would be the "expensive query" the non-goals warn against, and isn't necessary to answer "is the store accessible."
+- **Defense in depth on exception handling.** Each `_check_*` function wraps its own body in try/except, but `build_readiness_response()` *also* wraps each call via `_run_check()`. This was caught empirically, not assumed: an early test that simulated a check raising outside its own try/except (a `side_effect=Exception` mock) caused a real 500 from `/ready` before this second layer was added. A readiness endpoint must never itself fail to respond.
+- **Checks are referenced by bare module-level name at call time**, not captured into a dict at import time — otherwise `unittest.mock.patch("api.health._check_x", ...)` silently doesn't take effect, since the dict would hold a direct reference to the original function object. Found and fixed via the same empirical-first approach.
+
+### Result
+
+- Confirmed live: all 5 checks pass on a healthy system; simulating one failing check yields `503` + `"degraded"` with the other 4 checks still independently reported as passing; simulating all 5 failing yields `503` + `"unavailable"`.
+- `POST /query` behavior fully unchanged — confirmed via the existing Phase 5C/5D response-equality tests, still passing.
+- 296 tests passed (283 prior + 13 new health/readiness tests); router, golden routes, recommendation evals, and weight validation all unchanged; the same two pre-existing, unrelated failures from prior phases reproduced identically.
+
+### Final Health/Readiness Flow
+
+```text
+GET /health  → api.health.build_health_response()        → always "ok" (liveness)
+GET /ready   → api.health.build_readiness_response()      → runs 5 checks, aggregates
+                   ├── _check_configuration()
+                   ├── _check_dependencies()      → backend.dependencies.get_dependencies()
+                   ├── _check_taxonomy_file()      → config.settings.PROGRAM_TAXONOMY_PATH
+                   ├── _check_context_manager()    → get_context/save_context/clear_context round-trip
+                   └── _check_vector_store()       → rag.store.get_or_build_store()
+```
+
+### Remaining Level 3 Work
+
+- Docker
+- CI/CD pipeline
+- API versioning (future only)

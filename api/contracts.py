@@ -195,3 +195,40 @@ QueryResponse = Union[
     NextStepsResponseModel,
     DiscoveryResponseModel,
 ]
+
+
+# ---------------------------------------------------------------------------
+# Health / readiness models (Phase 5E)
+# ---------------------------------------------------------------------------
+
+class HealthResponse(BaseModel):
+    """GET /health — liveness. status is always "ok" if this code is
+    running at all; there is nothing else to check for liveness."""
+    status:    str = "ok"
+    service:   str
+    timestamp: str  # ISO-8601 UTC
+
+
+class CheckResult(BaseModel):
+    """One readiness check's outcome. detail is populated only on failure —
+    a human-readable reason, never raised data (e.g. a stack trace)."""
+    ok:     bool
+    detail: Optional[str] = None
+
+
+class ReadinessResponse(BaseModel):
+    """
+    GET /ready — readiness.
+
+    status:
+        "ok"          — every check passed.
+        "degraded"    — at least one check passed and at least one failed;
+                         the service can still serve some routes (e.g.
+                         advisor/deadlines without taxonomy, or discovery
+                         without the vector store) but not all of them.
+        "unavailable" — every check failed.
+    """
+    status:    str
+    service:   str
+    timestamp: str
+    checks:    dict[str, CheckResult]
