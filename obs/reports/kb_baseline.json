@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0",
+  "captured_at": "2026-06-30T22:56:29Z",
+  "store_built_at": "2026-06-30T07:35:16+00:00",
+  "total_chunks": 491,
+  "total_urls": 28,
+  "total_named_programs": 5,
+  "named_programs": [
+    "Educational Leadership (Ed.D.)",
+    "Engineering & Computational Mathematics (Ph.D.)",
+    "Nursing (D.N.P.)",
+    "Physical Therapy (DPT)",
+    "Public Health (DR.P.H.)"
+  ],
+  "chunks_by_page_type": {
+    "application_process": 19,
+    "deadlines": 14,
+    "eligibility": 11,
+    "faq": 98,
+    "program_application": 349
+  },
+  "chunks_by_program": {
+    "Educational Leadership (Ed.D.)": 108,
+    "Physical Therapy (DPT)": 94,
+    "Engineering & Computational Mathematics (Ph.D.)": 75,
+    "Nursing (D.N.P.)": 44,
+    "Public Health (DR.P.H.)": 28
+  },
+  "empty_chunks": 0,
+  "short_chunks": 2,
+  "missing_url": 0,
+  "missing_chunk_id": 0,
+  "missing_page_type": 0,
+  "missing_title": 0,
+  "duplicate_chunk_id_count": 1,
+  "total_extra_copies": 6
+}
