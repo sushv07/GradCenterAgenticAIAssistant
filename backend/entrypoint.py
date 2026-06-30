@@ -53,6 +53,8 @@ from contracts.response_types import OrchestratorResponse
 from context.trace_context import TraceContext, create_trace_context, record_route
 from config.settings import DEFAULT_SESSION_ID
 from backend.dependencies import AppDependencies, get_dependencies
+from responses.builder import build_response
+from gradcenter_logging import emit
 
 
 def _is_discovery_active(session_id: str, deps: Optional[AppDependencies] = None) -> bool:
@@ -61,6 +63,32 @@ def _is_discovery_active(session_id: str, deps: Optional[AppDependencies] = None
     deps = deps or get_dependencies()
     context = deps.context_manager.get_context(session_id, default_factory=init_journey_state)
     return context.journey_state.get("phase") == "clarifying"
+
+
+def _build_error_response(query: str, session_id: str, exc: Exception) -> dict:
+    """
+    Phase 6A — the controlled fallback returned when routing/retrieval/
+    recommendation raises anything unexpected. Logs the FULL exception
+    detail server-side (so the failure is never hidden), but the returned
+    `error` field is the exception's type name only — never the raw
+    message or a traceback, which could leak internal details to a client.
+    """
+    emit("backend.unhandled_exception", level="ERROR",
+         error=str(exc)[:500], error_type=type(exc).__name__, session_id=session_id)
+    return build_response(
+        query=query,
+        route="error",
+        session_id=session_id,
+        summary="Something went wrong while processing your request.",
+        primary_action="Please try again, or contact GraduateCenter@csulb.edu if this keeps happening.",
+        source={"file": "", "url": "https://www.csulb.edu/graduate-center"},
+        next_actions=[
+            "Try rephrasing your question",
+            "Ask about application deadlines",
+            "Find my program advisor",
+        ],
+        extra={"error": type(exc).__name__},
+    )
 
 
 def handle_user_query(
@@ -87,15 +115,29 @@ def handle_user_query(
     identical to this function's pre-Phase-5B behavior. Passing a custom
     AppDependencies (e.g. with a fake context manager) lets a test exercise
     this function without touching the real session store.
+
+    Phase 6A: this is the one place graceful degradation against unexpected
+    exceptions belongs. Lower-level functions (handle_discovery(),
+    orchestrator.run(), individual tools) are NOT each wrapped in their own
+    try/except for this purpose — that would scatter defensive code across
+    many call sites for no behavioral gain, and several callers (eval
+    runners, tests) deliberately call those functions directly because they
+    *want* a hard failure if something is broken, not a graceful fallback.
+    This function is the single, designated boundary between "the backend
+    might raise" and "the caller (UI, API) never sees an unhandled
+    exception."
     """
     deps = deps or get_dependencies()
     query = (query or "").strip()
     trace: TraceContext = create_trace_context(session_id)
 
-    if _is_discovery_active(session_id, deps):
-        response, _ = handle_discovery(query, session_id)
-    else:
-        response = orchestrator.run(query, session_id=session_id)
+    try:
+        if _is_discovery_active(session_id, deps):
+            response, _ = handle_discovery(query, session_id)
+        else:
+            response = orchestrator.run(query, session_id=session_id)
+    except Exception as exc:  # noqa: BLE001 — last line of defense, by design
+        response = _build_error_response(query, session_id, exc)
 
     record_route(trace, response.get("route"))
     return response

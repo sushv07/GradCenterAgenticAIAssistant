@@ -61,11 +61,30 @@ _TAXONOMY_CACHE: Optional[list[dict]] = None
 
 
 def _load_taxonomy() -> list[dict]:
+    """
+    Load and cache the program taxonomy.
+
+    Phase 6A: the recommendation engine cannot function without this file —
+    silently returning [] on failure would make "no recommendations found"
+    indistinguishable from "taxonomy file is broken," which is worse than a
+    clear failure. So this logs a loud, specific ERROR event identifying
+    exactly what failed (missing file vs. malformed JSON vs. missing
+    "programs" key) and then re-raises — the caller (handle_user_query(),
+    via backend/entrypoint.py's Phase 6A safety net) is responsible for
+    turning that into a safe, non-crashing user-facing response. This
+    function intentionally does NOT swallow the failure itself.
+    """
     global _TAXONOMY_CACHE
     if _TAXONOMY_CACHE is None:
-        with PROGRAM_TAXONOMY_PATH.open() as f:
-            data = json.load(f)
-        _TAXONOMY_CACHE = data["programs"]
+        try:
+            with PROGRAM_TAXONOMY_PATH.open() as f:
+                data = json.load(f)
+            _TAXONOMY_CACHE = data["programs"]
+        except Exception as exc:
+            emit("taxonomy.load_failed", level="ERROR",
+                 path=str(PROGRAM_TAXONOMY_PATH),
+                 error=str(exc)[:200], error_type=type(exc).__name__)
+            raise
     return _TAXONOMY_CACHE
 
 

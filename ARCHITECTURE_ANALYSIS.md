@@ -2438,3 +2438,41 @@ GET /ready   → api.health.build_readiness_response()      → runs 5 checks, a
 - Docker
 - CI/CD pipeline
 - API versioning (future only)
+
+# Phase 6A — Reliability: Graceful Degradation
+
+## Objective
+
+Ensure runtime failures are handled safely and predictably — no unhandled exception should ever crash a request — without changing any successful-path behavior.
+
+## Failure Audit
+
+| Failure point | Current behavior (before this phase) | Verdict |
+|---|---|---|
+| Chroma similarity search raising | Already caught in `rag/retriever.py:retrieve()` — logs an ERROR event, returns `[]` | Already safe |
+| Vector store unavailable/corrupt | Already caught across `rag/store.py`'s `load_vector_store()` and `get_or_build_store()` — every internal path returns `None` rather than raising | Already safe |
+| Tool-level retrieval failure | Already caught — `tools/deadlines_tool.py` (and siblings) wrap their `retrieve()` call and return a controlled `{"found": False, "error": ...}` shape | Already safe |
+| **Taxonomy load failure** | **`agents/recommendation_engine.py:_load_taxonomy()` had zero exception handling** — a missing/corrupted `program_taxonomy.json` propagated an uncaught `FileNotFoundError`/`JSONDecodeError`/`KeyError` straight through `select_recommendation()`, `handle_discovery()`, and `handle_user_query()` | **Fixed** |
+| **Unexpected exception in backend entry point** | **`backend/entrypoint.py:handle_user_query()` had zero exception handling** — any uncaught exception anywhere in `orchestrator.run()` or `handle_discovery()` crashed the entire request, surfacing as Streamlit's generic error screen or FastAPI's bare 500 | **Fixed** |
+| Malformed dependency | `backend/dependencies.get_dependencies()` only constructs plain dataclasses + a no-op-constructor `ChromaRetriever()` — cannot fail at request time, only at import time (which would already prevent the app from starting) | Intentionally fail-fast — not request-recoverable |
+
+## Degradation Strategy
+
+Two surgical fixes, not a broad sweep:
+
+1. **`_load_taxonomy()`** now logs a specific, loud `taxonomy.load_failed` ERROR event (identifying exactly what failed) and then **re-raises** — it does not swallow the failure itself. Silently returning `[]` was considered and rejected: it would make "taxonomy is broken" indistinguishable from "no programs matched," which is a worse failure mode than a clear, loud one.
+2. **`handle_user_query()`** wraps its dispatch (`handle_discovery()` / `orchestrator.run()`) in one try/except — the single designated boundary where "the backend might raise" becomes "the caller never sees an unhandled exception." On failure, it logs the full exception server-side via `gradcenter_logging.emit()`, then returns a new, deliberately minimal `route="error"` response (built via the existing `responses.builder.build_response()` — no new response-construction mechanism) carrying only the exception's *type name*, never its message or a traceback, which could leak internal details.
+
+This was a 2-function change, not dozens of scattered try/except blocks, by design: lower-level functions (`handle_discovery()`, `orchestrator.run()`, individual tools, eval runners calling these directly) are deliberately **not** each wrapped — eval runners and tests calling `handle_discovery()` directly want a hard failure if something is broken, not a silently-degraded result that would invalidate their measurements.
+
+## What Remains Intentionally Fail-Fast
+
+- Import-time failures (a broken module, a missing dependency package) — these prevent the app from starting at all; no per-request fallback could help.
+- `handle_discovery()` / `orchestrator.run()` called directly by tests and eval runners — they want to know immediately if something is broken, not receive a graceful fallback that would mask a real bug in what they're measuring.
+- Configuration values themselves (`config/settings.py`) — if these are wrong, that's a deployment error to fix, not a runtime condition to degrade around.
+
+## Result
+
+- New `api/contracts.py:ErrorResponseModel`, added to the `QueryResponse` union — confirmed it validates correctly through FastAPI's `response_model`, returning HTTP 200 (not 500) with a well-formed body when the backend raises.
+- 307 tests passed (296 prior + 11 new); router, golden routes, recommendation evals, and weight validation all unchanged; the same two pre-existing, unrelated failures from prior phases reproduced identically.
+- This improves production reliability directly: an outage in one component (taxonomy file deleted, an unexpected bug in a deep call path) now degrades to a single, clearly-logged, user-visible "something went wrong, try again" response instead of taking down the entire request — and, for FastAPI specifically, instead of an opaque 500.

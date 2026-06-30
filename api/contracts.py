@@ -182,8 +182,24 @@ class DiscoveryResponseModel(_BaseResponseModel):
     program_matches:         Optional[list[ProgramMatch]] = None
 
 
+class ErrorResponseModel(_BaseResponseModel):
+    """
+    Phase 6A — the controlled fallback shape backend.entrypoint.
+    handle_user_query() returns when an unexpected exception occurs
+    anywhere in routing/retrieval/recommendation, instead of letting the
+    exception crash the request. route="error". `error` is the exception's
+    *type name only* (e.g. "FileNotFoundError") — never the raw message or
+    a traceback, which could leak internal details to an HTTP client. Full
+    error detail is logged server-side via gradcenter_logging, not returned
+    here.
+    """
+    error: str
+
+
 # ---------------------------------------------------------------------------
-# Union — mirrors contracts.response_types.OrchestratorResponse
+# Union — mirrors contracts.response_types.OrchestratorResponse, plus
+# ErrorResponseModel (Phase 6A) for the one new, deliberately-added case
+# the backend can now return.
 # ---------------------------------------------------------------------------
 
 QueryResponse = Union[
@@ -194,6 +210,7 @@ QueryResponse = Union[
     AdvisorResponseModel,
     NextStepsResponseModel,
     DiscoveryResponseModel,
+    ErrorResponseModel,
 ]
 
 
