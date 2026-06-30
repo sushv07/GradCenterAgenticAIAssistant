@@ -5,8 +5,7 @@ Local LLM synthesis layer for the answer route.
 Calls a local Ollama model to synthesize a grounded answer from retrieved
 content. Disabled by default (LLM_SYNTHESIS_ENABLED=false).
 
-This module is NOT wired into any production code path in Phase 10B.
-Phase 10C will integrate it into orchestrator._run_answer().
+Wired into orchestrator.py:_run_answer() (the "answer" route only).
 
 Public API
 ----------
@@ -25,12 +24,32 @@ Observability
     llm.synthesis.start  — emitted before the Ollama call
     llm.synthesis.result — emitted on success
     llm.synthesis.error  — emitted on any failure (network, validation, etc.)
+
+Phase 7C grounding improvements
+--------------------------------
+    Two real gaps found by the Phase 7C grounding review, both fixed here:
+
+    1. source_url was accepted but never actually used — the LLM had no
+       signal about which of potentially several URLs inside the retrieved
+       content was the deterministically-resolved canonical source.
+       _build_context() now threads it through as "canonical_source_url".
+       This does NOT change what the user sees as the response's source —
+       orchestrator.py still always uses the deterministic result["source_url"]
+       for that, regardless of what the LLM does with this hint.
+
+    2. The prompt asked the model not to invent URLs, but nothing enforced
+       it. _validate() now extracts every URL the model's answer contains
+       and fails validation (falls back to the deterministic answer,
+       exactly like any other validation failure) if any of them did not
+       appear in the retrieved content. A prompt instruction is a request;
+       this check is a guarantee.
 """
 
 from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from typing import Optional
 
@@ -66,6 +85,9 @@ You are NOT a summarizer. Do not compress or omit important details.
 Priority order: Accuracy > Completeness > Source Fidelity > Readability > Brevity
 
 Use ONLY facts present in the retrieved content below. Never add or invent information.
+Every statement in your answer must be traceable to the retrieved content — if you \
+are not certain something is present in the input, leave it out rather than \
+guessing or filling the gap with general knowledge.
 
 MUST PRESERVE — include all of these when found in the retrieved content:
 - Scholarship, fellowship, grant, and program names (exact names, no abbreviation)
@@ -81,6 +103,8 @@ MUST PRESERVE — include all of these when found in the retrieved content:
 
 NEVER:
 - Invent URLs, deadlines, names, dollar amounts, or requirements
+- Cite a URL that does not appear in the retrieved content below
+- Infer, extrapolate, or assume anything beyond what the retrieved content literally states
 - Omit details solely for brevity
 - Merge multiple distinct items into a single compressed sentence
 
@@ -90,8 +114,12 @@ FORMATTING:
 - Use numbered steps for sequential instructions
 - Use plain prose only when the answer is a single fact
 
-If the retrieved content does not answer the question, state what IS available \
-and set confidence to low.
+If the retrieved content does not fully answer the question, do not guess at the \
+missing part. State plainly what IS covered by the retrieved content, that the \
+rest is not available, and set confidence to low.
+
+If a "canonical_source_url" field is present in the retrieved content, treat it as \
+the primary source this answer is grounded in.
 
 Respond with valid JSON in exactly this format, nothing else:
 {"answer": "your full response — use newlines and bullet points for clarity", "confidence": "high"}
@@ -99,7 +127,7 @@ Respond with valid JSON in exactly this format, nothing else:
 confidence values:
 - "high":   retrieved content directly and completely answers the question
 - "medium": content partially addresses the question
-- "low":    content is related but does not directly answer the question\
+- "low":    content is related but does not directly answer the question, or only partially covers it\
 """
 
 
@@ -119,9 +147,11 @@ def synthesize_answer(
     Returns {"answer": str, "confidence": "high"|"medium"|"low"} on success.
     Returns None on any failure — never raises into the caller.
 
-    source_file and source_url are accepted for Phase 10C API compatibility
-    but are not passed to the LLM. Source attribution remains the
-    orchestrator's responsibility.
+    source_file is accepted for API symmetry with the orchestrator's call
+    site but is not passed to the LLM. source_url IS used (Phase 7C) as a
+    grounding hint — see module docstring. Neither parameter changes what
+    the final response displays as its source; that remains the
+    orchestrator's deterministic responsibility regardless of LLM output.
     """
     if not _ENABLED:
         return None
@@ -129,14 +159,17 @@ def synthesize_answer(
     emit("llm.synthesis.start", model=_MODEL)
     t0 = time.monotonic()
 
+    context = _build_context(retrieved_answer, source_url)
+
     try:
-        content = _call_ollama(query, retrieved_answer)
+        content = _call_ollama(query, context)
     except Exception as exc:
         emit("llm.synthesis.error", level="ERROR",
              model=_MODEL, error=str(exc))
         return None
 
-    result = _validate(content)
+    source_urls = _extract_urls(context)
+    result = _validate(content, source_urls)
     elapsed_ms = round((time.monotonic() - t0) * 1000, 1)
 
     if result is None:
@@ -155,14 +188,27 @@ def synthesize_answer(
 # Internal helpers
 # ---------------------------------------------------------------------------
 
-def _build_context(retrieved_answer: str | dict) -> str:
-    """Serialize retrieved_answer into prompt-ready text."""
+def _build_context(retrieved_answer: str | dict, source_url: Optional[str] = None) -> str:
+    """
+    Serialize retrieved_answer into prompt-ready text.
+
+    Phase 7C: when source_url is known (the deterministic answer_agent's
+    own resolved citation), it's threaded in as "canonical_source_url" so
+    the model has an explicit signal for which source is authoritative when
+    the retrieved content spans multiple files/sections each with their own
+    URL. This is a grounding hint only — it does not change what the final
+    response displays as its source.
+    """
     if isinstance(retrieved_answer, dict):
-        return json.dumps(retrieved_answer, indent=2, ensure_ascii=False)
-    return str(retrieved_answer)
+        payload: dict = dict(retrieved_answer)
+    else:
+        payload = {"retrieved_text": str(retrieved_answer)}
+    if source_url:
+        payload = {"canonical_source_url": source_url, **payload}
+    return json.dumps(payload, indent=2, ensure_ascii=False)
 
 
-def _call_ollama(query: str, retrieved_answer: str | dict) -> str:
+def _call_ollama(query: str, context: str) -> str:
     """
     POST to Ollama /api/chat and return the raw content string.
 
@@ -172,7 +218,6 @@ def _call_ollama(query: str, retrieved_answer: str | dict) -> str:
     an HTTP error response (model not found, bad request) is not retried —
     see utils/retry.py's module docstring for why.
     """
-    context      = _build_context(retrieved_answer)
     user_message = f"Retrieved content:\n{context}\n\nQuestion: {query}"
 
     payload = {
@@ -195,12 +240,36 @@ def _call_ollama(query: str, retrieved_answer: str | dict) -> str:
     return resp.json().get("message", {}).get("content", "")
 
 
-def _validate(content: str) -> Optional[dict]:
+_URL_PATTERN = re.compile(r'https?://[^\s\)\]"\'<>]+')
+
+
+def _extract_urls(text: str) -> set[str]:
+    """
+    Return every http(s) URL found in text, as a set.
+
+    Trailing sentence punctuation (.,;:!?) is stripped from each match.
+    Without this, a URL the model correctly copied verbatim but placed at
+    the end of a sentence ("...details: https://example.com/page.") would
+    capture the trailing period as part of the URL, fail to match the same
+    URL as it appears in the source JSON (which has no trailing period),
+    and be incorrectly flagged as a fabricated citation — rejecting a
+    perfectly legitimate, correctly-grounded answer.
+    """
+    return {match.rstrip(".,;:!?") for match in _URL_PATTERN.findall(text)}
+
+
+def _validate(content: str, source_urls: set[str]) -> Optional[dict]:
     """
     Parse and validate the model response.
 
     Returns {"answer": str, "confidence": str} on success, None on any
     validation failure. Pure — no emit calls.
+
+    Phase 7C citation-fidelity check: source_urls is every URL that
+    appeared in the retrieved content handed to the model. If the model's
+    answer contains a URL NOT in that set, it fabricated a citation —
+    treated as a validation failure exactly like a malformed response,
+    falling back to the deterministic answer.
     """
     if not content or not content.strip():
         return None
@@ -217,6 +286,10 @@ def _validate(content: str) -> Optional[dict]:
         return None
 
     if confidence not in _VALID_CONFIDENCE:
+        return None
+
+    fabricated_urls = _extract_urls(answer) - source_urls
+    if fabricated_urls:
         return None
 
     return {"answer": answer.strip(), "confidence": confidence}

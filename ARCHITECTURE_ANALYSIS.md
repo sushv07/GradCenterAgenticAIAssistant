@@ -2652,3 +2652,71 @@ Only a `ProgramMatch` dict (`program_id`, `confidence`, `score_basis`) and a rea
 - Phase 7C's planned extraction of a shared "grounded synthesis with fallback" module — `agents/llm_synthesizer.py` and `agents/recommendation_explainer.py` now share an almost-identical structure (env-var flag, retry-protected Ollama POST, JSON validation, hard fallback) that's a natural candidate to consolidate once a third use case (advisor/admissions explanation) confirms the right shape.
 - The `explanation` field is additive on `ProgramMatch` (`contracts/response_types.py`) — any future UI work can check for its presence and render it only when available, with no schema migration needed.
 - Per-program retry/backoff currently runs independently for each `ProgramMatch` in a `multi_recommend` response — acceptable at today's scale (at most 2 programs), worth revisiting if that ever grows.
+
+# Phase 7C — Grounded Answer Generation (Implemented)
+
+## Current Answer Pipeline
+
+```
+User
+  ↓
+Router (deterministic) → "answer" route
+  ↓
+retrieval/query_handler.py:handle_query()  — deterministic keyword/topic scoring
+  over data/*.json (MIN_SCORE=1, MAX_FILES=2) — completely separate from the
+  Chroma vector store used by the "deadlines"/"eligibility"/"application" routes
+  ↓
+agents/answer_agent.py:answer()  — deterministic extraction pipeline (FAQ match,
+  then a fixed sequence of typed extractors: steps/amounts/eligibility/contact/
+  programs/deadlines, falling back to generic token-overlap section extraction)
+  ↓
+agents/llm_synthesizer.py:synthesize_answer()  — OPTIONAL, flag-gated rewrite of
+  the answer using the FULL retrieved dict (not just the narrow extracted value)
+  as grounding context
+  ↓
+orchestrator.py:_run_answer()  — merges LLM result into the deterministic result
+  if synthesis succeeded, otherwise the deterministic result is used unchanged
+  ↓
+Response Builder
+```
+
+Deterministic stages: router, `query_handler.py`, `answer_agent.py`. Generative stage: `llm_synthesizer.py` only, and only when `LLM_SYNTHESIS_ENABLED=true` (default `false`).
+
+## Grounding Review Findings
+
+Two real gaps found, both fixed this phase:
+
+1. **`source_url`/`source_file` were accepted parameters but never used.** The LLM had no signal about which of potentially several URLs inside the retrieved JSON was the deterministically-resolved canonical source — a missed grounding-quality opportunity, not a safety issue (the final response's displayed source was never affected, since that always came from the deterministic `result["source_url"]` regardless of LLM output).
+2. **No post-generation citation enforcement.** The prompt asked the model not to invent URLs ("NEVER: Invent URLs"), but nothing checked that the model actually complied — a prompt instruction is a request, not a guarantee.
+
+Also confirmed during the review: the LLM's grounding source (the **full** `retrieved` dict from `handle_query()`) is broader than the deterministic answer's own source (just `result["answer"]`, the narrowly-extracted value) — both are 100% retrieval-sourced (no hallucination-from-nothing risk), but this means the LLM could technically draw on a different part of the same retrieved JSON than the deterministic extractor chose. Not a safety issue; left as-is, since constraining the LLM to *only* the narrow extracted value would reduce its ability to give a fuller answer and isn't what Step 3's "answer ONLY from supplied evidence" requires (the supplied evidence is the full retrieved set, not the narrow extraction).
+
+## Prompt Improvements
+
+Targeted, additive strengthening of an already-reasonable prompt (not a rewrite):
+- Added explicit "do not extrapolate" language: "if you are not certain something is present in the input, leave it out rather than guessing."
+- Added "Cite a URL that does not appear in the retrieved content below" to the NEVER list.
+- Sharpened insufficient-evidence handling: "do not guess at the missing part. State plainly what IS covered... and that the rest is not available."
+- Added explicit `canonical_source_url` guidance, paired with the new grounding hint (see below).
+- `temperature=0` unchanged. Structured JSON output (`{"answer": str, "confidence": str}`) unchanged — no schema redesign.
+
+## Integration Changes
+
+- `_build_context()` now threads `source_url` into the serialized context as `"canonical_source_url"` when provided — a grounding hint only; never changes what the final response displays as its source.
+- `_validate()` now performs **citation-fidelity enforcement**: every URL the model's answer contains is extracted (`_extract_urls()`) and checked against the URLs present in the retrieved content it was given. Any URL not in that set means a fabricated citation — validation fails, exactly like a malformed JSON response, and the deterministic answer is used instead.
+- A real false-positive bug was caught and fixed during testing: a URL the model copied correctly but placed at the end of a sentence ("...details: https://example.com/page.") would capture the trailing period as part of the URL, fail to match the same URL in the source JSON (no trailing period), and be wrongly flagged as fabricated. `_extract_urls()` now strips trailing sentence punctuation (`.,;:!?`) from every match before comparison.
+
+## Fallback Behavior
+
+Unchanged in spirit from Phase 6A/6B, now with one more failure mode covered: `LLM_SYNTHESIS_ENABLED=false` (default), any network/retry-exhaustion failure (Phase 6B), invalid/malformed JSON, or — new this phase — a fabricated citation, all result in `synthesize_answer()` returning `None`, and `orchestrator._run_answer()` using the deterministic `answer_agent.py` result unchanged. No user-visible regression in any failure mode.
+
+## Validation Strategy
+
+- Confirmed deterministic retrieval, ranking, and retrieved chunks are completely unaffected: `retrieval/query_handler.py` was not touched (zero diff), and direct output comparison for representative queries was byte-identical before/after.
+- Confirmed citation fidelity empirically: a legitimate URL present in retrieved content is accepted; a fabricated one is rejected and falls back cleanly (no exception).
+- Confirmed the `canonical_source_url` hint is actually threaded into the prompt sent to Ollama (captured the real payload in a test, not just trusting the code).
+- 366 tests passed (343 prior + 22 new + 1 net from suite growth); router, golden routes, recommendation evals, and weight validation all unchanged; the same two pre-existing, unrelated failures from prior phases reproduced identically.
+
+## Future LLM Opportunities
+
+Unchanged from Phase 7A's roadmap — Phase 7D (LLM evaluation framework, to programmatically measure faithfulness/citation correctness/consistency at scale rather than via hand-written test cases) is the natural next step before extending grounded generation to any new surface (advisor/admissions explanation, program summaries).
