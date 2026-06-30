@@ -1,0 +1,167 @@
+{
+  "_schema_version": "1.0",
+  "_scope": "Phase 8A — deterministic evaluation of rag/retriever.py's vector retrieval quality, independent of recommendation/answer/LLM quality. Targets retrieve() directly — the canonical Chroma vector-search backend (Phase 4B's preferred implementation, used by tools/deadlines_tool.py, eligibility_tool.py, application_steps_tool.py, and via retrieval/retriever_service.py by tools/rag_tool.py).",
+  "_source": "Hand-curated against the real, live persisted Chroma store — every expected_sources/forbidden_sources/expect_empty value below was verified against actual retrieve() output before being written here, not assumed.",
+  "cases": [
+    {
+      "case_id": "RETRIEVE-001",
+      "description": "Eligibility query, filtered to eligibility — top result must be the eligibility page.",
+      "query": "what gpa do i need for a doctoral program",
+      "page_type_filter": "eligibility",
+      "k": 3,
+      "expected_sources": [
+        {"page_type": "eligibility", "url": "https://www.csulb.edu/admissions/doctoral-programs-admission-eligibility"}
+      ],
+      "forbidden_sources": [{"page_type": "deadlines"}, {"page_type": "faq"}],
+      "expected_min_chunks": 1,
+      "expect_empty": false,
+      "notes": "Verified live: top-3 scores 0.74/0.62/0.61, all page_type=eligibility."
+    },
+    {
+      "case_id": "RETRIEVE-002",
+      "description": "Deadlines query, filtered to deadlines — top result must be the deadlines page.",
+      "query": "when is the fall application deadline",
+      "page_type_filter": "deadlines",
+      "k": 3,
+      "expected_sources": [
+        {"page_type": "deadlines", "url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-doctoral"}
+      ],
+      "forbidden_sources": [{"page_type": "eligibility"}, {"page_type": "faq"}],
+      "expected_min_chunks": 1,
+      "expect_empty": false,
+      "allow_duplicate_chunks": true,
+      "notes": "Verified live: this case also reproducibly surfaces a duplicate chunk_id (c31caccf_0000 three times) — RETRIEVE-012 is the dedicated case for that finding; allow_duplicate_chunks=true here so this case's own purpose (source correctness, which passes) isn't masked by an unrelated, already-tracked issue."
+    },
+    {
+      "case_id": "RETRIEVE-003",
+      "description": "Application-process query, filtered to application_process.",
+      "query": "how do i apply to a doctoral program",
+      "page_type_filter": "application_process",
+      "k": 3,
+      "expected_sources": [
+        {"page_type": "application_process", "url": "https://www.csulb.edu/admissions/doctoral-programs-application-process"}
+      ],
+      "forbidden_sources": [{"page_type": "eligibility"}, {"page_type": "deadlines"}],
+      "expected_min_chunks": 1,
+      "expect_empty": false,
+      "notes": "Verified live: top-3 scores 0.55/0.54/0.49."
+    },
+    {
+      "case_id": "RETRIEVE-004",
+      "description": "FAQ query (orientation-style), filtered to faq.",
+      "query": "i dont know where to start with graduate school",
+      "page_type_filter": "faq",
+      "k": 3,
+      "expected_sources": [
+        {"page_type": "faq", "url": "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs"}
+      ],
+      "forbidden_sources": [{"page_type": "deadlines"}, {"page_type": "eligibility"}],
+      "expected_min_chunks": 1,
+      "expect_empty": false,
+      "notes": "Verified live: top-3 scores 0.54/0.53/0.46."
+    },
+    {
+      "case_id": "RETRIEVE-005",
+      "description": "FAQ query (advisor appointment), filtered to faq.",
+      "query": "how do i request an appointment with an advisor",
+      "page_type_filter": "faq",
+      "k": 3,
+      "expected_sources": [
+        {"page_type": "faq", "url": "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs"}
+      ],
+      "forbidden_sources": [{"page_type": "application_process"}],
+      "expected_min_chunks": 1,
+      "expect_empty": false,
+      "notes": "Verified live: top-3 scores 0.43/0.42/0.41 — weaker but all above MIN_RELEVANCE=0.30."
+    },
+    {
+      "case_id": "RETRIEVE-006",
+      "description": "Application-process query (documents), filtered to application_process.",
+      "query": "what documents do i need to submit my application",
+      "page_type_filter": "application_process",
+      "k": 3,
+      "expected_sources": [
+        {"page_type": "application_process", "url": "https://www.csulb.edu/admissions/doctoral-programs-application-process"}
+      ],
+      "forbidden_sources": [{"page_type": "faq"}],
+      "expected_min_chunks": 1,
+      "expect_empty": false,
+      "notes": "Verified live: top-3 scores 0.37/0.36/0.32 — close to threshold, a useful low-margin regression case."
+    },
+    {
+      "case_id": "RETRIEVE-007",
+      "description": "Cross-source query, no page_type filter — must return something, no forbidden assertion (discovered program-application content is a valid, expected hit here).",
+      "query": "what are the steps to apply for graduate school",
+      "page_type_filter": null,
+      "k": 3,
+      "expected_sources": [],
+      "forbidden_sources": [],
+      "expected_min_chunks": 1,
+      "expect_empty": false,
+      "notes": "Verified live: top result page_type=program_application (discovered content), score 0.69 — intentionally no expected_sources constraint since multiple page_types are legitimately relevant."
+    },
+    {
+      "case_id": "RETRIEVE-008",
+      "description": "Out-of-scope gibberish query — must correctly return nothing.",
+      "query": "xyzxyzxyz totally unrelated gibberish nonsense query",
+      "page_type_filter": null,
+      "k": 3,
+      "expected_sources": [],
+      "forbidden_sources": [],
+      "expected_min_chunks": 0,
+      "expect_empty": true,
+      "notes": "Verified live: zero results — correct behavior, not a defect. This case exists to confirm the MIN_RELEVANCE threshold correctly rejects nonsense."
+    },
+    {
+      "case_id": "RETRIEVE-009",
+      "description": "Deliberately mismatched filter — an eligibility-shaped query filtered to page_type=deadlines must never return eligibility-page content (proves the filter actually restricts the search, not just biases it).",
+      "query": "what gpa do i need for a doctoral program",
+      "page_type_filter": "deadlines",
+      "k": 3,
+      "expected_sources": [],
+      "forbidden_sources": [{"page_type": "eligibility"}, {"page_type": "faq"}, {"page_type": "application_process"}],
+      "expected_min_chunks": 1,
+      "expect_empty": false,
+      "notes": "Verified live: returns exactly 1 weakly-relevant deadlines-page chunk (score 0.36) — page_type filter correctly excludes eligibility content even though the query is semantically about eligibility. expect_empty=false because a real (if weak) deadlines match exists; the assertion that matters is the forbidden_sources check."
+    },
+    {
+      "case_id": "RETRIEVE-010",
+      "description": "Empty query string — must return nothing without error.",
+      "query": "",
+      "page_type_filter": null,
+      "k": 3,
+      "expected_sources": [],
+      "forbidden_sources": [],
+      "expected_min_chunks": 0,
+      "expect_empty": true,
+      "notes": "retrieve()'s own documented contract: empty/whitespace query returns [] immediately."
+    },
+    {
+      "case_id": "RETRIEVE-011",
+      "description": "Whitespace-only query — same contract as empty string.",
+      "query": "   ",
+      "page_type_filter": null,
+      "k": 3,
+      "expected_sources": [],
+      "forbidden_sources": [],
+      "expected_min_chunks": 0,
+      "expect_empty": true,
+      "notes": "retrieve()'s own documented contract."
+    },
+    {
+      "case_id": "RETRIEVE-012",
+      "description": "Duplicate-chunk awareness case — the deadlines query that reproducibly returns the same chunk_id three times. This phase only MEASURES this; fixing it is explicitly out of scope (Non-goals: do not redesign retrieval/chunking/ranking).",
+      "query": "when is the fall application deadline",
+      "page_type_filter": "deadlines",
+      "k": 3,
+      "expected_sources": [
+        {"page_type": "deadlines", "url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-doctoral"}
+      ],
+      "forbidden_sources": [],
+      "expected_min_chunks": 1,
+      "expect_empty": false,
+      "allow_duplicate_chunks": true,
+      "notes": "Verified live and reproducible across repeated calls: chunk_id c31caccf_0000 appears 3 times in a k=3 result set. allow_duplicate_chunks=true means this specific case's status is unaffected by the duplicate finding — the duplicate is still recorded in metrics/error_summary for visibility, just not scored as a failure for this known, pre-existing, out-of-scope-to-fix case."
+    }
+  ]
+}

@@ -2801,3 +2801,62 @@ Each `PromptMetadata` record carries `name`, `version`, `description`, `intended
 ### Future Experimentation Workflow
 
 To trial a new prompt wording: add `prompts/recommendation/explanation_v2.md`, add a `recommendation_explanation_v2` (or bump the existing entry's `version`/`relative_path`) entry in `registry.py`, run `evals/run_llm_evals.py`, and diff the new report's `evidence_coverage_rate`/`forbidden_claim_rate`/etc. against the v1 report saved in `evals/reports/`. No code in `agents/recommendation_explainer.py` or `agents/llm_synthesizer.py` needs to change to test a new wording — only the registry's `relative_path` for that name. This is the direct payoff of Phase 7E's "prompt wording lives outside Python" principle: prompt experimentation becomes a data change, not a code change.
+
+## Phase 8A — Retrieval Evaluation
+
+### Retrieval Pipeline
+
+```
+User Query
+  ↓
+rag.retriever.retrieve(query, k, min_score, page_type, program_name)
+  ↓
+rag.store.get_or_build_store()         — loads/builds the persisted Chroma store
+  ↓
+store.similarity_search_with_relevance_scores(query, k=k*2, filter=where_filter)
+  — embeds query with all-MiniLM-L6-v2, cosine search, optional page_type/
+    program_name metadata filter, over-fetches k*2 candidates
+  ↓
+Threshold filter (score >= MIN_RELEVANCE, default 0.30)
+  ↓
+Re-sort by score descending, truncate to k
+  ↓
+Returned context — list[dict] with text/title/url/page_type/score/chunk_id
+```
+
+Every stage is deterministic given a fixed store and embedding model: same query in, same chunks out, every time (confirmed empirically — repeated calls produced byte-identical results). Possible failure modes audited: vector store unavailable (already handled — returns `[]`, Phase 6A), the underlying similarity search raising (already handled — returns `[]`, Phase 6A), a metadata filter excluding everything (returns `[]`, correct behavior, not a bug), and — found during this phase's audit, not invented — a **real, reproducible duplicate `chunk_id`** appearing within a single result set for at least one query (see Failure Taxonomy below).
+
+This phase covers `rag/retriever.py:retrieve()` specifically — the canonical, Phase 4B-preferred vector-search backend. `retrieval/query_handler.py` (keyword/topic scoring), `retrieval/advisor_retrieval.py` (RapidFuzz fuzzy matching), and `retrieval/faq_rag_module.py` (a second, separate Chroma pipeline) are different retrieval paradigms with different output shapes (file rankings, match-confidence scores, not scored chunk lists) — evaluating them would need differently-shaped metrics, not a forced fit into this phase's chunk-level metric set. Documented as future work, not implemented here.
+
+### Evaluation Philosophy
+
+Identical to Phase 7D's: deterministic, reproducible, automated, inexpensive, explainable — no LLM, no semantic similarity, no embedding similarity used *for evaluation*. The retriever itself uses embeddings; the evaluation methodology only ever compares structured fields (`page_type`, `url`, `chunk_id`, `score`, result count) against values fixed at dataset-authoring time.
+
+### Dataset Structure
+
+`evals/retrieval_eval_cases.json` — 12 hand-curated cases, **every expected/forbidden value verified against the real, live persisted Chroma store before being written**, not assumed. Each case specifies `query`, `page_type_filter`, `k`, `expected_sources` (page_type/url pairs), `forbidden_sources`, `expected_min_chunks`, `expect_empty`, and an optional `allow_duplicate_chunks` escape hatch. Composition: positive cases (RETRIEVE-001 through 006, one per page_type plus a close-to-threshold case), a cross-source ambiguous case (007), a genuine no-result/out-of-scope case (008), a deliberately-mismatched-filter negative case proving filter exclusivity (009), two malformed-input edge cases (010/011, empty and whitespace-only query), and a dedicated duplicate-chunk-awareness case (012).
+
+### Implemented Metrics
+
+Top-1 Accuracy, Top-K Accuracy, Top-K Recall (per expected-source-spec, not per-case), Expected Source Rate, Forbidden Source Rate, No Result Rate, Unexpected Retrieval Rate, Duplicate Chunk Rate, Average Retrieval Score, Average Retrieved Chunks — see `evals/metrics_retrieval.py`.
+
+### Failure Taxonomy
+
+`none`, `no_retrieval`, `empty_context`, `unexpected_source`, `missing_expected_source`, `ranking_error`, `partial_match`, `duplicate_chunks`, `low_score` (reserved, not yet triggered by any case), `unexpected_failure` — see `evals/error_classification_retrieval.py`'s module docstring for full detection rules.
+
+**Real finding, not a bug fix**: this phase's audit surfaced a genuine, reproducible duplicate `chunk_id` (`c31caccf_0000`) appearing 3 times in a 3-result set for a "deadlines" query, confirmed reproducible across repeated calls. Per this phase's explicit non-goals ("do not redesign retrieval/chunking/ranking — this phase evaluates retrieval only"), it is **measured and reported** (`Duplicate Chunk Rate: 16.7%` in the current run, 2 of 12 cases) but deliberately **not fixed**. The two cases that would otherwise be affected (`RETRIEVE-002`, `RETRIEVE-012`) use `allow_duplicate_chunks=true` so their own distinct purposes (source correctness, duplicate visibility) aren't conflated with this separately-tracked, pre-existing issue.
+
+### Report Generation
+
+`evals/run_retrieval_evals.py` mirrors `run_recommendation_evals.py`/`run_llm_evals.py`'s exact shape: dataset loading + validation, per-case execution against the real `retrieve()`, a dedicated metrics module, a dedicated error-classification module, report writing to `evals/reports/latest_retrieval_eval_report.json` + a timestamped archive, and the same `--no-archive`/`--verbose`/`--ci` CLI flags.
+
+### Validation Results
+
+454 tests passed (421 prior + 32 new); router, golden routes, recommendation evals, LLM evals, and weight validation all unchanged; the same two pre-existing, unrelated failures from prior phases reproduced identically. The retrieval eval suite itself: 12/12 cases pass, 100% top-1/top-k accuracy, 0% forbidden-source rate, 16.7% duplicate-chunk rate (tracked, not a regression — the known, pre-existing finding above).
+
+### Future Retrieval Evaluation Roadmap
+
+- Extending the dataset to cover `program_application` page_type queries specifically (the discovery-based content currently only appears incidentally in the cross-source case).
+- A differently-shaped evaluation for `retrieval/advisor_retrieval.py` (match-confidence accuracy, not chunk-level metrics) and `retrieval/query_handler.py` (file-ranking accuracy) — separate frameworks, not a forced extension of this one.
+- Activating the reserved `low_score` failure category once a baseline-tracking mechanism exists to detect when a previously-strong match degrades below its own historical score, not just below the fixed `MIN_RELEVANCE` cutoff.
+- Investigating (in a future, dedicated phase — not this one) the root cause of the duplicate `chunk_id` finding, now that it's documented with a reproducible case.
