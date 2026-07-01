@@ -1,0 +1,44 @@
+# Version control
+.git
+.gitignore
+
+# Python cache — never include compiled bytecode in the image
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Test infrastructure
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets and local config — never bake these into the image
+.env
+*.env
+
+# Generated / runtime artifacts — mounted as volumes at runtime
+logs/
+chroma_db/
+evals/reports/
+obs/reports/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.orig
+
+# macOS
+.DS_Store
+Thumbs.db
+
+# Notebooks and docs (not needed at runtime)
+*.ipynb
+docs/
