@@ -46,9 +46,7 @@ Run locally:
 """
 from __future__ import annotations
 
-import logging  # DEBUG: temporary — remove after Render deployment is confirmed
-
-from fastapi import Depends, FastAPI, Request, Response
+from fastapi import Depends, FastAPI, Response
 
 from backend.entrypoint import handle_user_query
 from backend.dependencies import AppDependencies, get_dependencies
@@ -59,31 +57,32 @@ from gradcenter_logging import new_request_id, set_request_id
 
 app = FastAPI(title="CSULB Grad Center Assistant API")
 
-# DEBUG: temporary logger — remove after Render deployment is confirmed
-_log = logging.getLogger("api.app")
-
 
 # ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
-@app.api_route("/", methods=["GET", "HEAD"])  # DEBUG: HEAD added for Render probe
-def root(request: Request) -> dict:
+@app.get("/")
+def root() -> dict:
     """Service identity — confirms the API is reachable."""
-    _log.info("Root endpoint: method=%s path=%s", request.method, request.url.path)
     return {"service": "csulb-grad-center-assistant", "status": "ok"}
 
 
+@app.head("/", include_in_schema=False)
+def root_head() -> Response:
+    """HEAD / — explicit support for Render's port-binding probe and any
+    HTTP client that issues HEAD before GET. Returns the same 200 status
+    as GET / without a response body."""
+    return Response(status_code=200)
+
+
 @app.get("/health", response_model=HealthResponse)
-def health(request: Request) -> HealthResponse:  # DEBUG: request added for logging
+def health() -> HealthResponse:
     """Liveness check. Deliberately does not exercise retrieval, the
     recommendation engine, or any other component — see GET /ready for
     that. If this code is running at all, the answer is "ok" by
     definition; there is nothing else liveness is supposed to check."""
-    _log.info("/health invoked: method=%s path=%s", request.method, request.url.path)
-    result = build_health_response()
-    _log.info("/health completed: status=%s", result.status)
-    return result
+    return build_health_response()
 
 
 @app.get("/ready", response_model=ReadinessResponse)

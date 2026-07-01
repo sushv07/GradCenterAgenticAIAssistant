@@ -113,7 +113,7 @@ class TestReadinessEndpointDegradedAndUnavailable(unittest.TestCase):
         """Checks must never crash the endpoint — exceptions become a
         failing CheckResult instead of a 500."""
         from api.health import _check_vector_store
-        with patch("rag.store.get_or_build_store", side_effect=RuntimeError("boom")):
+        with patch("rag.store.check_store_on_disk", side_effect=RuntimeError("boom")):
             result = _check_vector_store()
         self.assertFalse(result.ok)
         self.assertIn("boom", result.detail)

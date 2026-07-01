@@ -21,27 +21,26 @@ What this module does:
         - taxonomy_file  — the program taxonomy JSON exists and parses
         - context_manager — a session_id round-trips through
                               get_context/save_context/clear_context
-        - vector_store   — rag.store.get_or_build_store() returns a store
+        - vector_store   — chroma.sqlite3 is present on disk (passive check)
 
     Each check is wrapped so one failing check cannot crash the others or
     the endpoint itself — every check independently reports ok/detail, and
     the aggregate status is "ok" (all pass), "degraded" (some pass), or
     "unavailable" (none pass).
 
-Why vector_store calls get_or_build_store() instead of a passive disk check:
-    get_or_build_store() is the same lazy-singleton every real query already
-    goes through (rag/retriever.py -> rag/store.py). If it's already loaded
-    (the common case once the app has served any RAG-backed query), this is
-    instant. If not yet loaded but the on-disk store is fresh (within
-    config.settings.CHROMA_STORE_TTL_SECONDS), it's a normal disk load — the
-    same cost the first real query would pay regardless of whether this
-    check exists. The one edge case where this is more expensive (on-disk
-    store stale/missing -> full rebuild) is pre-existing behavior of
-    get_or_build_store() itself; this check does not introduce that
-    behavior, only observes it. Deliberately NOT performing an actual
-    similarity search here — that would be "an expensive query" in the
-    sense Phase 5E's non-goals warn against, and is unnecessary to answer
-    "is the store accessible."
+Why vector_store now uses a passive disk check instead of get_or_build_store():
+    Phase 10E — memory optimization for Render Starter (512 MB RAM).
+    The original get_or_build_store() call was correct for environments with
+    ample memory: if the store was already in-process it returned instantly,
+    and if not it triggered a normal disk load. However on Render Starter,
+    loading the store on a cold process requires initializing
+    HuggingFaceEmbeddings (all-MiniLM-L6-v2, ~200-400 MB in-process), which
+    combined with base Python + FastAPI pushes beyond the 512 MB limit and
+    OOMs the instance. The passive disk check (rag.store.check_store_on_disk)
+    answers "is the required persistent data present?" rather than "is the
+    pipeline warmed up?" — which is the correct semantic for a readiness probe
+    that must not trigger initialization. The embedding model and Chroma are
+    still loaded lazily on the first real /query request, exactly as designed.
 
 Why no business logic lives here:
     Every check calls existing backend functions unmodified
@@ -120,10 +119,10 @@ def _check_context_manager() -> CheckResult:
 
 def _check_vector_store() -> CheckResult:
     try:
-        from rag.store import get_or_build_store
-        store = get_or_build_store()
-        if store is None:
-            return CheckResult(ok=False, detail="get_or_build_store() returned None")
+        from rag.store import check_store_on_disk
+        ok, detail = check_store_on_disk()
+        if not ok:
+            return CheckResult(ok=False, detail=detail)
         return CheckResult(ok=True)
     except Exception as exc:  # noqa: BLE001
         return CheckResult(ok=False, detail=str(exc))

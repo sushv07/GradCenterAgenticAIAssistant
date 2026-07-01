@@ -157,6 +157,26 @@ def _chroma_has_data() -> bool:
     return (CHROMA_DIR / "chroma.sqlite3").exists()
 
 
+def check_store_on_disk() -> tuple[bool, str]:
+    """
+    Passively verify the Chroma vector store data is present on disk.
+
+    Returns (ok, detail_if_not_ok). Never loads the embedding model, never
+    instantiates Chroma. Use this for lightweight readiness probes that must
+    not trigger ML initialization.
+
+    A successful check means the store has been built at least once and the
+    data files are present. It does NOT guarantee the store is within TTL or
+    that the current process has loaded it — those are handled at retrieval
+    time when get_or_build_store() runs normally.
+    """
+    if not CHROMA_DIR.exists():
+        return False, f"chroma_db directory not found: {CHROMA_DIR}"
+    if not (CHROMA_DIR / "chroma.sqlite3").exists():
+        return False, "chroma.sqlite3 not present — store has not been built yet"
+    return True, ""
+
+
 def _store_has_program_pages(store: "Chroma") -> bool:
     """
     Return True if the store contains at least one program_application chunk.

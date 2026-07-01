@@ -245,6 +245,19 @@ If you prefer not to use the Blueprint:
 | Logs | Container filesystem (ephemeral) | Lost on restart. Render streams logs in the dashboard. |
 | Eval reports | Container filesystem (ephemeral) | Run evals locally, not in production. |
 
+### Memory constraints
+
+The Render Starter plan has 512 MB RAM. The readiness endpoint (`/ready`) is
+optimized for this constraint:
+
+- `/ready` performs a **passive disk check** only — it verifies `chroma.sqlite3`
+  is present on disk without loading the embedding model or instantiating Chroma.
+- The embedding model (`all-MiniLM-L6-v2`, ~200 MB in-process) loads lazily on
+  the **first `/query` request**.
+- On first deploy the persistent disk is empty, so `/ready` returns HTTP 503
+  (`"vector_store": {"ok": false, "detail": "chroma.sqlite3 not present"}`) until
+  the first `/query` triggers the store build (~30–60 s, one time).
+
 ### Deployment verification
 
 Replace `<render-url>` with your service URL (e.g.
@@ -254,17 +267,19 @@ Replace `<render-url>` with your service URL (e.g.
 # Liveness — always returns 200 if the process is running
 curl https://<render-url>/health
 
-# Readiness — returns 200 when all five checks pass (vector store included)
-# On first deploy this may take up to 60 s while the store is being built
+# Readiness — passive disk check; 503 until first /query populates the store
 curl https://<render-url>/ready
 
 # Swagger UI — interactive API docs
 open https://<render-url>/docs
 
-# Test query
+# First query — triggers vector store build if not already populated (~30–60 s)
 curl -X POST https://<render-url>/query \
   -H "Content-Type: application/json" \
   -d '{"query": "How do I apply to a doctoral program at CSULB?"}'
+
+# Readiness after first query — should now return 200
+curl https://<render-url>/ready
 ```
 
 Expected responses:
@@ -272,7 +287,8 @@ Expected responses:
 | Endpoint | Expected |
 |---|---|
 | `/health` | `{"status": "ok", "service": "csulb-grad-center-assistant", ...}` |
-| `/ready` | `{"status": "ok", ...}` (after store is built) |
+| `/ready` (before first query) | `{"status": "degraded", ...}` HTTP 503 — store not yet built |
+| `/ready` (after first query) | `{"status": "ok", ...}` HTTP 200 |
 | `/docs` | Swagger UI with `/`, `/health`, `/ready`, `/query` |
 | `/query` | JSON with routing and retrieval results |
 

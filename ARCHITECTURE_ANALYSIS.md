@@ -3669,3 +3669,121 @@ curl -X POST https://<render-url>/query \
 - **Environment-specific settings**: Env-var overrides for `CHROMA_DIR`, `LOG_FILE`, `EMBEDDING_MODEL` in `config/settings.py` — currently plain constants — so one image can target different paths without rebuilding.
 - **KB refresh endpoint**: A protected `POST /admin/rebuild-kb` endpoint to trigger `get_or_build_store(force_rebuild=True)` on demand from the Render dashboard, without needing to redeploy.
 - **Multi-stage Dockerfile**: Strip `build-essential` in a second stage to reduce the deployed image size by ~200 MB and speed up Render's build step.
+---
+
+## Phase 10E — Render Memory Optimization
+
+### Problem
+
+The Render Starter plan provides 512 MB RAM. After Phase 10D (live cloud deployment), `/ready` caused the service to exceed this limit and be terminated by Render's OOM killer. Root cause: `_check_vector_store()` called `get_or_build_store()`, which on a cold process (no in-memory singleton) triggers `load_vector_store()` → `_get_embeddings()` → loads `HuggingFaceEmbeddings(all-MiniLM-L6-v2)` into memory. The embedding model uses ~200–400 MB in-process, pushing the total beyond 512 MB when combined with Python, FastAPI, and other imports (~120 MB base).
+
+**Why hitting `/ready` triggered the issue, not `/health` or Render's own health check:**
+- Render uses `/health` as its `healthCheckPath` — immediate, no ML components
+- `/ready` was only hit by operators validating the deployment
+- One call to `/ready` on a cold process was enough to OOM the instance
+
+### Readiness Audit
+
+| Check | What it does | Memory impact |
+|---|---|---|
+| `_check_configuration` | Read Python constants from `config.settings` | ~0 MB |
+| `_check_dependencies` | Instantiate `ChromaRetriever()` + `ContextManagerService()` | ~0 MB |
+| `_check_taxonomy_file` | Open and `json.load()` a small file from disk | ~0 MB |
+| `_check_context_manager` | In-memory dict round-trip via `get_context/save_context/clear_context` | ~0 MB |
+| `_check_vector_store` (before) | `get_or_build_store()` → `_get_embeddings()` (on cold start) | **~200–400 MB** |
+| `_check_vector_store` (after) | `check_store_on_disk()` → two `Path.exists()` calls | **~0 MB** |
+
+### Design
+
+The `vector_store` readiness check now answers:
+
+> "Is the required persistent data present on disk?"
+
+rather than:
+
+> "Can the retrieval pipeline serve queries right now?"
+
+This is the correct semantic for a readiness probe in a memory-constrained environment. The old check used `get_or_build_store()` because it was free in environments with plenty of RAM (the store is already in-process after the first query). On Render Starter, the store is never in-process at `/ready` time because `/ready` runs before the first `/query` that would warm it up.
+
+**Lazy initialization is preserved unchanged.** The embedding model and Chroma are still loaded the first time `retrieve()` is called (via `/query`). The `/ready` endpoint no longer touches that path at all.
+
+**Semantic change (documented):**
+- Old: `/ready` returned HTTP 200 only when the store was loadable (either from memory or disk)
+- New: `/ready` returns HTTP 200 when `chroma.sqlite3` is present on disk; the store may not yet be loaded into the current process
+- On first deploy with an empty persistent disk: `/ready` returns HTTP 503 (`"vector_store": {"ok": false}`) until the first `/query` populates the store
+
+### Render Port Probe Fix (Phase 10D cleanup)
+
+Starlette 1.0.0 does not automatically handle `HEAD` requests for `GET` routes — it returns 405. Render issues `HEAD /` to verify port binding before proceeding to the configured `healthCheckPath`, so a 405 stalled the deployment loop. This was fixed in Phase 10D by changing to `@app.api_route("/", methods=["GET", "HEAD"])` with temporary debug logging.
+
+Phase 10E cleans this up:
+- Debug logging removed
+- `@app.api_route` with `["GET", "HEAD"]` replaced by separate decorators: `@app.get("/")` (in schema) + `@app.head("/", include_in_schema=False)` (not in schema)
+- The dual-decorator pattern eliminates the `UserWarning: Duplicate Operation ID` that the `api_route` approach triggered during schema generation
+- Behavior is identical: `HEAD /` → 200, `GET /` → 200
+
+### Files Modified
+
+- `rag/store.py` — added `check_store_on_disk()`: passive disk check that never loads embeddings
+- `api/health.py` — `_check_vector_store()` updated to call `check_store_on_disk()` instead of `get_or_build_store()`; module docstring updated to explain the change and the memory rationale
+- `api/app.py` — removed temporary debug logging (`import logging`, `_log`, three `_log.info()` calls); replaced `@app.api_route("/", methods=["GET", "HEAD"])` with clean `@app.get("/")` + `@app.head("/", include_in_schema=False)` pattern
+- `tests/test_api_health.py` — updated patched symbol in `test_a_check_that_raises_is_reported_not_propagated` (`get_or_build_store` → `check_store_on_disk`); added 10 new tests across two new classes (`TestVectorStorePassiveCheck`, `TestRootHeadSupport`)
+- `README.md` — "Memory constraints" subsection added to Cloud Deployment section; deployment verification checklist updated to document `/ready` 503 behavior on first deploy
+
+### Validation Results
+
+| Suite | Result |
+|---|---|
+| `pytest tests/test_api_health.py` | **23 passed** (10 new tests, all green) |
+| `pytest tests/test_api.py tests/test_api_contracts.py tests/test_api_health.py tests/test_backend_entrypoint.py` | **60 passed** |
+| `pytest tests/` | **1042 passed, 8 failed** — 8 failures are pre-existing `test_prompt_experiments.py` (missing `recommendation_explanation_v2` registry entry, unrelated to this phase) |
+| `python tests/test_router.py` | 44/44 |
+| `python tests/test_golden_routes.py` | 42/42 |
+| `python tests/test_journey_agent.py` | 62/63 — pre-existing `clarify_no_signals: Q1` failure, unchanged |
+| `evals/run_recommendation_evals.py` | Recommendation: 56%, Clarification: 34% — matches baseline |
+| `evals/run_retrieval_evals.py` | Avg score: 0.5243 — matches baseline |
+| `evals/run_evals.py --skip-known-failures` | 32/33 — pre-existing `answer_001` failure, unchanged |
+
+**Key invariants confirmed:**
+- `GET /ready` does not call `get_or_build_store()` (asserted in `test_ready_does_not_call_get_or_build_store`)
+- `GET /ready` does not initialize `HuggingFaceEmbeddings` (asserted in `test_ready_does_not_initialize_embeddings`)
+- `HEAD /` returns 200 (asserted in `test_head_root_returns_200`)
+- OpenAPI schema generation raises no `UserWarning` about duplicate operation IDs (asserted in `test_no_duplicate_operation_id_warning`)
+
+### Render Validation Plan
+
+Deploy the updated branch and verify:
+
+```bash
+# Port probe — Render checks this before healthCheckPath
+curl -I https://gradcenter-ai.onrender.com/
+
+# Liveness — always 200
+curl https://gradcenter-ai.onrender.com/health
+
+# Readiness — 503 on first deploy (store not yet built), 200 after first /query
+curl https://gradcenter-ai.onrender.com/ready
+
+# First query — triggers store build (~30–60 s, one time only)
+curl -X POST https://gradcenter-ai.onrender.com/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How do I apply to a doctoral program at CSULB?"}'
+
+# Readiness after first query — should now return 200
+curl https://gradcenter-ai.onrender.com/ready
+```
+
+Expected: no OOM, no service restart, `/ready` returns 200 after the first query populates the disk store.
+
+### Remaining Memory Optimization Work
+
+**If `/query` still OOMs on first deploy** (the 30–60 s store build uses more than 512 MB):
+
+- **Pre-build the store locally and commit `chroma_db/` as a tarball artifact**: Build locally, tar the `chroma_db/` directory, attach it as a release artifact, and download it into the persistent disk on first boot via a startup script. Eliminates the in-container build entirely.
+- **Use Render's build hook to pre-populate the disk**: Not directly supported by Render's blueprint spec today, but achievable via a one-time migration job or a Render cron job.
+- **Upgrade to Render Standard ($25/month)**: 2 GB RAM — fully accommodates the 30–60 s build + embedding model load without any optimization.
+- **Reduce batch size during ingestion**: Embed chunks in smaller batches to reduce peak memory during the initial build. Requires modifying `rag/ingestion.py` — not done in this phase (non-goal: no retrieval changes).
+
+**Long-term (no Render constraint):**
+- Migrate from `langchain-community.HuggingFaceEmbeddings` to `langchain-huggingface` (pre-existing `LangChainDeprecationWarning`).
+- Add model cache disk for `/root/.cache/huggingface/hub/` so the ~90 MB model download does not repeat on every image rebuild.
