@@ -3554,3 +3554,118 @@ No production file was modified. `docker-compose.yml` is infrastructure-only.
 - **Non-root user**: `useradd` + `USER appuser` for production hardening.
 - **Environment-specific config**: Env-var overrides for `CHROMA_DIR`, `LOG_FILE`, etc. in `config/settings.py` so one image covers multiple environments.
 - **KB rebuild service**: A `db-build` compose service that runs `python rag/store.py` and exits, building `chroma_db/` in the named volume — would replace the manual host-side build step.
+- **Render deployment**: Completed in Phase 10C — `render.yaml` blueprint created.
+
+---
+
+## Phase 10C — Cloud Deployment Preparation
+
+**Goal**: Prepare the Dockerized FastAPI service for cloud deployment on Render. No application behavior changes.
+
+### Cloud Deployment Audit
+
+**Runtime:**
+- FastAPI entrypoint: `uvicorn api.app:app --host 0.0.0.0 --port 8000` (set in Dockerfile CMD)
+- Docker command: `docker build` → `docker run` / `docker compose up` (Phases 10A/10B)
+- Exposed port: 8000 (Dockerfile `EXPOSE 8000`; Render auto-detects this)
+- Liveness endpoint: `GET /health` — deterministic, never touches the vector store, always immediate
+- Readiness endpoint: `GET /ready` — exercises five checks including vector store; slow on first run
+
+**Persistence:**
+- `chroma_db/` — **gitignored**, **excluded from build context** (`.dockerignore`). The on-disk Chroma store is NOT in the Docker image. It must either be mounted from a persistent disk or rebuilt on first access.
+- `logs/`, `evals/reports/`, `obs/reports/` — gitignored; acceptable as ephemeral on cloud (Render streams logs to the dashboard; eval runs stay local)
+
+**Environment variables** — all optional, all have in-source defaults:
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `LLM_SYNTHESIS_ENABLED` | `false` | LLM answer synthesis |
+| `LLM_EXPLANATION_ENABLED` | `false` | LLM recommendation explanations |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server (unused when LLM disabled) |
+| `LLM_SYNTHESIS_MODEL` | `qwen2.5:7b-instruct` | Model name |
+| `LLM_SYNTHESIS_TIMEOUT_S` | `30` | Timeout |
+
+**Render-specific constraints:**
+- Free tier: no persistent disk, containers spin down after 15 min of inactivity → every cold start triggers a 30–60 s KB rebuild. Acceptable only for demos.
+- Starter plan ($7/month): persistent disk supported ($1/GB/month) → store survives restarts and redeploys.
+- `EXPOSE` in Dockerfile: Render auto-detects port 8000 from the `EXPOSE 8000` directive; no `PORT` env var override needed.
+- Health check path must be `/health` (not `/ready`): on first deploy the disk is empty; calling `/ready` would trigger the KB rebuild and exceed Render's health-check timeout, causing the deployment to be marked failed even though the app is healthy.
+
+### Render Deployment Design
+
+**Approach**: Render Blueprint (`render.yaml`) + manual dashboard instructions in README.
+
+The Blueprint enables one-click deployment (Render reads the file from the repo root when you click "New → Blueprint"). The README section covers both the Blueprint path and the manual dashboard path for users who prefer not to use the file.
+
+**Why not bake `chroma_db/` into the image**: Building the store at Docker image build time (`RUN python rag/store.py`) would fetch live CSULB pages during `docker build` — fragile (depends on CSULB being reachable at build time), stale (data is frozen at image build date, not refreshed), and bloats the image by ~100 MB. The persistent disk approach lets the store be rebuilt on demand and live independently of image rebuilds.
+
+**Why the disk is required for production**: Without a disk, the free tier cold-start path calls `ingest_pages()` on every wake, fetching ~15 live CSULB URLs, embedding ~800 chunks, and persisting to an ephemeral container filesystem that disappears on the next restart. This is expensive, fragile, and data is always stale (from last wake). The disk breaks this loop: build once, reload instantly.
+
+### Persistence Strategy
+
+On Render with a 1 GB persistent disk at `/app/chroma_db/`:
+
+| Event | What happens |
+|---|---|
+| First deploy (disk empty) | `chroma_db/` empty → `_chroma_has_data()` = False → first call to `/ready` or any RAG query triggers `ingest_pages()` + embedding → ~30–60 s → store written to disk |
+| Subsequent deploys (same disk) | Disk still has `chroma.sqlite3` → `_store_is_fresh()` = True (if within 24h TTL) → `load_vector_store()` → < 1 s |
+| Container restart (same disk) | Same as "subsequent deploys" |
+| TTL expired (>24h since last build) | `_store_is_fresh()` = False → full rebuild triggered automatically on next query |
+| Disk detached/empty | Same as "first deploy" |
+
+The TTL (`CHROMA_STORE_TTL_SECONDS = 86400`, set in `config/settings.py`) controls how long the on-disk store is trusted before a forced rebuild. On Render this means the store rebuilds at most once per day from live CSULB pages — keeping content fresh automatically.
+
+### `render.yaml` Design
+
+Single web service, Docker-based, Starter plan, persistent disk at `/app/chroma_db`, health check on `/health`.
+
+Key decisions:
+- `healthCheckPath: /health` (not `/ready`) — prevents deploy failure on first cold start when the store is rebuilding
+- `plan: starter` — required for persistent disk; documented in file comment
+- All five env vars included with safe defaults — no secrets, LLM disabled
+- `disk.sizeGB: 1` — 1 GB is well above the current store size (~100 MB); headroom for future KB growth
+- No `dockerContext`, `branch`, or `region` fields — all default correctly
+
+### Files Created
+
+- `render.yaml` — Render Blueprint; single `app` web service; Docker build from `./Dockerfile`; port 8000 via `EXPOSE`; health check on `/health`; all five env vars with safe defaults; 1 GB persistent disk at `/app/chroma_db`
+
+### Files Modified
+
+- `README.md` — "Cloud Deployment (Render)" section added; covers Blueprint deploy, manual dashboard deploy, persistent data table, deployment verification checklist with curl examples
+- `ARCHITECTURE_ANALYSIS.md` — Phase 10C section added (this document)
+
+### Validation Results
+
+No production file was modified. `render.yaml` is a deployment configuration file with no effect on local behavior.
+
+Code validation confirmed unchanged:
+
+| Suite | Result |
+|---|---|
+| `pytest tests/` | 713 passed — identical to Phase 10B baseline |
+| All 6 eval runners | Identical to pre-phase baselines |
+| `run_evals.py --skip-known-failures` | 32/33 — pre-existing `answer_001` failure unchanged |
+
+**Pre-existing unrelated failures** (unchanged throughout all phases):
+- `tests/test_journey_agent.py`: 62/63 (`clarify_no_signals: Q1`)
+- `evals/run_evals.py`: `answer_001` backend mismatch (32/33, 97%)
+
+**Render deployment validation** (to run after first deploy — replace `<render-url>`):
+```bash
+curl https://<render-url>/health        # immediate; expect {"status": "ok", ...}
+curl https://<render-url>/ready         # may be slow first time; expect {"status": "ok"}
+open https://<render-url>/docs          # Swagger UI
+curl -X POST https://<render-url>/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How do I apply to a doctoral program at CSULB?"}'
+```
+
+### Remaining Cloud Deployment Work
+
+- **LLM on Render**: Host a public Ollama instance (e.g. on a Render worker or a GPU cloud provider), set `OLLAMA_BASE_URL` to its URL in the Render dashboard, and set `LLM_SYNTHESIS_ENABLED=true` / `LLM_EXPLANATION_ENABLED=true`.
+- **Log persistence**: Add a second Render disk (or use Render Log Streams) to persist `logs/gradcenter.log` across restarts for observability.
+- **Model cache disk**: Add a second disk for `/root/.cache/huggingface/hub/` so the embedding model survives image rebuilds without re-downloading ~90 MB on every new deploy.
+- **Environment-specific settings**: Env-var overrides for `CHROMA_DIR`, `LOG_FILE`, `EMBEDDING_MODEL` in `config/settings.py` — currently plain constants — so one image can target different paths without rebuilding.
+- **KB refresh endpoint**: A protected `POST /admin/rebuild-kb` endpoint to trigger `get_or_build_store(force_rebuild=True)` on demand from the Render dashboard, without needing to redeploy.
+- **Multi-stage Dockerfile**: Strip `build-essential` in a second stage to reduce the deployed image size by ~200 MB and speed up Render's build step.

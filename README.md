@@ -179,6 +179,105 @@ docker run -p 8000:8000 \
 
 ---
 
+## Cloud Deployment (Render)
+
+The project includes a `render.yaml` Blueprint for one-click deployment
+to [Render](https://render.com).
+
+> **Warnings before you deploy**
+> - LLM features (`LLM_SYNTHESIS_ENABLED`, `LLM_EXPLANATION_ENABLED`) are
+>   **off by default**. The assistant runs fully without Ollama.
+> - Ollama is **not included** in the Render deployment. If you want LLM
+>   features in production, you need a separately hosted Ollama instance and
+>   must update `OLLAMA_BASE_URL` in the Render dashboard.
+> - The Chroma vector store (`chroma_db/`) is **not committed to git** and is
+>   not baked into the Docker image. On first deploy it is built automatically
+>   from live CSULB pages (~30–60 s). Configure the persistent disk below so
+>   the store survives restarts.
+
+### Requirements
+
+- Render account
+- **Starter plan or higher** (free tier has no persistent disk — the vector
+  store would rebuild on every cold start, which is ~30–60 s after every
+  ~15 minutes of inactivity)
+
+### Deploy with the Blueprint (recommended)
+
+1. Push this repository to GitHub.
+2. In the Render dashboard: **New → Blueprint** → select your repo.
+3. Render reads `render.yaml` and creates the `gradcenter-ai` web service
+   with a 1 GB persistent disk at `/app/chroma_db`.
+4. The first deploy builds the Docker image (includes the embedding model).
+   When the first request arrives, the app fetches CSULB pages and builds
+   the Chroma store onto the disk (~30–60 s, one time only).
+5. All subsequent requests (and restarts) load the store from disk in < 1 s.
+
+### Deploy manually (dashboard)
+
+If you prefer not to use the Blueprint:
+
+1. **New → Web Service** → connect your GitHub repo.
+2. Environment: **Docker**.
+3. Dockerfile path: `./Dockerfile`.
+4. Plan: **Starter** (required for the persistent disk).
+5. Health check path: `/health`.
+6. Add environment variables (all optional — defaults shown):
+
+   | Key | Default value |
+   |---|---|
+   | `LLM_SYNTHESIS_ENABLED` | `false` |
+   | `LLM_EXPLANATION_ENABLED` | `false` |
+   | `OLLAMA_BASE_URL` | `http://localhost:11434` |
+   | `LLM_SYNTHESIS_MODEL` | `qwen2.5:7b-instruct` |
+   | `LLM_SYNTHESIS_TIMEOUT_S` | `30` |
+
+7. **Disks** tab → **Add Disk**:
+   - Name: `chroma-db`
+   - Mount path: `/app/chroma_db`
+   - Size: 1 GB
+
+### Persistent data on Render
+
+| What | Where it lives | Notes |
+|---|---|---|
+| Chroma vector store | Render persistent disk → `/app/chroma_db/` | **Required**. Built on first request, reused across restarts. |
+| Logs | Container filesystem (ephemeral) | Lost on restart. Render streams logs in the dashboard. |
+| Eval reports | Container filesystem (ephemeral) | Run evals locally, not in production. |
+
+### Deployment verification
+
+Replace `<render-url>` with your service URL (e.g.
+`gradcenter-ai.onrender.com`):
+
+```bash
+# Liveness — always returns 200 if the process is running
+curl https://<render-url>/health
+
+# Readiness — returns 200 when all five checks pass (vector store included)
+# On first deploy this may take up to 60 s while the store is being built
+curl https://<render-url>/ready
+
+# Swagger UI — interactive API docs
+open https://<render-url>/docs
+
+# Test query
+curl -X POST https://<render-url>/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How do I apply to a doctoral program at CSULB?"}'
+```
+
+Expected responses:
+
+| Endpoint | Expected |
+|---|---|
+| `/health` | `{"status": "ok", "service": "csulb-grad-center-assistant", ...}` |
+| `/ready` | `{"status": "ok", ...}` (after store is built) |
+| `/docs` | Swagger UI with `/`, `/health`, `/ready`, `/query` |
+| `/query` | JSON with routing and retrieval results |
+
+---
+
 ## Architecture
 
 See `ARCHITECTURE_ANALYSIS.md` for a detailed phase-by-phase breakdown

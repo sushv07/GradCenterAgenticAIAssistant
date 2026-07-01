@@ -1,0 +1,52 @@
+# Render Blueprint — CSULB Grad Center AI Assistant
+# https://render.com/docs/blueprint-spec
+#
+# Deploy:  connect your GitHub repo in the Render dashboard and select
+#          "render.yaml" as the blueprint — or click "New → Blueprint".
+#
+# Requirements:
+#   - Starter plan or higher (free tier has no persistent disk)
+#   - The disk below keeps the Chroma vector store alive across deploys
+#   - On FIRST deploy the disk is empty; the app builds the store automatically
+#     on the first incoming request (~30–60 s, requires internet — Render has it)
+#   - LLM features are OFF by default; see "Ollama" note in README
+
+services:
+  - type: web
+    name: gradcenter-ai
+    env: docker
+    plan: starter
+    dockerfilePath: ./Dockerfile
+    # Render routes external traffic to the port your container listens on.
+    # Our Dockerfile has EXPOSE 8000 and the CMD binds to 0.0.0.0:8000, so
+    # Render will detect port 8000 automatically.
+    #
+    # /health is a lightweight liveness probe that never touches the vector
+    # store — it responds immediately regardless of KB state.
+    # Do NOT use /ready here: on first deploy the store hasn't been built yet
+    # and /ready would hang for ~60 s while it rebuilds, causing Render to
+    # consider the deploy failed.
+    healthCheckPath: /health
+    envVars:
+      # All variables are optional — the app has safe defaults.
+      # Change OLLAMA_BASE_URL and the LLM_* flags in the Render dashboard
+      # (or via render.yaml) when you want to enable LLM features.
+      - key: LLM_SYNTHESIS_ENABLED
+        value: "false"
+      - key: LLM_EXPLANATION_ENABLED
+        value: "false"
+      - key: OLLAMA_BASE_URL
+        value: "http://localhost:11434"
+      - key: LLM_SYNTHESIS_MODEL
+        value: "qwen2.5:7b-instruct"
+      - key: LLM_SYNTHESIS_TIMEOUT_S
+        value: "30"
+    disk:
+      # Persistent disk for the Chroma vector store.
+      # Without this disk, the store is rebuilt from live CSULB pages on
+      # every cold start (~30–60 s, every ~15 min on the free tier).
+      # With the disk, subsequent starts load the pre-built store in < 1 s.
+      # 1 GB is sufficient — the current store is well under 100 MB.
+      name: chroma-db
+      mountPath: /app/chroma_db
+      sizeGB: 1
