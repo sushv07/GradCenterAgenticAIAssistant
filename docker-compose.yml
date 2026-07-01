@@ -1,0 +1,30 @@
+services:
+  app:
+    build: .
+    container_name: gradcenter-ai
+    ports:
+      - "8000:8000"
+    # Load .env when present; all variables are optional — the application
+    # has safe defaults for every env var (LLM features off, Ollama at
+    # localhost:11434).  Copy .env.example to .env to customise.
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      # chroma_db — REQUIRED.  Contains the built Chroma vector store.
+      # Without it /ready returns 503 and retrieval queries fail gracefully.
+      # Build with: python rag/store.py   (requires internet, run once)
+      - ./chroma_db:/app/chroma_db
+      # logs — structured NDJSON observability log (gradcenter.log)
+      - ./logs:/app/logs
+      # eval and KB report output — timestamped JSON written by eval runners
+      - ./evals/reports:/app/evals/reports
+      - ./obs/reports:/app/obs/reports
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3

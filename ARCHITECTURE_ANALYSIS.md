@@ -3305,3 +3305,252 @@ Embedding timing (in `build_vector_store()`) was intentionally NOT instrumented 
 ### Future Ingestion Observability Work
 
 Adding a per-run `ingestion_run_id` ContextVar (analogous to Phase 8E's `session_id`) so all events from one `ingest_pages()` call can be grouped together when log files span multiple runs; instrumenting `store.py`'s per-batch embedding stage to capture how many chunks were embedded per call and whether any embedding errors occurred; adding `ingestion.page_skipped` as a distinct event for duplicate-URL deduplication (currently silent) to give a complete accounting of `pages_attempted - pages_succeeded - pages_failed`; connecting `ingestion_summary.py` output to the Phase 9B health report so a "last ingestion run" section appears alongside the store's current state.
+
+---
+
+## Phase 10A — Dockerization
+
+**Goal**: Containerize the complete application so it can be reproduced with `git clone` → `docker build` → `docker run`. No application behavior changes.
+
+### Deployment Audit
+
+**Application entry points:**
+- FastAPI (Docker target): `uvicorn api.app:app --host 0.0.0.0 --port 8000`
+- Streamlit UI (local dev only): `streamlit run app.py` — not exposed in Docker
+
+**Runtime:**
+- Python 3.13 (matching dev environment exactly)
+- All packages in `requirements.txt`
+- Ollama: external sidecar process, not containerized — accessed via `OLLAMA_BASE_URL`. LLM features are disabled by default (`LLM_SYNTHESIS_ENABLED=false`, `LLM_EXPLANATION_ENABLED=false`) so the container runs fully without Ollama present.
+
+**Environment variables** (all optional, all have defaults in the source):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `LLM_SYNTHESIS_ENABLED` | `false` | Enable LLM answer synthesis |
+| `LLM_EXPLANATION_ENABLED` | `false` | Enable LLM recommendation explanations |
+| `OLLAMA_BASE_URL` | `http://localhost:11434` | Ollama server URL |
+| `LLM_SYNTHESIS_MODEL` | `qwen2.5:7b-instruct` | Ollama model name |
+| `LLM_SYNTHESIS_TIMEOUT_S` | `30` | LLM call timeout in seconds |
+
+**Persistence classification:**
+
+| Path | Classification | Rationale |
+|---|---|---|
+| `chroma_db/` | **Volume — required** | Built knowledge base; rebuilding requires live HTTP to CSULB servers |
+| `logs/` | Volume — recommended | Structured NDJSON observability log; useful to persist across restarts |
+| `evals/reports/` | Volume — optional | Timestamped eval reports |
+| `obs/reports/` | Volume — optional | KB health/drift reports, baseline snapshot |
+| `sessions/` | In-image (ephemeral) | Small runtime state file; acceptable to reset on container restart |
+| `prompts/` | In-image | Versioned prompt assets — static, committed to repo |
+| `data/` | In-image | JSON domain data files — static, committed to repo |
+| `static/` | In-image | UI images — static, committed to repo |
+
+### Docker Design
+
+- **Base image**: `python:3.13-slim` — slim variant eliminates unnecessary OS packages; version pinned to match dev environment
+- **System packages**: `build-essential` — required at install time by chromadb (C extensions), rapidfuzz, and sentence-transformers; not needed at runtime but not removed because pip-installed wheel files link against shared libraries installed alongside it
+- **Dependency layer**: `COPY requirements.txt . && RUN pip install ...` — placed before source copy so the layer is cached as long as requirements.txt is unchanged
+- **Model pre-download**: `SentenceTransformer('all-MiniLM-L6-v2')` run during build — downloads ~90 MB embedding model to `/root/.cache/huggingface/hub/` inside the image so containers start without network access or a download delay on first request
+- **Working directory**: `/app`
+- **Exposed port**: 8000
+- **Health check**: `GET /health` via Python's stdlib `urllib.request` (no curl dependency) — the `/health` endpoint is deterministic and never touches the vector store
+- **CMD**: `uvicorn api.app:app --host 0.0.0.0 --port 8000` — must bind to `0.0.0.0` for container port forwarding; `--reload` omitted (development flag only)
+
+### Image Layout
+
+```
+/app/
+├── api/             # FastAPI service layer
+├── agents/          # Recommendation, LLM synthesis, journey agent
+├── backend/         # Entrypoint, dependencies
+├── config/          # settings.py
+├── context/         # Session context
+├── contracts/       # Response types
+├── data/            # Domain JSON files (static)
+├── evals/           # Eval runners and datasets
+│   └── reports/     # (empty dir — volume mount target)
+├── gradcenter_logging.py
+├── obs/             # Observability utilities
+│   └── reports/     # (empty dir — volume mount target)
+├── orchestrator.py
+├── prompts/         # Versioned prompt files (static)
+├── rag/             # Store, ingestion, chunking, retriever
+├── retrieval/       # FAQ RAG, advisor retrieval, tools
+├── routing/         # Router
+├── sessions/        # Session state (default.json baked in)
+├── state/           # Context manager
+├── static/          # UI images
+├── tests/
+├── tools/
+├── utils/
+├── app.py           # Streamlit UI (not started by Docker)
+├── chroma_db/       # (empty dir — volume mount target)
+├── logs/            # (empty dir — volume mount target)
+└── requirements.txt
+```
+
+The embedding model cache lives outside `/app`:
+```
+/root/.cache/huggingface/hub/models--sentence-transformers--all-MiniLM-L6-v2/
+```
+
+### Files Created
+
+- `Dockerfile` — deterministic image build, pre-downloads embedding model, exposes port 8000, launches FastAPI
+- `.dockerignore` — excludes `.git`, caches, `.venv`, `.env`, `logs/`, `chroma_db/`, `evals/reports/`, `obs/reports/` from build context
+- `.env.example` — documents all five environment variables with descriptions and Ollama URL variants for different host OS configurations
+- `README.md` — created (did not previously exist); covers local development setup, knowledge base build, FastAPI and Streamlit launch, Docker build/run/verify, volumes table, environment variables reference
+
+### Files Modified
+
+- `ARCHITECTURE_ANALYSIS.md` — Phase 10A section added (this document)
+
+### Validation Results
+
+Docker CLI was not available in this environment; the image build was not executed locally. All source code, tests, evals, and configurations were verified to be unchanged from the pre-phase baseline:
+
+| Suite | Result |
+|---|---|
+| `pytest tests/` | 713 passed (identical to Phase 9D baseline) |
+| `run_recommendation_evals.py` | Identical |
+| `run_retrieval_evals.py` | Identical |
+| `run_llm_evals.py` | 100% deterministic fallback correctness |
+| `run_advisor_evals.py` | 100% null-advisor handling |
+| `run_ingestion_evals.py` | 21/21 PASS |
+| `weight_validation.py` | Identical |
+| `run_evals.py --skip-known-failures` | 32/33 (pre-existing `answer_001` failure unchanged) |
+
+No production file was modified. The Dockerfile, `.dockerignore`, `.env.example`, and `README.md` are infrastructure-only additions.
+
+**Manual Docker validation steps** (to run once Docker is available):
+
+```bash
+# 1. Build
+docker build -t gradcenter-ai .
+
+# 2. Run (chroma_db must exist on the host)
+docker run -d -p 8000:8000 \
+  -v "$(pwd)/chroma_db:/app/chroma_db" \
+  --name gradcenter-test \
+  gradcenter-ai
+
+# 3. Verify liveness
+curl http://localhost:8000/health        # → {"status": "ok", ...}
+
+# 4. Verify readiness
+curl http://localhost:8000/ready         # → {"status": "ok"} or "degraded"
+
+# 5. Verify query
+curl -X POST http://localhost:8000/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How do I apply to a doctoral program?"}'
+
+# 6. Cleanup
+docker stop gradcenter-test && docker rm gradcenter-test
+```
+
+### Future Deployment Work
+
+- **Docker Compose**: Completed in Phase 10B — `docker compose up --build` is now the primary deployment command.
+- **Model cache volume**: Mount `/root/.cache/huggingface/hub/` as a named volume to avoid re-downloading the embedding model when the container image is rebuilt.
+- **Session persistence**: Mount `sessions/` as a volume if session state must survive container restarts.
+- **Multi-stage build**: A second build stage that strips `build-essential` and dev headers would reduce the final image size by ~200 MB.
+- **Non-root user**: Add a `RUN useradd -m appuser && USER appuser` step for production hardening.
+- **Environment-specific config**: Replace the plain-constants approach in `config/settings.py` with env-var overrides for `CHROMA_DIR`, `LOG_FILE`, `EMBEDDING_MODEL`, etc., so the image can point at different KB paths without rebuilding.
+- **KB rebuild in container**: A separate image target or entrypoint script for running `python rag/store.py` inside the container, writing to the mounted `chroma_db/` volume, so the KB can be rebuilt without a local Python install.
+
+---
+
+## Phase 10B — Docker Compose
+
+**Goal**: Replace multi-step `docker build` + `docker run` with a single `docker compose up --build`. No application behavior changes.
+
+### Deployment Audit
+
+The Phase 10A manual deployment required four separate commands with seven flags:
+
+```bash
+docker build -t gradcenter-ai .
+docker run -p 8000:8000 \
+  -v "$(pwd)/chroma_db:/app/chroma_db" \
+  -v "$(pwd)/logs:/app/logs" \
+  --env-file .env \
+  gradcenter-ai
+```
+
+Everything needed for the Compose file was already established in Phase 10A:
+- **Port**: 8000
+- **Volumes**: `chroma_db/`, `logs/`, `evals/reports/`, `obs/reports/`
+- **Environment**: five optional vars from `.env`; all have in-source defaults
+- **Health check**: `GET /health` via Python stdlib `urllib.request`
+- **Restart policy**: `unless-stopped`
+- **CMD**: already set in Dockerfile — Compose inherits it
+
+### Compose Design
+
+**Single service (`app`)**: Only the FastAPI backend. No additional services.
+
+**Why Ollama stays external** — three reasons:
+1. LLM features are disabled by default; the assistant is fully functional without Ollama. Adding it to the stack would make a required dependency out of an optional one.
+2. Ollama typically runs on the host to access GPU or Apple Silicon acceleration. Containerizing it would require GPU device pass-through configuration that varies by OS and hardware — wrong scope for this phase.
+3. Users may run Ollama on a separate machine entirely (the `OLLAMA_BASE_URL` variable already supports this). A sidecar service would assume co-location.
+
+**`env_file` strategy**: Compose's `env_file` with `required: false` (available since Compose v2.24, November 2023) loads `.env` if present, does nothing if absent. This is correct because:
+- All five environment variables have safe defaults inside the application source (`os.getenv("VAR", "default")`)
+- A fresh clone with no `.env` should work immediately — no setup step required
+- Setting defaults in both `.env.example` and the compose file would create two sources of truth
+
+**Volume mounts** — all bind-mount to the project directory on the host so data persists across container restarts and rebuilds. The four directories are created empty by the Dockerfile's `RUN mkdir -p` so the container starts cleanly even when no volumes are mounted.
+
+**Health check** — identical logic to the Dockerfile's `HEALTHCHECK` directive. When both are present, the compose file takes precedence. Explicit in compose so the stack's health status is visible via `docker compose ps`.
+
+### Services
+
+| Service | Image | Port | Restart |
+|---|---|---|---|
+| `app` | built from `./Dockerfile` | 8000 | unless-stopped |
+
+### Files Created
+
+- `docker-compose.yml` — single-service stack; builds from project root; mounts all four data directories; loads `.env` when present (`required: false`); health check on `/health`; restart policy `unless-stopped`
+
+### Files Modified
+
+- `README.md` — Docker section rewritten: `docker compose up --build` is now the primary command; `docker compose down` documented; data persistence table explains each mounted directory; Ollama-external workflow shown; raw `docker run` preserved as a fallback section
+- `ARCHITECTURE_ANALYSIS.md` — Phase 10B section added (this document)
+
+### Validation Results
+
+Docker CLI was not available in this environment. Manual validation steps for when Docker is available:
+
+```bash
+# Start (first run builds the image)
+docker compose up --build
+
+# Verify
+curl http://localhost:8000/health   # → {"status": "ok", ...}
+curl http://localhost:8000/ready    # → {"status": "ok"} or "degraded"
+
+# Stop
+docker compose down
+```
+
+Code validation — 713 tests and all eval runners confirmed unchanged:
+
+| Suite | Result |
+|---|---|
+| `pytest tests/` | 713 passed — identical to Phase 10A baseline |
+| All 6 eval runners | Identical to pre-phase baselines |
+| `run_evals.py --skip-known-failures` | 32/33 — pre-existing `answer_001` failure unchanged |
+
+No production file was modified. `docker-compose.yml` is infrastructure-only.
+
+### Remaining Deployment Work
+
+- **Ollama sidecar** (future): A second service in `docker-compose.yml` running `ollama/ollama` with GPU device pass-through, pulling the model on startup, and setting `OLLAMA_BASE_URL=http://ollama:11434` via service networking — would let `docker compose up` bring everything including LLM inference in one command.
+- **Model cache volume**: Named Docker volume for `/root/.cache/huggingface/hub/` so the embedding model survives image rebuilds without a re-download.
+- **Multi-stage build**: Strip `build-essential` in a second build stage to reduce image size by ~200 MB.
+- **Non-root user**: `useradd` + `USER appuser` for production hardening.
+- **Environment-specific config**: Env-var overrides for `CHROMA_DIR`, `LOG_FILE`, etc. in `config/settings.py` so one image covers multiple environments.
+- **KB rebuild service**: A `db-build` compose service that runs `python rag/store.py` and exits, building `chroma_db/` in the named volume — would replace the manual host-side build step.
