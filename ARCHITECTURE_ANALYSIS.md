@@ -3787,3 +3787,155 @@ Expected: no OOM, no service restart, `/ready` returns 200 after the first query
 **Long-term (no Render constraint):**
 - Migrate from `langchain-community.HuggingFaceEmbeddings` to `langchain-huggingface` (pre-existing `LangChainDeprecationWarning`).
 - Add model cache disk for `/root/.cache/huggingface/hub/` so the ~90 MB model download does not repeat on every image rebuild.
+
+---
+
+## Phase 10F — Prebuilt Knowledge Base Deployment
+
+### Problem
+
+After Phase 10E, `/ready` is memory-safe (passive disk check) and Render Starter (512 MB RAM) no longer OOMs on probe traffic. However, RAG-style `/query` requests that reach `get_or_build_store()` with an empty persistent disk (`chroma.sqlite3` absent) trigger:
+
+1. `ingest_pages()` — HTTP fetch of all CSULB pages (~5-10s)
+2. `chunk_documents()` — text splitting in memory
+3. `build_vector_store()` — embeds all chunks via `HuggingFaceEmbeddings` + writes to Chroma
+
+This full build cycle peaks at **> 512 MB** and OOMs the container. Even when `chroma.sqlite3` is present, the first `/query` on a cold process must load `HuggingFaceEmbeddings` (~200-400 MB) plus the Chroma HNSW index — the combined peak sits near the 512 MB limit.
+
+### KB Deployment Audit
+
+**Local state (build date: 2026-07-01T19:27Z)**
+
+| Property | Value |
+|---|---|
+| Location | `chroma_db/` |
+| Raw size on disk | 33 MB |
+| Compressed tarball | **3.4 MB** |
+| Chunks | 491 |
+| Distinct URLs | 28 |
+| Named programs | 5 |
+| Ingestion evals | **21/21 PASS** |
+| KB health | HEALTHY WITH WARNINGS (known: 1 duplicate chunk_id from deadlines extractor, 2 short fragment chunks) |
+| Drift vs baseline | **NO DRIFT** |
+
+**`chroma_db/` contents**
+
+```
+chroma_db/
+├── chroma.sqlite3             (34 MB — chunk metadata + embeddings)
+├── .last_built                (Unix timestamp, mtime used for 24h TTL)
+└── 4b7dabd5-6306-.../        (HNSW index binary files)
+    ├── data_level0.bin
+    ├── header.bin
+    ├── length.bin
+    └── link_lists.bin
+```
+
+**Why `chroma_db/` is not in the image or git**:
+- `.dockerignore` excludes `chroma_db/` (would bake a stale KB into every build)
+- `.gitignore` excludes `chroma_db/` (binary blobs, large, rebuild-on-demand)
+- Render persistent disk is the right location — survives container restarts
+
+### Strategy: Option A (Prebuilt KB — manual Render Shell upload)
+
+Three candidate strategies were evaluated:
+
+| Option | Build cost | Network required | Render RAM | Verdict |
+|---|---|---|---|---|
+| **A — prebuilt KB, Render Shell upload** | Local (no cost) | Upload URL only | ~200-400 MB | **Selected** |
+| B — build inside Docker image at image-build time | Baked in | Image build time only | Instantaneous | Rejected — stale KB, image rebuild on every refresh |
+| C — Render builds on first request | None | Live CSULB pages | **> 512 MB OOM** | Rejected — exceeds Render Starter limit |
+
+**Option A workflow:**
+
+```
+Build locally (scripts/build_kb.sh)
+    ↓
+Package: chroma_db.tar.gz (3.4 MB)
+    ↓
+Upload to Render persistent disk via Render Shell (curl or scp)
+    ↓
+touch /app/chroma_db/.last_built  (reset 24h TTL)
+    ↓
+GET /ready → {"vector_store": {"ok": true}}
+    ↓
+First /query → loads embedding model from image cache (~200 MB)
+              + loads Chroma HNSW index from persistent disk (<1s)
+              → no rebuild triggered
+```
+
+**Why Option B (bake into image) is wrong:**
+- `chroma_db/` is excluded from `.dockerignore` deliberately — a KB built at Docker image time contains live CSULB content that ages immediately and requires a full image rebuild (slow, ~5-10 min) to refresh
+- A persistent disk decouples KB freshness from image builds
+
+**Why Option C (build on first request) OOMs:**
+- `get_or_build_store()` with empty disk calls `ingest_pages()` → HTTP fetch + parse → `chunk_documents()` → `build_vector_store()` → peak memory > 512 MB
+
+### Key TTL invariant
+
+`_store_is_fresh()` in `rag/store.py` checks the **OS mtime** of `chroma_db/.last_built` against `CHROMA_STORE_TTL_SECONDS = 86400` (24h). `tar -xz` preserves the archived file's mtime, so after extraction the file may appear stale if the tarball was built > 24h ago. Running `touch /app/chroma_db/.last_built` inside the Render Shell resets the mtime to now, giving another 24h before the TTL would attempt a rebuild.
+
+If TTL expires on a running Render instance:
+- `_STORE` is already in-memory → fast path returns it, no TTL check
+- Only on a cold process start (restart/redeploy) does `_store_is_fresh()` run
+
+So the TTL risk is: *cold start > 24h after last `touch`* → rebuild attempt → OOM. Mitigation: `touch` the file via Render Shell after each deploy.
+
+### Files Created / Modified
+
+| File | Change |
+|---|---|
+| `scripts/build_kb.sh` | **New** — build, validate (21 ingestion evals), health-check, package to `chroma_db.tar.gz` |
+| `.gitignore` | Added `chroma_db.tar.gz` exclusion (binary artifact) |
+| `README.md` | "Populate Render Chroma Disk" subsection added under Cloud Deployment |
+| `ARCHITECTURE_ANALYSIS.md` | Phase 10F section added (this document) |
+
+No application code changed. No tests added (this phase is operational workflow only).
+
+### Local Validation Results
+
+| Check | Result |
+|---|---|
+| `chroma_db/` exists and fresh | ✅ Built 2026-07-01T19:27Z |
+| `chroma.sqlite3` present | ✅ |
+| `.last_built` present | ✅ |
+| `python evals/run_ingestion_evals.py --ci` | ✅ 21/21 PASS |
+| `python -m obs.kb_health_report` | ✅ HEALTHY WITH WARNINGS (known) |
+| `python -m obs.kb_drift` | ✅ NO DRIFT |
+| `tar -czf chroma_db.tar.gz chroma_db/` | ✅ 3.4 MB |
+| `pytest tests/` | ✅ 1042 passed, 8 failed (pre-existing prompt registry) |
+| `python evals/run_evals.py --skip-known-failures` | ✅ 32/33 (pre-existing `answer_001`) |
+
+### Render Disk Population Instructions
+
+See `README.md → Populate Render Chroma Disk` for the complete step-by-step.
+
+Summary:
+1. `./scripts/build_kb.sh` — build + validate + package locally
+2. Upload `chroma_db.tar.gz` (3.4 MB) to Render Shell via `curl -L <url> | tar -xz -C /app/`
+3. `touch /app/chroma_db/.last_built` — reset freshness TTL
+4. Verify: `curl https://<render-url>/ready` → `"vector_store": {"ok": true}`
+5. First query: `curl -X POST https://<render-url>/query -H "Content-Type: application/json" -d '{"query": "What GPA do I need?"}'`
+
+### Remaining Memory Risks
+
+**What this phase solves:**
+- `/ready` no longer OOMs (Phase 10E)
+- The KB is prebuilt — no 30-60s ingest+embed cycle on first query
+- `chroma.sqlite3` present → `get_or_build_store()` calls `load_vector_store()` (disk read, ~1s) not `build_vector_store()` (embed, ~60s, peak > 512 MB)
+
+**What this phase does NOT solve:**
+- Loading `HuggingFaceEmbeddings` still uses ~200-400 MB in-process
+- Chroma HNSW index loading adds some overhead
+- **Combined on first query**: base process (~120 MB) + embedding model (~200-400 MB) + Chroma client = ~320-520 MB — this sits right at the 512 MB boundary and **may still OOM on some requests**
+
+**Options if first `/query` still OOMs:**
+
+| Option | Cost | Complexity |
+|---|---|---|
+| Upgrade to Render Standard | $25/month (2 GB RAM) | None |
+| Migrate to lighter embedding stack (e.g. `fasttext`, quantized model) | Engineering time | High — changes retrieval quality |
+| Pre-warm the store via a Render cron job or startup hook | No cost | Medium — requires Render cron or a `@startup` hook |
+| Cache embedding model on persistent disk (`/root/.cache/huggingface`) | No cost | Low — add second Render disk, model doesn't reload per deploy |
+
+The safest no-cost option if `/query` OOMs: upgrade to Render Standard ($25/month). The embedding model at ~200 MB in-process is the floor — no architecture change eliminates it without changing the retrieval model.

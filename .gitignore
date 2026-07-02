@@ -9,6 +9,10 @@ venv/
 # ChromaDB persistent vector store (can be large; rebuilt automatically)
 chroma_db/
 
+# Packaged KB artifact produced by scripts/build_kb.sh — upload to Render disk,
+# do not commit (binary, ~3–4 MB compressed, regenerated on demand)
+chroma_db.tar.gz
+
 # Session files (checklist tracking removed from product direction)
 sessions/
 

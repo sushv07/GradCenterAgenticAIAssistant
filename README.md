@@ -292,6 +292,96 @@ Expected responses:
 | `/docs` | Swagger UI with `/`, `/health`, `/ready`, `/query` |
 | `/query` | JSON with routing and retrieval results |
 
+### Populate Render Chroma Disk
+
+Render Starter (512 MB RAM) cannot safely build the vector store inside the
+container — the initial ingest + embed cycle may exceed the memory limit.
+Build the knowledge base locally and upload the prebuilt artifact instead.
+
+#### Step 1 — Build and validate locally
+
+```bash
+# Reuse existing local store if still fresh (<24h), or:
+./scripts/build_kb.sh
+
+# Force a full rebuild from live CSULB pages (~2–5 min):
+./scripts/build_kb.sh --rebuild
+```
+
+The script runs three checks before packaging:
+1. Builds (or reuses) the Chroma vector store
+2. Runs all 21 ingestion eval cases — aborts if any fail
+3. Prints a KB health report
+
+On success it produces `chroma_db.tar.gz` (~3–4 MB).
+
+#### Step 2 — Upload to Render disk
+
+Render Shell is available from the Render dashboard (your service → **Shell**
+tab). The persistent disk is already mounted at `/app/chroma_db/` inside the
+container.
+
+**Option A — download from a URL (recommended)**
+
+Host `chroma_db.tar.gz` anywhere reachable over HTTPS (e.g. a GitHub Release
+asset, a private S3 bucket). In the Render Shell:
+
+```bash
+curl -L https://<url>/chroma_db.tar.gz | tar -xz -C /app/
+touch /app/chroma_db/.last_built
+ls -lh /app/chroma_db/
+```
+
+`touch .last_built` resets the 24-hour freshness TTL so the next cold start
+loads from disk instead of triggering a rebuild.
+
+**Option B — scp (if your Render plan supports it)**
+
+```bash
+# From your local machine — copy the tarball to the container
+scp chroma_db.tar.gz <render-ssh-string>:/app/
+
+# In the Render Shell — extract and reset TTL
+tar -xzf /app/chroma_db.tar.gz -C /app/
+touch /app/chroma_db/.last_built
+ls -lh /app/chroma_db/
+```
+
+Find `<render-ssh-string>` in the Render dashboard under your service →
+**Shell → SSH**.
+
+#### Step 3 — Verify
+
+After extraction, verify from anywhere:
+
+```bash
+# Should return {"status": "ok", "checks": {..., "vector_store": {"ok": true}}}
+curl https://<render-url>/ready
+
+# First RAG query — loads embedding model (~200-400 MB) + reads from disk
+curl -X POST https://<render-url>/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "What GPA do I need for graduate admission?"}'
+```
+
+#### TTL and re-upload
+
+The `.last_built` freshness window is 24 hours. After a cold start > 24h after
+the last `touch`, the app tries to rebuild from live pages — which may OOM.
+
+To reset the TTL without re-uploading the full artifact, run in the Render Shell:
+
+```bash
+touch /app/chroma_db/.last_built
+```
+
+To fully refresh the knowledge base (e.g. after CSULB pages change):
+
+```bash
+./scripts/build_kb.sh --rebuild   # locally
+# re-upload chroma_db.tar.gz to Render disk
+```
+
 ---
 
 ## Architecture
