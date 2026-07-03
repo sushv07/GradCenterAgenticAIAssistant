@@ -3787,3 +3787,159 @@ Expected: no OOM, no service restart, `/ready` returns 200 after the first query
 **Long-term (no Render constraint):**
 - Migrate from `langchain-community.HuggingFaceEmbeddings` to `langchain-huggingface` (pre-existing `LangChainDeprecationWarning`).
 - Add model cache disk for `/root/.cache/huggingface/hub/` so the ~90 MB model download does not repeat on every image rebuild.
+
+## Final Render Deployment Validation
+
+**Date:** July 3, 2026  
+**Platform:** Render (Docker)  
+**Service:** `gradcenter-ai`  
+**Instance:** Standard (1 CPU, 2 GB RAM)  
+**Persistent Disk:** `/app/chroma_db`
+
+---
+
+### Validation Summary
+
+The backend was successfully deployed to Render and validated end-to-end. The application now builds, persists, and reuses the Chroma vector store on a Render persistent disk, with all health and readiness checks passing.
+
+---
+
+### Validation Checklist
+
+| Check | Result |
+|-------|--------|
+| Docker image deployed successfully | ✅ |
+| FastAPI application started successfully | ✅ |
+| `GET /health` | ✅ 200 OK |
+| Initial `GET /ready` | ✅ Returned `degraded` until vector store existed (expected behavior) |
+| First RAG `/query` request | ✅ Successfully triggered vector store build |
+| Chroma vector store persisted to disk | ✅ |
+| Subsequent `GET /ready` | ✅ Returned `status: ok` |
+| Persistent disk contents verified | ✅ |
+| Retrieval endpoint operational | ✅ |
+
+---
+
+### Render Log Evidence
+
+After the first retrieval request:
+
+```text
+[store] ✓ Vector store built and persisted (491 chunks)
+POST /query HTTP/1.1 200 OK
+```
+
+No rebuild failures or mount-point errors were observed after the fix.
+
+---
+
+### Persistent Disk Verification
+
+Verified from the Render Web Shell:
+
+```text
+/app/chroma_db/
+├── .last_built
+├── chroma.sqlite3
+└── <uuid-index-directory>/
+```
+
+This confirms that the Chroma database and HNSW index were successfully persisted to the Render disk.
+
+---
+
+### Readiness Verification
+
+Final readiness response:
+
+```json
+{
+  "status": "ok",
+  "checks": {
+    "configuration": {
+      "ok": true
+    },
+    "dependencies": {
+      "ok": true
+    },
+    "taxonomy_file": {
+      "ok": true
+    },
+    "context_manager": {
+      "ok": true
+    },
+    "vector_store": {
+      "ok": true
+    }
+  }
+}
+```
+
+---
+
+### Production Issue Resolved
+
+#### Root Cause
+
+During deployment, rebuilding the Chroma vector store attempted to execute:
+
+```python
+shutil.rmtree(CHROMA_DIR)
+```
+
+On Render, `CHROMA_DIR` is the mount point of a persistent disk (`/app/chroma_db`). Mounted directories cannot be removed, causing:
+
+```text
+OSError: [Errno 16] Device or resource busy: '/app/chroma_db'
+```
+
+The rebuild aborted before `chroma.sqlite3` could be written, leaving the persistent disk empty and causing `/ready` to report a degraded state.
+
+---
+
+#### Resolution
+
+The rebuild logic was updated to clear only the contents of `CHROMA_DIR` while preserving the mounted directory itself.
+
+Instead of deleting the mount point:
+
+```text
+CHROMA_DIR
+    ❌ delete directory
+```
+
+the implementation now performs:
+
+```text
+CHROMA_DIR
+    ├── delete chroma.sqlite3
+    ├── delete UUID index folders
+    ├── delete .last_built
+    └── keep mount point
+```
+
+The vector store can then be rebuilt and persisted successfully.
+
+---
+
+### Final Backend Status
+
+The backend is now running in a production-style deployment with:
+
+- ✅ FastAPI deployed on Render
+- ✅ Docker-based deployment
+- ✅ Persistent Chroma vector database
+- ✅ Render persistent disk integration
+- ✅ Passing health endpoint
+- ✅ Passing readiness endpoint
+- ✅ Successful retrieval and RAG workflow
+- ✅ Persistent storage surviving application restarts
+- ✅ Regression tests covering the persistent disk rebuild fix
+
+---
+
+### Lessons Learned
+
+This deployment highlighted an important infrastructure consideration when working with cloud persistent volumes: mounted directories should never be removed directly. Instead, production systems should preserve the mount point and clear only its contents before rebuilding artifacts.
+
+Resolving this issue improved the robustness of the deployment process and ensured reliable persistence of the knowledge base across application restarts and redeployments.
