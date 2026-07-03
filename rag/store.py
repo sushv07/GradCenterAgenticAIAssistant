@@ -203,13 +203,30 @@ def _store_has_program_pages(store: "Chroma") -> bool:
 # Build
 # ---------------------------------------------------------------------------
 
+def _clear_chroma_dir_contents() -> None:
+    """
+    Delete every file and subdirectory inside CHROMA_DIR without removing
+    CHROMA_DIR itself.
+
+    shutil.rmtree(CHROMA_DIR) raises OSError EBUSY on Linux when CHROMA_DIR
+    is a mount point (e.g. a Render persistent disk).  Deleting the contents
+    in a loop leaves the mount point intact while still giving Chroma a clean
+    slate for the next from_documents() write.
+    """
+    for item in CHROMA_DIR.iterdir():
+        if item.is_dir():
+            shutil.rmtree(item)
+        else:
+            item.unlink()
+
+
 def build_vector_store(documents: list) -> Chroma:
     """
     Embed documents and persist them in ChromaDB on disk.
 
     This is the write path — it fully replaces the existing collection.
     To prevent duplicate embeddings on repeated builds, the existing
-    chroma_db/ directory is deleted before writing new data.
+    chroma_db/ directory is cleared before writing new data.
 
     Args:
         documents: List of LangChain Document objects from chunking.chunk_documents().
@@ -225,13 +242,15 @@ def build_vector_store(documents: list) -> Chroma:
     if not documents:
         raise RuntimeError("[store] Cannot build vector store: document list is empty")
 
-    # Remove existing data to prevent duplicate embeddings on rebuild.
-    # This is safe because we always rebuild from fresh page ingestion.
+    # Clear existing data to prevent duplicate embeddings on rebuild.
+    # Uses _clear_chroma_dir_contents() instead of shutil.rmtree(CHROMA_DIR)
+    # so the directory itself is never removed — required when CHROMA_DIR is a
+    # Render persistent disk mount point (rmdir raises OSError EBUSY on Linux).
     if CHROMA_DIR.exists():
-        print(f"[store] Removing existing store at {CHROMA_DIR} before rebuild")
-        shutil.rmtree(CHROMA_DIR)
-
-    CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+        print(f"[store] Clearing existing store at {CHROMA_DIR} before rebuild")
+        _clear_chroma_dir_contents()
+    else:
+        CHROMA_DIR.mkdir(parents=True, exist_ok=True)
     embeddings = _get_embeddings()
 
     print(f"[store] Embedding {len(documents)} chunks → {CHROMA_DIR}  (this may take ~30–60s)")
