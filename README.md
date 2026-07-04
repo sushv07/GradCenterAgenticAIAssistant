@@ -22,12 +22,23 @@ python3.13 -m venv .venv
 source .venv/bin/activate        # macOS / Linux
 # .venv\Scripts\activate          # Windows
 
-# 2. Install dependencies
-pip install -r requirements.txt
+# 2. Install backend dependencies (RAG, FastAPI, Chroma, sentence-transformers)
+pip install -r requirements_backend.txt
 
 # 3. (Optional) Copy and edit environment variables
 cp .env.example .env
 ```
+
+### Requirements files
+
+| File | Used by | Contents |
+|---|---|---|
+| `requirements.txt` | Streamlit Community Cloud | Frontend-only: `streamlit`, `requests`, `beautifulsoup4`, `rapidfuzz` |
+| `requirements_backend.txt` | Docker / Render / local backend dev | Full stack: all of the above + `langchain`, `chromadb`, `sentence-transformers`, `fastapi`, `uvicorn`, `ollama`, `openai` |
+| `requirements_app.txt` | Legacy / manual override | Identical to `requirements.txt` — kept for reference |
+
+**Why the split?**
+Streamlit Community Cloud installs the root `requirements.txt` automatically and does not expose a way to point at a different file. The root file must therefore contain only the lightweight packages `app.py` actually imports. The Dockerfile installs `requirements_backend.txt` instead, which preserves the full backend stack without any behavior change on Render.
 
 ### Build the knowledge base
 
@@ -344,12 +355,9 @@ BACKEND_API_URL=http://localhost:8000 streamlit run app.py
    ```
 4. Open **Advanced settings**:
    - **Python version**: `3.11` (recommended)
-   - **Requirements file**: `requirements_app.txt`
-
-   > `requirements_app.txt` contains only the three packages `app.py` needs
-   > (`streamlit`, `requests`, `rapidfuzz`). The root `requirements.txt`
-   > includes heavy backend packages (torch, chromadb, langchain) that would
-   > exceed Streamlit Cloud's build limits — do not use it here.
+   - No custom requirements file needed — Streamlit Cloud installs the root
+     `requirements.txt` automatically, which now contains only the four
+     lightweight frontend packages.
 
 5. Click **Deploy**.
 

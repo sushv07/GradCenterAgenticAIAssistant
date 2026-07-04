@@ -1,9 +1,13 @@
-# CSULB Grad Center AI Assistant – Python dependencies
-# Phase 1: local-first RAG refactor underway.
-# OpenAI is kept for backward compatibility with the existing agent.py during
-# the transition period.  It will be removed in Phase 7 (UI integration).
+# CSULB Grad Center AI Assistant – Streamlit frontend dependencies
+#
+# This file contains ONLY the packages needed to run app.py (Streamlit UI).
+# It is intentionally lightweight so Streamlit Community Cloud can install it
+# without pulling in the ~1 GB backend stack (torch, chromadb, LangChain).
+#
+# Backend dependencies (FastAPI, RAG, Chroma, sentence-transformers, etc.)
+# are in requirements_backend.txt, which the Dockerfile installs instead.
 
-# ── Web scraping ──────────────────────────────────────────────────────────────
+# ── Web scraping (app.py imports tools/program_interest_tool → retrieval) ─────
 requests>=2.31.0
 beautifulsoup4>=4.12.0
 
@@ -12,27 +16,3 @@ rapidfuzz>=3.0.0
 
 # ── Streamlit UI ──────────────────────────────────────────────────────────────
 streamlit>=1.35.0
-
-# ── RAG stack (rag/ package + faq_rag_module.py) ─────────────────────────────
-langchain>=1.0.0
-langchain-community>=0.4.0
-langchain-core>=1.0.0
-langchain-text-splitters>=1.0.0
-chromadb>=0.5.0
-sentence-transformers>=3.0.0
-# NOTE: langchain-community.HuggingFaceEmbeddings and .Chroma produce deprecation
-# warnings in newer LangChain versions.  The community wrappers still work correctly.
-# The split packages (langchain-huggingface, langchain-chroma) are incompatible with
-# Python 3.13 at time of writing.  Update imports when compatibility is resolved.
-
-# ── Local LLM (Phase 4+) — requires Ollama installed separately ──────────────
-# Install Ollama: https://ollama.ai  then: ollama pull qwen2.5:7b
-ollama>=0.1.0
-
-# ── OpenAI agent (legacy — to be removed in Phase 7) ─────────────────────────
-openai>=1.0.0
-
-# ── FastAPI service layer (Phase 5C — api/app.py) ────────────────────────────
-fastapi>=0.110.0
-uvicorn>=0.29.0
-

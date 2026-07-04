@@ -9,9 +9,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies first so this layer is cached as long as
-# requirements.txt is unchanged — source code edits don't bust it.
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# requirements_backend.txt is unchanged — source code edits don't bust it.
+COPY requirements_backend.txt .
+RUN pip install --no-cache-dir -r requirements_backend.txt
 
 # Pre-download the embedding model at build time so the container starts
 # without requiring network access or a ~90 MB download on first request.
