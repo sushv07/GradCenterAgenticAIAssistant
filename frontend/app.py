@@ -27,13 +27,13 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 import streamlit as st
 
+from frontend.services.api_client import ApiClient
 from frontend.state.session import initialize_session_state
 from frontend.components.sidebar import render_sidebar
 from frontend.components.status import render_status_banner
-from frontend.components.chat import render_chat_placeholder
-from frontend.components.message import render_message_placeholder
-from frontend.components.sources import render_sources_placeholder
-from frontend.components.followups import render_followups_placeholder
+from frontend.components.chat import render_chat
+from frontend.components.sources import render_sources
+from frontend.components.followups import render_followups
 
 
 # ---------------------------------------------------------------------------
@@ -69,10 +69,17 @@ initialize_session_state()
 
 
 # ---------------------------------------------------------------------------
+# Shared client — created once per script run, never stored in session state
+# ---------------------------------------------------------------------------
+
+_client = ApiClient()
+
+
+# ---------------------------------------------------------------------------
 # Layout
 # ---------------------------------------------------------------------------
 
-render_sidebar()
+render_sidebar(_client)
 
 st.title("CSULB Graduate Center AI Assistant")
 st.caption("Ask me about admissions, programs, deadlines, and more.")
@@ -85,10 +92,9 @@ st.divider()
 col_chat, col_panel = st.columns([3, 1])
 
 with col_chat:
-    render_chat_placeholder()
-    render_message_placeholder()
+    render_chat(_client)
 
 with col_panel:
-    render_sources_placeholder()
+    render_sources()
     st.divider()
-    render_followups_placeholder()
+    render_followups()

@@ -4058,12 +4058,61 @@ Rendered components confirmed via DOM inspection:
 | Follow-up buttons (disabled) | ✓ |
 | CSS injected cleanly (no text leak) | ✓ |
 
-### Next Phase (10H.2)
+---
 
-Implement live backend connectivity:
+## Phase 10H.2 — Live Backend Connectivity
 
-- `ApiClient.health()` — GET `/health`, update `backend_status` in session state
-- `ApiClient.query()` — POST `/query` with query text and session_id
-- `response_mapper.map_response()` — extract answer, sources, follow-ups from response shape
-- Wire chat input (`st.chat_input`) → `ApiClient.query()` → display response
+### Goal
+
+Connect the Streamlit frontend to the deployed FastAPI backend (`https://gradcenter-ai.onrender.com`). The frontend remains a strict thin client — no backend imports, no routing, no Chroma.
+
+### Files Modified
+
+| File | Change |
+|---|---|
+| `frontend/services/api_client.py` | Full `ApiClient` with `health()`, `query()`, `BackendError`, timeouts (10s/90s), wraps all `requests` exceptions |
+| `frontend/services/response_mapper.py` | `map_response()` normalizes all route shapes → `{route, answer, sources, followups, raw}` |
+| `frontend/state/session.py` | Added `latest_sources`, `latest_followups`, `pending_query` to init; added 6 helper functions |
+| `frontend/components/chat.py` | Full `render_chat(client)`: history replay, `st.chat_input`, `pending_query` pattern, spinner, `BackendError` handling |
+| `frontend/components/sidebar.py` | `render_sidebar(client)`: one-time health probe (cached), Refresh button, backend URL, Clear Chat button |
+| `frontend/components/sources.py` | `render_sources()`: reads `latest_sources` from session state, renders as linked citations |
+| `frontend/components/followups.py` | `render_followups()`: real buttons setting `pending_query` + `st.rerun()`, capped at 4 |
+| `frontend/components/__init__.py` | Updated re-exports to Phase 10H.2 public names |
+| `frontend/utils/formatting.py` | `format_source_label()` extended to handle `file` and `url` keys from backend source dicts |
+| `frontend/app.py` | Wired real components; `ApiClient` created once per script run and passed to `render_sidebar` and `render_chat` |
+| `tests/test_frontend_client.py` | 24 unit tests: `ApiClient` URL construction, all error types, `response_mapper` normal shapes, missing/malformed fields |
+
+### Key Design Decisions
+
+**`BackendError` wraps all `requests` exceptions.** UI components import only `BackendError` — they never need to import `requests`. This keeps the service boundary clean.
+
+**Health check is cached in `backend_status`.** The probe runs once (when `backend_status == "unknown"`) and is cached in session state. The user can force a re-check via "Refresh Status". This avoids an HTTP call on every Streamlit rerun.
+
+**`pending_query` pattern for follow-ups.** Follow-up buttons cannot call `st.chat_input` directly. Instead they write `st.session_state.pending_query = text` and call `st.rerun()`. `render_chat` checks for `pending_query` before reading `st.chat_input`, giving follow-ups priority over new direct input.
+
+**`ApiClient` created at module scope in `app.py`.** Streamlit re-executes the entire script on every interaction. Creating `ApiClient()` at module scope (not inside a component) avoids redundant object creation while keeping the client stateless (no connection pooling, no mutable state).
+
+**Response mapper handles the `answer` route specially.** All routes use `summary` as the primary answer text except the `answer` route, which prefers the `answer` field when it is a non-empty string. For non-string `answer` values (dict, list) the mapper falls back to `summary`.
+
+**`format_source_label` extended for backend `{file, url}` shape.** The backend source dicts carry `file` and `url` keys, not the `page_type` / `title` keys anticipated in Phase 10H.1. The helper now derives a human-readable label from `Path(file).stem` or the last URL segment.
+
+### Validation Results
+
+```
+python -m compileall frontend   →  all files, 0 errors
+pytest tests/test_frontend_client.py -v  →  24 passed in 0.02s
+streamlit run frontend/app.py   →  starts without errors on port 8501
+```
+
+Rendered components confirmed via DOM inspection and screenshot:
+
+| Component | Status |
+|---|---|
+| Page title and caption | ✓ |
+| Sidebar: backend URL, `🟢 ok` health status | ✓ (live backend responded) |
+| Sidebar: Refresh Status button | ✓ |
+| Sidebar: Clear Chat button | ✓ |
+| Chat input field with placeholder text | ✓ |
+| Sources expander (collapsed, no sources yet) | ✓ |
+| No error banner (health check passed) | ✓ |
 - Append messages to `st.session_state.messages` and replay on re-run

@@ -7,9 +7,19 @@ from __future__ import annotations
 import streamlit as st
 
 
-def render_followups_placeholder() -> None:
-    """Render placeholder buttons for suggested follow-up questions."""
+def render_followups() -> None:
+    """
+    Render clickable follow-up suggestion buttons.
+
+    Clicking a button sets pending_query in session state and triggers a
+    rerun; render_chat picks up pending_query as the next user prompt.
+    """
+    followups = st.session_state.get("latest_followups", [])
+    if not followups:
+        return
+
     st.markdown("**Suggested follow-ups**")
-    st.button("What are the application deadlines?", disabled=True)
-    st.button("What GPA do I need?", disabled=True)
-    st.button("Who is my advisor?", disabled=True)
+    for i, text in enumerate(followups[:4]):
+        if st.button(text, key=f"followup_{i}_{text[:20]}"):
+            st.session_state.pending_query = text
+            st.rerun()
