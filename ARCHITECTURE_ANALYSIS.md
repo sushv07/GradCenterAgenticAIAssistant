@@ -3787,3 +3787,210 @@ Expected: no OOM, no service restart, `/ready` returns 200 after the first query
 **Long-term (no Render constraint):**
 - Migrate from `langchain-community.HuggingFaceEmbeddings` to `langchain-huggingface` (pre-existing `LangChainDeprecationWarning`).
 - Add model cache disk for `/root/.cache/huggingface/hub/` so the ~90 MB model download does not repeat on every image rebuild.
+
+# Phase 10H – Streamlit Frontend ↔ FastAPI Backend Integration
+
+## Objective
+
+Connect the existing Streamlit UI to the deployed FastAPI backend without changing the user interface, branding, or user experience.
+
+Unlike the initial prototype, the goal of this phase was **not** to redesign the frontend. The custom CSULB-themed Streamlit application in `app.py` was already the desired production interface. Only the communication layer was replaced.
+
+---
+
+## Architecture
+
+### Before Phase 10H
+
+```
+User
+  │
+  ▼
+Streamlit UI (app.py)
+  │
+  ▼
+Local function calls
+(handle_user_query)
+  │
+  ▼
+Local orchestration
+Local retrieval
+Local tools
+```
+
+The frontend executed the AI pipeline directly inside the Streamlit process.
+
+---
+
+### After Phase 10H
+
+```
+User
+  │
+  ▼
+Streamlit UI (app.py)
+  │
+  ▼
+services/api_client.py
+  │
+  ▼
+HTTP (REST)
+  │
+  ▼
+FastAPI Backend (Render)
+  │
+  ▼
+Agent Orchestrator
+  │
+  ▼
+Retrieval + Tools + Knowledge Base
+```
+
+The Streamlit application now acts as a presentation layer while all AI processing executes inside the deployed backend.
+
+---
+
+## Design Decisions
+
+### Preserve the Existing UI
+
+The existing custom CSULB interface—including branding, colors, layout, spacing, typography, navigation, welcome experience, and interaction flow—was intentionally preserved.
+
+No visual redesign was introduced.
+
+### Introduce a Thin API Layer
+
+A lightweight HTTP client (`services/api_client.py`) was introduced to isolate all backend communication from the UI.
+
+Responsibilities include:
+
+- Health checks (`GET /health`)
+- Query submission (`POST /query`)
+- Timeout handling
+- Network error handling
+- Exception normalization
+
+This keeps networking logic separate from presentation logic.
+
+### Unique Session IDs
+
+The previous shared `"default"` session identifier was replaced with a UUID generated per Streamlit session.
+
+Benefits:
+
+- Independent conversations
+- Proper backend session isolation
+- Production-ready multi-user behavior
+
+---
+
+## Files Added
+
+```
+services/
+├── __init__.py
+└── api_client.py
+```
+
+### `services/api_client.py`
+
+Provides:
+
+- `health()`
+- `query(query, session_id)`
+- `BackendError`
+
+This is now the only module responsible for communicating with the deployed backend.
+
+---
+
+## Files Modified
+
+### `app.py`
+
+The visual interface remained unchanged.
+
+Only four functional updates were introduced:
+
+1. Replaced local `handle_user_query()` execution with `ApiClient.query()`
+2. Added backend health check during startup
+3. Added backend status indicator in the sidebar
+4. Generated a unique session UUID for every user session
+
+---
+
+## Runtime Flow
+
+### Application Startup
+
+```
+Streamlit starts
+        │
+        ▼
+ApiClient.health()
+        │
+        ▼
+GET /health
+        │
+        ▼
+Backend status shown in sidebar
+```
+
+---
+
+### User Query
+
+```
+User submits question
+        │
+        ▼
+ApiClient.query()
+        │
+        ▼
+POST /query
+        │
+        ▼
+FastAPI backend
+        │
+        ▼
+Route selection
+        │
+        ▼
+Retrieval / Tools / Orchestration
+        │
+        ▼
+JSON response
+        │
+        ▼
+Streamlit renders existing UI
+```
+
+---
+
+## Validation
+
+The integration was validated end-to-end.
+
+- Existing CSULB interface preserved
+- No changes to layout or styling
+- Backend health successfully displayed
+- Questions routed through the deployed FastAPI service
+- Conversation history preserved
+- Sources rendered correctly
+- Follow-up actions displayed correctly
+- Session IDs persisted across reruns
+- Network and backend failures handled gracefully
+
+---
+
+## Outcome
+
+Phase 10H completed the separation between presentation and backend services.
+
+The application now follows a production-oriented architecture where:
+
+- Streamlit is responsible for presentation.
+- FastAPI is responsible for orchestration and AI execution.
+- HTTP serves as the communication boundary between the two.
+
+This separation enables independent deployment, scaling, testing, and future replacement of either layer without affecting the other.
