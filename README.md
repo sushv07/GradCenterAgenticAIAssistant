@@ -294,6 +294,106 @@ Expected responses:
 
 ---
 
+## Streamlit Deployment
+
+The Streamlit UI (`app.py`) connects to the deployed FastAPI backend on Render
+via HTTP. It has no local RAG, Chroma, or LLM dependency.
+
+### Deployed architecture
+
+```
+User
+  │
+  ▼
+Streamlit Community Cloud  (app.py)
+  │  HTTPS
+  ▼
+Render FastAPI Backend  (https://gradcenter-ai.onrender.com)
+  │
+  ▼
+Agent Orchestrator → RAG + Chroma
+```
+
+### Run locally
+
+```bash
+streamlit run app.py
+```
+
+Opens at `http://localhost:8501`. The app calls the Render backend by default.
+Override the backend URL by setting `BACKEND_API_URL` in your shell:
+
+```bash
+BACKEND_API_URL=http://localhost:8000 streamlit run app.py
+```
+
+### Deploy to Streamlit Community Cloud
+
+#### 1. Prerequisites
+
+- The repository is pushed to GitHub (public or private with Streamlit access).
+- The Render backend (`https://gradcenter-ai.onrender.com`) is running.
+
+#### 2. Create the app
+
+1. Go to [share.streamlit.io](https://share.streamlit.io) → **New app**.
+2. Select your repository and branch (e.g. `main`).
+3. Set **Main file path** to:
+   ```
+   app.py
+   ```
+4. Open **Advanced settings**:
+   - **Python version**: `3.11` (recommended)
+   - **Requirements file**: `requirements_app.txt`
+
+   > `requirements_app.txt` contains only the three packages `app.py` needs
+   > (`streamlit`, `requests`, `rapidfuzz`). The root `requirements.txt`
+   > includes heavy backend packages (torch, chromadb, langchain) that would
+   > exceed Streamlit Cloud's build limits — do not use it here.
+
+5. Click **Deploy**.
+
+#### 3. Environment variables
+
+After deployment, open **Settings → Secrets** in the Streamlit Cloud dashboard
+and add:
+
+```toml
+BACKEND_API_URL = "https://gradcenter-ai.onrender.com"
+```
+
+This is optional — the app falls back to `https://gradcenter-ai.onrender.com`
+if the variable is not set.
+
+To point at a different backend (e.g. a staging deployment), override the value:
+
+```toml
+BACKEND_API_URL = "https://your-staging-backend.onrender.com"
+```
+
+#### 4. Verify
+
+Once deployed, open the Streamlit Cloud URL and confirm:
+
+| Check | Expected |
+|---|---|
+| Page loads | CSULB gold header + welcome screen |
+| Sidebar backend status | 🟢 Backend: ok |
+| Submit a question | Answer renders with summary box + sources |
+| Follow-up buttons | Clicking a follow-up submits as a new query |
+| Sidebar "Clear history" | Clears chat and resets follow-ups |
+
+#### 5. Startup behaviour when backend is unavailable
+
+If the Render backend is cold-starting or temporarily unreachable:
+
+- The Streamlit app **still loads** — the frontend never crashes on a missing backend.
+- Sidebar shows: **🔴 Backend: unreachable**.
+- Submitting a question shows a friendly `⚠️ Cannot connect to the backend.` error inline.
+- The backend status auto-recovers on the next page rerun once Render responds.
+
+---
+
 ## Architecture
 
 See `ARCHITECTURE_ANALYSIS.md` for a detailed phase-by-phase breakdown

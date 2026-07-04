@@ -1,0 +1,18 @@
+# Streamlit Community Cloud — frontend-only requirements for app.py
+#
+# The backend (FastAPI on Render) is a separate deployed service.
+# Heavy backend packages (chromadb, langchain, sentence-transformers, torch)
+# are NOT listed here — installing them on Streamlit Cloud would:
+#   - pull in ~1 GB of torch/transformers
+#   - exceed the build time limit
+#   - waste memory on packages the frontend never calls
+#
+# When deploying to Streamlit Community Cloud, set the requirements file to:
+#   requirements_app.txt
+# in Advanced Settings → Python packages → Custom requirements path.
+#
+# The root requirements.txt remains unchanged for local backend development.
+
+streamlit>=1.35.0
+requests>=2.31.0
+rapidfuzz>=3.0.0
