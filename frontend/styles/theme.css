@@ -1,0 +1,22 @@
+/* frontend/styles/theme.css
+   Minimal CSS overrides for the CSULB Grad Center Streamlit frontend.
+   Injected at startup via st.markdown with unsafe_allow_html=True.
+   Keep rules minimal — Streamlit built-in theme handles most styling.
+*/
+
+/* Chat message container spacing */
+.stChatMessage {
+    padding: 0.5rem 0;
+}
+
+/* Source expander subtle border */
+[data-testid="stExpander"] {
+    border-left: 3px solid #005687; /* CSULB navy */
+    padding-left: 0.5rem;
+}
+
+/* Sidebar title */
+section[data-testid="stSidebar"] .stTitle {
+    font-size: 1.1rem;
+    font-weight: 700;
+}

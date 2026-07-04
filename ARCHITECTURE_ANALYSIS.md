@@ -3943,3 +3943,127 @@ The backend is now running in a production-style deployment with:
 This deployment highlighted an important infrastructure consideration when working with cloud persistent volumes: mounted directories should never be removed directly. Instead, production systems should preserve the mount point and clear only its contents before rebuilding artifacts.
 
 Resolving this issue improved the robustness of the deployment process and ensured reliable persistence of the knowledge base across application restarts and redeployments.
+
+---
+
+## Phase 10H.1 — Streamlit Frontend Foundation
+
+### Goal
+
+Create a clean folder/module structure for a production-style Streamlit frontend that acts exclusively as a client of the deployed FastAPI backend. No backend logic, retrieval, routing, or Chroma code lives in the frontend.
+
+### Design Principle
+
+```
+Receive user input → Call backend API → Display response
+```
+
+The frontend never imports orchestration modules, calls Chroma, or makes routing decisions. All intelligence remains in the backend.
+
+### Frontend Architecture
+
+```
+frontend/
+├── app.py                  # Streamlit entry point — layout wiring only
+├── __init__.py
+├── components/             # UI rendering (no HTTP, no backend imports)
+│   ├── __init__.py
+│   ├── chat.py             # Chat message area placeholder
+│   ├── sidebar.py          # Branding, session ID, backend status chip
+│   ├── message.py          # Individual message bubble
+│   ├── sources.py          # Retrieval source citations expander
+│   ├── followups.py        # Suggested follow-up question buttons
+│   └── status.py           # Top-of-page backend status banner
+├── services/               # HTTP client (single point of API contact)
+│   ├── __init__.py
+│   ├── api_client.py       # ApiClient skeleton — query() raises NotImplementedError
+│   └── response_mapper.py  # Normalizes backend JSON to UI-ready dict
+├── state/                  # Session state helpers
+│   ├── __init__.py
+│   └── session.py          # initialize_session_state() — messages, session_id, backend_status
+├── styles/
+│   └── theme.css           # Minimal CSS injected at startup
+├── assets/                 # Static assets (empty for now)
+├── utils/                  # Pure-Python formatting helpers
+│   ├── __init__.py
+│   └── formatting.py       # safe_text(), format_source_label()
+└── requirements.txt        # streamlit>=1.35.0, requests>=2.31.0
+```
+
+### Separation from Backend
+
+| Concern | Owner |
+|---|---|
+| Routing, retrieval, RAG, LLM, Chroma | `api/`, `rag/`, `tools/`, `agents/` (backend) |
+| HTTP transport | `frontend/services/api_client.py` |
+| Response normalization | `frontend/services/response_mapper.py` |
+| UI rendering | `frontend/components/` |
+| Session lifecycle | `frontend/state/session.py` |
+| Formatting utilities | `frontend/utils/formatting.py` |
+
+### Key Design Decisions
+
+**`app.py` is layout only.** No HTTP, no parsing, no business logic. Every non-trivial action is delegated to a `services/` or `components/` module.
+
+**Single HTTP boundary.** `ApiClient` is the only class allowed to make HTTP calls. All other modules receive already-parsed dicts.
+
+**`BACKEND_API_URL` from environment.** Default is `https://gradcenter-ai.onrender.com`. Override with `BACKEND_API_URL=...` env var for local dev pointing at a local uvicorn.
+
+**`sys.path` injection in `app.py`.** Streamlit adds the script's directory to `sys.path`; `app.py` inserts the project root so `from frontend.X import Y` works correctly when run as `streamlit run frontend/app.py` from the project root.
+
+**CSS isolation.** `theme.css` is injected via `st.markdown(<style>…</style>, unsafe_allow_html=True)`. The file must not contain literal `</style>` tags in comments — they prematurely close the injected block.
+
+### Files Created
+
+| File | Purpose |
+|---|---|
+| `frontend/__init__.py` | Package marker — required for absolute imports from project root |
+| `frontend/app.py` | Streamlit entry point |
+| `frontend/components/__init__.py` | Re-exports all component render functions |
+| `frontend/components/chat.py` | Chat area placeholder |
+| `frontend/components/sidebar.py` | Sidebar: branding, session ID, backend status chip |
+| `frontend/components/message.py` | Message bubble placeholder |
+| `frontend/components/sources.py` | Sources expander placeholder |
+| `frontend/components/followups.py` | Follow-up buttons (disabled) placeholder |
+| `frontend/components/status.py` | Backend status warning banner |
+| `frontend/services/__init__.py` | Re-exports ApiClient, map_response |
+| `frontend/services/api_client.py` | ApiClient skeleton with `BACKEND_API_URL` constant |
+| `frontend/services/response_mapper.py` | map_response() pass-through placeholder |
+| `frontend/state/__init__.py` | Re-exports initialize_session_state |
+| `frontend/state/session.py` | Session state initializer |
+| `frontend/styles/theme.css` | Minimal CSS overrides |
+| `frontend/utils/__init__.py` | Re-exports safe_text, format_source_label |
+| `frontend/utils/formatting.py` | Pure-Python display formatting helpers |
+| `frontend/requirements.txt` | Frontend-only dependencies |
+| `.claude/launch.json` | Preview server config for `streamlit run frontend/app.py` |
+
+### Validation Results
+
+```
+python -m compileall frontend   →  18 files, 0 errors
+streamlit run frontend/app.py   →  starts without errors on port 8501
+```
+
+Rendered components confirmed via DOM inspection:
+
+| Component | Status |
+|---|---|
+| Page title "CSULB Graduate Center AI Assistant" | ✓ |
+| Subtitle caption | ✓ |
+| Sidebar: branding, session ID, backend status chip | ✓ |
+| Status banner ("Connecting to backend…" for unknown status) | ✓ |
+| Chat area placeholder | ✓ |
+| Assistant message placeholder | ✓ |
+| Sources expander | ✓ |
+| Follow-up buttons (disabled) | ✓ |
+| CSS injected cleanly (no text leak) | ✓ |
+
+### Next Phase (10H.2)
+
+Implement live backend connectivity:
+
+- `ApiClient.health()` — GET `/health`, update `backend_status` in session state
+- `ApiClient.query()` — POST `/query` with query text and session_id
+- `response_mapper.map_response()` — extract answer, sources, follow-ups from response shape
+- Wire chat input (`st.chat_input`) → `ApiClient.query()` → display response
+- Append messages to `st.session_state.messages` and replay on re-run
