@@ -4150,3 +4150,299 @@ The application now follows a production-oriented architecture where:
 - HTTP serves as the communication boundary between the two.
 
 This separation enables independent deployment, scaling, testing, and future replacement of either layer without affecting the other.
+
+# Phase 10I – Streamlit Community Cloud Deployment
+
+## Objective
+
+Deploy the existing CSULB-themed Streamlit frontend to Streamlit Community Cloud and connect it to the already deployed FastAPI backend on Render.
+
+This phase completed the end-to-end cloud deployment of the application while separating frontend and backend dependencies for production-style deployment.
+
+---
+
+## Final Production Architecture
+
+```text
+                 User
+                   │
+                   ▼
+      Streamlit Community Cloud
+                   │
+                   ▼
+                app.py
+                   │
+                   ▼
+      services/api_client.py
+                   │
+             HTTPS / REST API
+                   │
+                   ▼
+          Render FastAPI Backend
+                   │
+                   ▼
+          Agent Orchestrator
+                   │
+                   ▼
+            Routing + Tools
+                   │
+                   ▼
+           RAG Retrieval Layer
+                   │
+                   ▼
+      Persistent Chroma Vector Store
+```
+
+---
+
+## Deployment Outcome
+
+The Streamlit frontend was successfully deployed and validated against the live Render backend.
+
+Validated end-to-end queries included:
+
+- What GPA do I need for admission?
+- Who is the advisor for the Computer Science PhD?
+- What are the application deadlines?
+
+All queries completed successfully. The initial request experienced backend warm-up latency, but subsequent requests completed normally.
+
+---
+
+## Dependency Separation
+
+Originally, the root `requirements.txt` contained both frontend and backend dependencies.
+
+This caused problems because Streamlit Community Cloud automatically installs the root `requirements.txt`, including backend-only packages such as:
+
+- LangChain
+- ChromaDB
+- Sentence Transformers
+- Ollama
+- FastAPI
+- Uvicorn
+
+These packages are unnecessary for the frontend and significantly increase deployment time and resource usage.
+
+The dependency structure was refactored into:
+
+```text
+requirements.txt
+    Frontend-only dependencies
+
+requirements_backend.txt
+    Backend AI / RAG dependencies
+```
+
+### Frontend Requirements
+
+The root `requirements.txt` now contains only lightweight packages required by the Streamlit application:
+
+```text
+streamlit
+requests
+rapidfuzz
+beautifulsoup4
+```
+
+### Backend Requirements
+
+The original dependency list was preserved in:
+
+```text
+requirements_backend.txt
+```
+
+The Dockerfile was updated to install:
+
+```dockerfile
+requirements_backend.txt
+```
+
+instead of the root `requirements.txt`.
+
+This allows:
+
+- Streamlit Cloud to install only frontend packages.
+- Render to install the complete backend AI stack.
+
+---
+
+## Import Architecture Cleanup
+
+After splitting dependencies, Streamlit initially failed with:
+
+```text
+ModuleNotFoundError:
+No module named 'langchain_community'
+```
+
+### Root Cause
+
+Although `app.py` only imported:
+
+```python
+from tools.program_interest_tool import ...
+```
+
+Python executed `tools/__init__.py` first.
+
+That package eagerly imported backend modules:
+
+```text
+tools/__init__.py
+        │
+        ▼
+tools.rag_tool
+        │
+        ▼
+retrieval.retriever_service
+        │
+        ▼
+rag.store
+        │
+        ▼
+langchain_community
+```
+
+This forced the frontend to load backend-only dependencies.
+
+### Solution
+
+`tools/__init__.py` was refactored into a lightweight package marker.
+
+Eager imports of backend modules were removed, including:
+
+- rag_tool
+- deadlines_tool
+- eligibility_tool
+- application_steps_tool
+
+Direct imports such as:
+
+```python
+from tools.program_interest_tool import ...
+```
+
+continue to work normally.
+
+The frontend now imports only the modules it actually requires.
+
+---
+
+## Frontend–Backend Communication
+
+The frontend communicates with the backend exclusively through:
+
+```
+services/api_client.py
+```
+
+using HTTP requests to the deployed FastAPI service.
+
+The backend URL is configured through:
+
+```text
+BACKEND_API_URL
+```
+
+with the default value:
+
+```text
+https://gradcenter-ai.onrender.com
+```
+
+During deployment, the same value is configured in Streamlit Cloud Secrets.
+
+---
+
+## Validation
+
+### Streamlit Cloud
+
+Successfully verified:
+
+- CSULB custom branding
+- Gold-themed UI
+- Welcome screen
+- Sample question buttons
+- Graduate Program Guidance panel
+- Chat interface
+
+No deployment or import errors remained.
+
+### Backend Communication
+
+Verified successful communication between Streamlit Cloud and Render.
+
+Confirmed working routes:
+
+- Eligibility
+- Advisor lookup
+- Application deadlines
+
+The frontend successfully displayed:
+
+- Generated responses
+- Sources
+- Follow-up actions
+
+---
+
+## Files Changed
+
+```text
+requirements.txt
+requirements_backend.txt
+Dockerfile
+README.md
+tools/__init__.py
+```
+
+---
+
+## Final Architecture
+
+```text
+Frontend
+    Streamlit UI
+        │
+        ▼
+HTTP Client
+        │
+        ▼
+REST API
+        │
+        ▼
+FastAPI Backend
+        │
+        ▼
+Routing
+        │
+        ▼
+Tools
+        │
+        ▼
+RAG
+        │
+        ▼
+Chroma + Local LLM
+```
+
+---
+
+## Key Outcome
+
+Phase 10I completed the production deployment of the application.
+
+The system now provides:
+
+- Streamlit frontend deployed on Streamlit Community Cloud
+- FastAPI backend deployed on Render
+- Frontend and backend communicating over HTTPS
+- Lightweight frontend dependency management
+- Backend AI stack isolated from the frontend
+- Persistent Chroma vector store on Render
+- Successful end-to-end validation with live user queries
+
+This phase established a production-style architecture where the frontend focuses on presentation and API communication, while the backend encapsulates routing, retrieval, and AI orchestration.
