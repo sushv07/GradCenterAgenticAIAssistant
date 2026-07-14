@@ -10,11 +10,17 @@ Deadlines preserve published distinctions exactly: "Not Accepting" becomes a
 not_accepting term (never unknown), and accept/decline deadlines are kept
 separate from application deadlines. International deadlines are never inferred
 from domestic ones — absent an international source they remain unknown.
+
+Deadline-year policy (P3.1): the index publishes "Month Day" without a year, and
+the correct calendar year differs per admission cycle. Rather than fabricate an
+ISO date from a caller-supplied year, normalization preserves the published text
+verbatim in ApplicationTerm.deadline_text / accept_decline_deadline_text and
+leaves the structured `deadline` / `accept_decline_deadline` as None.
 """
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import datetime
 from typing import Optional
 
 from domain.programs.enums import (
@@ -32,10 +38,6 @@ from domain.programs.sources import Source
 from ingestion.masters.extraction import ExtractedFacts
 from ingestion.masters.manifest import DiscoveredProgram
 
-_MONTHS = {m.lower(): i for i, m in enumerate(
-    ["January", "February", "March", "April", "May", "June", "July",
-     "August", "September", "October", "November", "December"], start=1)}
-_MONTH_DAY = re.compile(r"([A-Za-z]+)\s+(\d{1,2})")
 _GPA_NUM = re.compile(r"(\d(?:\.\d{1,2})?)")
 _NOT_ACCEPTING = re.compile(r"not\s+accept", re.IGNORECASE)
 _DEGREE_MAP = {d.value.upper(): d for d in DegreeType if d != DegreeType.OTHER}
@@ -96,48 +98,37 @@ def parse_gre(statement: Optional[str]) -> Optional[TestRequirement]:
     return None
 
 
-def parse_month_day(text: Optional[str], year: int) -> Optional[date]:
-    if not text:
-        return None
-    m = _MONTH_DAY.search(text)
-    if not m:
-        return None
-    month = _MONTHS.get(m.group(1).lower())
-    if not month:
-        return None
-    try:
-        return date(year, month, int(m.group(2)))
-    except ValueError:
-        return None
+def _build_terms(discovered: DiscoveredProgram) -> tuple[list[ApplicationTerm], list[str]]:
+    """Build application terms, preserving published deadline TEXT verbatim.
 
-
-def _build_terms(
-    discovered: DiscoveredProgram, *, fall_year: int, spring_year: int,
-) -> tuple[list[ApplicationTerm], list[str]]:
+    No ISO date is fabricated: the index publishes "Month Day" without a year and
+    the correct year varies per cycle, so `deadline` stays None and the published
+    string is kept in `deadline_text` (likewise for accept/decline).
+    """
     terms: list[ApplicationTerm] = []
     warnings: list[str] = []
 
-    def add(season: str, year: int, app_raw: Optional[str], ad_raw: Optional[str]) -> None:
+    def add(season: str, app_raw: Optional[str], ad_raw: Optional[str]) -> None:
         if not app_raw:
             return
         if _NOT_ACCEPTING.search(app_raw):
             terms.append(ApplicationTerm(
-                term=f"{season}_{year}", audience=Audience.DOMESTIC,
-                deadline_kind=DeadlineKind.NOT_ACCEPTING, deadline=None,
-                accept_decline_deadline=None, notes="Not Accepting (as published)"))
+                term=season, audience=Audience.DOMESTIC,
+                deadline_kind=DeadlineKind.NOT_ACCEPTING,
+                deadline=None, deadline_text=None,
+                accept_decline_deadline=None, accept_decline_deadline_text=None,
+                notes="Not Accepting (as published)"))
             return
-        deadline = parse_month_day(app_raw, year)
-        ad = parse_month_day(ad_raw, year) if ad_raw and not _NOT_ACCEPTING.search(ad_raw) else None
-        if deadline is None:
-            warnings.append(f"{season} application deadline unparseable: '{app_raw}'")
+        ad_text = None if (ad_raw and _NOT_ACCEPTING.search(ad_raw)) else ad_raw
         terms.append(ApplicationTerm(
-            term=f"{season}_{year}", audience=Audience.DOMESTIC,
-            deadline_kind=DeadlineKind.FINAL, deadline=deadline,
-            accept_decline_deadline=ad,
-            notes=None if deadline else f"raw: {app_raw}"))
+            term=season, audience=Audience.DOMESTIC,
+            deadline_kind=DeadlineKind.FINAL,
+            deadline=None, deadline_text=app_raw,
+            accept_decline_deadline=None, accept_decline_deadline_text=ad_text,
+            notes=None))
 
-    add("fall", fall_year, discovered.fall_application_deadline, discovered.fall_accept_decline_deadline)
-    add("spring", spring_year, discovered.spring_application_deadline, discovered.spring_accept_decline_deadline)
+    add("fall", discovered.fall_application_deadline, discovered.fall_accept_decline_deadline)
+    add("spring", discovered.spring_application_deadline, discovered.spring_accept_decline_deadline)
     return terms, warnings
 
 
@@ -148,8 +139,6 @@ def normalize_program(
     program_facts: Optional[ExtractedFacts],
     program_source_id: Optional[str],
     sources: list[Source],
-    fall_year: int,
-    spring_year: int,
     now: datetime,
 ) -> tuple[CanonicalProgram, list[str]]:
     if not discovered.official_program_url:
@@ -205,7 +194,7 @@ def normalize_program(
     admissions = Admissions(minimum_gpa=minimum_gpa, tests=tests, intl_distinctions=intl)
 
     # ── application terms (domestic, from the index) ──────────────────────
-    terms_list, term_warnings = _build_terms(discovered, fall_year=fall_year, spring_year=spring_year)
+    terms_list, term_warnings = _build_terms(discovered)
     warnings.extend(term_warnings)
     if terms_list:
         terms = Fact[list[ApplicationTerm]](value=terms_list, data_status=DataStatus.AVAILABLE,
@@ -218,9 +207,9 @@ def normalize_program(
     application = Application(terms=terms)
 
     # ── contact (advisor/program office from the index) ───────────────────
-    if discovered.advisor_office or discovered.phone:
-        contact_val = Contact(name=discovered.advisor_office, phone=discovered.phone,
-                              source_ref=index_source_id)
+    if discovered.advisor_office or discovered.phone or discovered.advisor_email:
+        contact_val = Contact(name=discovered.advisor_office, email=discovered.advisor_email,
+                              phone=discovered.phone, source_ref=index_source_id)
         dept_contact = Fact[Contact](value=contact_val, data_status=DataStatus.AVAILABLE,
                                      volatility=Volatility.MODERATE, primary_source_ref=index_source_id)
     else:

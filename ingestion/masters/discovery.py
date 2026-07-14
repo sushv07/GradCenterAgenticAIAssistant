@@ -2,16 +2,16 @@
 ingestion/masters/discovery.py
 Stage 1 — parse the Graduate Studies master's index into a DiscoveryManifest.
 
-The parser reads an HTML <table> and maps columns by their HEADER TEXT (robust
-to column reordering), so it does not hardcode program names or positions. It
-records raw deadline strings verbatim (interpretation happens in Stage 2) and
-emits discovery-time warnings for missing links, ambiguous names, and incomplete
-deadline blocks.
+Calibrated (Phase P3) to the REAL index structure: the page is not one flat
+table but ~60+ program "cards". Each card is an <a> whose visible text ends with
+a degree in parentheses, e.g. "Accountancy (MS)", followed by advisor
+office/email/phone and a small per-card "Deadlines*" table whose first data
+column is the Application deadline and second is the Accept/Decline deadline
+(one Spring row, one Fall row, values like "Spring: November 01").
 
-NOTE: the concrete header labels below model the documented structure of the
-index; they must be calibrated against the live page before full-inventory
-ingestion (see Phase P3 blockers). The architecture is calibration-agnostic —
-only the header-alias lists change.
+Discovery records raw values verbatim (interpretation happens in Stage 2) and
+emits discovery-time warnings for missing links, ambiguous names, and incomplete
+deadline blocks. It produces a DiscoveryManifest, never a CanonicalProgram.
 """
 from __future__ import annotations
 
@@ -24,63 +24,88 @@ from bs4 import BeautifulSoup
 from ingestion.masters.hashing import content_hash
 from ingestion.masters.manifest import DiscoveredProgram, DiscoveryManifest
 
-# Header aliases → logical column. Lowercased substring match.
-_COLUMN_ALIASES: dict[str, tuple[str, ...]] = {
-    "program": ("program", "major", "degree program"),
-    "degree": ("degree", "degree type", "objective"),
-    "advisor": ("advisor", "adviser", "program office", "coordinator"),
-    "phone": ("phone", "telephone"),
-    "spring_app": ("spring application", "spring app", "spring deadline"),
-    "spring_ad": ("spring accept", "spring accept/decline", "spring decision"),
-    "fall_app": ("fall application", "fall app", "fall deadline"),
-    "fall_ad": ("fall accept", "fall accept/decline", "fall decision"),
-    "stem": ("stem",),
-}
-
+# A program-card link: visible text ends with a degree label in parentheses.
+_DEG_IN_PARENS = re.compile(r"\(([A-Za-z.][A-Za-z. ]{0,15})\)\s*$")
+_SEASON_CELL = re.compile(r"^\s*(Spring|Fall|Summer|Winter)\s*:\s*(.+?)\s*$", re.IGNORECASE)
+_PHONE = re.compile(r"Phone:\s*([0-9()\-.  ]{7,})", re.IGNORECASE)
 _NOT_ACCEPTING = re.compile(r"not\s+accept", re.IGNORECASE)
 
 
 def _norm_ws(text: str) -> str:
-    return re.sub(r"\s+", " ", text or "").strip()
+    return re.sub(r"\s+", " ", (text or "").replace(" ", " ")).strip()
 
 
-def _match_column(header: str) -> Optional[str]:
-    """Map a header to a logical column by the LONGEST matching alias, so that
-    specific labels win over incidental substrings (e.g. 'Advisor / Program
-    Office' maps to advisor via 'program office', not to program via 'program')."""
-    h = header.lower()
-    best_logical: Optional[str] = None
-    best_len = 0
-    for logical, aliases in _COLUMN_ALIASES.items():
-        for alias in aliases:
-            if alias in h and len(alias) > best_len:
-                best_logical, best_len = logical, len(alias)
-    return best_logical
-
-
-def _cell_text(cell) -> str:
-    return _norm_ws(cell.get_text(" ", strip=True))
-
-
-def _cell_link(cell) -> Optional[str]:
-    a = cell.find("a", href=True)
-    return a["href"] if a else None
-
-
-def _none_if_blank(value: str) -> Optional[str]:
-    v = _norm_ws(value)
+def _none_if_blank(value: Optional[str]) -> Optional[str]:
+    v = _norm_ws(value or "")
     return v or None
 
 
-def _parse_stem(value: Optional[str]) -> Optional[bool]:
-    if value is None:
+def _card_cell(anchor):
+    """Nearest ancestor <td> that holds the whole card (or None)."""
+    node = anchor
+    while node is not None and getattr(node, "name", None) != "td":
+        node = node.parent
+    return node
+
+
+def _parse_deadline_table(cell) -> dict[str, Optional[str]]:
+    out = {"spring_app": None, "spring_ad": None, "fall_app": None, "fall_ad": None}
+    if cell is None:
+        return out
+    table = cell.find("table")
+    if table is None:
+        return out
+    for row in table.find_all("tr"):
+        cells = [_norm_ws(c.get_text(" ", strip=True)) for c in row.find_all(["td", "th"])]
+        for col, text in enumerate(cells):
+            m = _SEASON_CELL.match(text)
+            if not m:
+                continue
+            season = m.group(1).lower()
+            value = m.group(2).strip()
+            slot = "app" if col == 0 else "ad"
+            key = f"{season}_{slot}"
+            if key in out and out[key] is None:
+                out[key] = value
+    return out
+
+
+def _parse_contact(cell) -> tuple[Optional[str], Optional[str], Optional[str]]:
+    """(advisor_office, advisor_email, phone)."""
+    if cell is None:
+        return None, None, None
+    office = email = phone = None
+    mailto = cell.find("a", href=re.compile(r"^mailto:", re.IGNORECASE))
+    if mailto is not None:
+        email = _none_if_blank(mailto["href"].split(":", 1)[1])
+        office = _none_if_blank(mailto.get_text(" ", strip=True))
+    text = _norm_ws(cell.get_text(" ", strip=True))
+    pm = _PHONE.search(text)
+    if pm:
+        phone = _none_if_blank(pm.group(1))
+    return office, email, phone
+
+
+def _parse_stem(cell) -> Optional[bool]:
+    """True only when an explicit STEM marker is present in the card; otherwise
+    None (unknown) — never fabricated."""
+    if cell is None:
         return None
-    v = value.strip().lower()
-    if v in ("yes", "y", "true", "stem", "stem-designated"):
+    if re.search(r"\bSTEM\b", cell.get_text(" ", strip=True)):
         return True
-    if v in ("no", "n", "false"):
-        return False
+    for img in cell.find_all("img"):
+        if "stem" in (str(img.get("alt", "")) + str(img.get("src", ""))).lower():
+            return True
     return None
+
+
+def _term_availability(spring_app: Optional[str], fall_app: Optional[str]) -> list[str]:
+    avail = []
+    if fall_app and not _NOT_ACCEPTING.search(fall_app):
+        avail.append("fall")
+    if spring_app and not _NOT_ACCEPTING.search(spring_app):
+        avail.append("spring")
+    return avail
 
 
 def discover_from_html(
@@ -95,100 +120,67 @@ def discover_from_html(
     soup = BeautifulSoup(raw, "html.parser")
 
     manifest_warnings: list[str] = []
-    table = soup.find("table")
-    if table is None:
-        return DiscoveryManifest(
-            discovery_source_url=source_url,
-            discovery_source_hash=content_hash(raw),
-            discovered_at=discovered_at,
-            programs=[],
-            warnings=["no <table> found in discovery index"],
-        )
-
-    # Build the column map from the header row.
-    header_cells = []
-    thead = table.find("thead")
-    header_row = thead.find("tr") if thead else table.find("tr")
-    if header_row is not None:
-        header_cells = header_row.find_all(["th", "td"])
-    col_map: dict[int, str] = {}
-    for idx, cell in enumerate(header_cells):
-        logical = _match_column(_cell_text(cell))
-        if logical:
-            col_map[idx] = logical
-    if "program" not in col_map.values():
-        manifest_warnings.append("could not identify a 'program' column in the index header")
-
-    # Data rows (skip the header row).
-    body = table.find("tbody") or table
-    rows = [r for r in body.find_all("tr") if r is not header_row]
-
     programs: list[DiscoveredProgram] = []
-    seen_names: dict[str, int] = {}
-    for row in rows:
-        cells = row.find_all(["td", "th"])
-        if not cells:
-            continue
-        values: dict[str, str] = {}
-        links: dict[str, Optional[str]] = {}
-        for idx, cell in enumerate(cells):
-            logical = col_map.get(idx)
-            if not logical:
-                continue
-            values[logical] = _cell_text(cell)
-            if logical == "program":
-                links["program"] = _cell_link(cell)
-            if logical == "advisor":
-                links["advisor"] = _cell_link(cell)
+    seen: set[tuple[str, str]] = set()
+    name_counts: dict[str, int] = {}
 
-        raw_name = values.get("program", "")
-        if not _norm_ws(raw_name):
-            continue  # skip structurally empty rows
-        normalized = _norm_ws(raw_name)
+    for anchor in soup.find_all("a", href=True):
+        href = anchor["href"]
+        # A program card is identified by its link SHAPE (degree in parens), not
+        # its host. Official-host enforcement belongs at fetch time (HttpFetcher),
+        # which keeps discovery testable and host-agnostic.
+        if not href.startswith("http"):
+            continue
+        text = _norm_ws(anchor.get_text(" ", strip=True))
+        m = _DEG_IN_PARENS.search(text)
+        if not m:
+            continue
+        key = (text, href)
+        if key in seen:
+            continue
+        seen.add(key)
+
+        degree = m.group(1).strip()
+        name = _norm_ws(text[:m.start()])
+        if not name:
+            continue
+
+        cell = _card_cell(anchor)
+        office, email, phone = _parse_contact(cell)
+        dl = _parse_deadline_table(cell)
+        stem = _parse_stem(cell)
 
         warnings: list[str] = []
-        url = links.get("program")
-        if not url:
-            warnings.append("missing official program link")
-        seen_names[normalized] = seen_names.get(normalized, 0) + 1
-
-        spring_app = _none_if_blank(values.get("spring_app", ""))
-        spring_ad = _none_if_blank(values.get("spring_ad", ""))
-        fall_app = _none_if_blank(values.get("fall_app", ""))
-        fall_ad = _none_if_blank(values.get("fall_ad", ""))
-
-        term_availability: list[str] = []
-        if fall_app and not _NOT_ACCEPTING.search(fall_app):
-            term_availability.append("fall")
-        if spring_app and not _NOT_ACCEPTING.search(spring_app):
-            term_availability.append("spring")
-
-        # Incomplete deadline block: an accepting term missing its accept/decline.
-        if fall_app and not _NOT_ACCEPTING.search(fall_app) and not fall_ad:
+        if cell is None:
+            warnings.append("could not locate the program card container")
+        if dl["fall_app"] and not _NOT_ACCEPTING.search(dl["fall_app"]) and not dl["fall_ad"]:
             warnings.append("incomplete deadline block: fall accept/decline missing")
-        if spring_app and not _NOT_ACCEPTING.search(spring_app) and not spring_ad:
+        if dl["spring_app"] and not _NOT_ACCEPTING.search(dl["spring_app"]) and not dl["spring_ad"]:
             warnings.append("incomplete deadline block: spring accept/decline missing")
 
+        name_counts[name] = name_counts.get(name, 0) + 1
         programs.append(DiscoveredProgram(
-            raw_listing_name=raw_name,
-            normalized_program_name=normalized,
-            degree_label=_none_if_blank(values.get("degree", "")),
-            official_program_url=url,
-            advisor_office=_none_if_blank(values.get("advisor", "")),
-            advisor_url=links.get("advisor"),
-            phone=_none_if_blank(values.get("phone", "")),
-            spring_application_deadline=spring_app,
-            spring_accept_decline_deadline=spring_ad,
-            fall_application_deadline=fall_app,
-            fall_accept_decline_deadline=fall_ad,
-            term_availability=term_availability,
-            stem_designated=_parse_stem(values.get("stem")),
+            raw_listing_name=text,
+            normalized_program_name=name,
+            degree_label=degree,
+            official_program_url=href,
+            advisor_office=office,
+            advisor_email=email,
+            phone=phone,
+            spring_application_deadline=dl["spring_app"],
+            spring_accept_decline_deadline=dl["spring_ad"],
+            fall_application_deadline=dl["fall_app"],
+            fall_accept_decline_deadline=dl["fall_ad"],
+            term_availability=_term_availability(dl["spring_app"], dl["fall_app"]),
+            stem_designated=stem,
             warnings=warnings,
         ))
 
-    # Ambiguous names → flag every program that shares a normalized name.
+    if not programs:
+        manifest_warnings.append("no program cards found in the discovery index")
+
     for prog in programs:
-        if seen_names.get(prog.normalized_program_name, 0) > 1:
+        if name_counts.get(prog.normalized_program_name, 0) > 1:
             prog.warnings.append("ambiguous program name (duplicate listing)")
 
     return DiscoveryManifest(

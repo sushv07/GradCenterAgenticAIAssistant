@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import sys
 import unittest
-from datetime import date, datetime, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -22,7 +22,7 @@ from domain.programs.validation import validate_program
 from ingestion.masters.extraction import ExtractedFacts
 from ingestion.masters.manifest import DiscoveredProgram
 from ingestion.masters.normalization import (
-    normalize_program, parse_gpa, parse_gre, parse_month_day, slugify,
+    normalize_program, parse_gpa, parse_gre, slugify,
 )
 
 NOW = datetime(2026, 7, 13, tzinfo=timezone.utc)
@@ -55,11 +55,6 @@ class TestParsers(unittest.TestCase):
         self.assertTrue(parse_gre("The GRE is required for all applicants").required)
         self.assertIsNone(parse_gre(None))
 
-    def test_month_day(self):
-        self.assertEqual(parse_month_day("March 1", 2027), date(2027, 3, 1))
-        self.assertIsNone(parse_month_day("Not Accepting", 2027))
-        self.assertIsNone(parse_month_day(None, 2027))
-
     def test_slugify(self):
         self.assertEqual(slugify("MS in Data Science"), "ms-in-data-science")
 
@@ -83,8 +78,7 @@ class TestNormalization(unittest.TestCase):
                                gpa_statement="Minimum GPA: 3.0", gre_statement="The GRE is not required")
         return normalize_program(discovered, index_source_id="src-index", program_facts=facts,
                                  program_source_id="src-program",
-                                 sources=[_index_source(), _program_source()],
-                                 fall_year=2027, spring_year=2028, now=NOW)
+                                 sources=[_index_source(), _program_source()], now=NOW)
 
     def test_produces_valid_record(self):
         program, _ = self._normalize(self._discovered())
@@ -94,17 +88,21 @@ class TestNormalization(unittest.TestCase):
     def test_not_accepting_is_preserved_not_unknown(self):
         program, _ = self._normalize(self._discovered())
         terms = {t.term: t for t in program.application.terms.value}
-        self.assertEqual(terms["spring_2028"].deadline_kind, DeadlineKind.NOT_ACCEPTING)
-        self.assertIsNone(terms["spring_2028"].deadline)
+        self.assertEqual(terms["spring"].deadline_kind, DeadlineKind.NOT_ACCEPTING)
+        self.assertIsNone(terms["spring"].deadline)
+        self.assertIsNone(terms["spring"].deadline_text)
         # the terms fact itself is available (published), never 'unknown'
         self.assertEqual(program.application.terms.data_status, DataStatus.AVAILABLE)
 
     def test_accept_decline_kept_separate_from_application(self):
         program, _ = self._normalize(self._discovered())
-        fall = next(t for t in program.application.terms.value if t.term == "fall_2027")
-        self.assertEqual(fall.deadline, date(2027, 3, 1))
-        self.assertEqual(fall.accept_decline_deadline, date(2027, 4, 15))
-        self.assertNotEqual(fall.deadline, fall.accept_decline_deadline)
+        fall = next(t for t in program.application.terms.value if t.term == "fall")
+        # no ISO date is fabricated; published text is preserved verbatim
+        self.assertIsNone(fall.deadline)
+        self.assertIsNone(fall.accept_decline_deadline)
+        self.assertEqual(fall.deadline_text, "March 1")
+        self.assertEqual(fall.accept_decline_deadline_text, "April 15")
+        self.assertNotEqual(fall.deadline_text, fall.accept_decline_deadline_text)
 
     def test_international_never_inferred_from_domestic(self):
         program, _ = self._normalize(self._discovered())
@@ -118,8 +116,7 @@ class TestNormalization(unittest.TestCase):
                                 gre_statement="GRE scores are waived")
         p2, _ = normalize_program(self._discovered(), index_source_id="src-index", program_facts=facts2,
                                   program_source_id="src-program",
-                                  sources=[_index_source(), _program_source()],
-                                  fall_year=2027, spring_year=2028, now=NOW)
+                                  sources=[_index_source(), _program_source()], now=NOW)
         self.assertEqual(p1.admissions.minimum_gpa.value, p2.admissions.minimum_gpa.value)
 
     def test_unknown_degree_preserves_official_value(self):
@@ -130,8 +127,7 @@ class TestNormalization(unittest.TestCase):
     def test_no_program_page_marks_unknown_not_source_missing(self):
         program, _ = normalize_program(
             self._discovered(), index_source_id="src-index", program_facts=None,
-            program_source_id=None, sources=[_index_source()],
-            fall_year=2027, spring_year=2028, now=NOW)
+            program_source_id=None, sources=[_index_source()], now=NOW)
         self.assertEqual(program.admissions.minimum_gpa.data_status, DataStatus.UNKNOWN)
 
 
@@ -149,7 +145,7 @@ class TestIdentityMissingValues(unittest.TestCase):
         sources = [_index_source()] + ([_program_source()] if facts else [])
         return normalize_program(self._discovered(), index_source_id="src-index",
                                  program_facts=facts, program_source_id="src-program" if facts else None,
-                                 sources=sources, fall_year=2027, spring_year=2028, now=NOW)[0]
+                                 sources=sources, now=NOW)[0]
 
     def test_missing_college_is_not_a_placeholder_string(self):
         facts = ExtractedFacts(source_id="src-program", page_fetched=True)  # no college
@@ -180,8 +176,7 @@ class TestIdentityMissingValues(unittest.TestCase):
         discovered = self._discovered().model_copy(update={"degree_label": None})
         program, _ = normalize_program(discovered, index_source_id="src-index",
                                        program_facts=None, program_source_id=None,
-                                       sources=[_index_source()], fall_year=2027,
-                                       spring_year=2028, now=NOW)
+                                       sources=[_index_source()], now=NOW)
         self.assertIsNone(program.identity.degree_type_official)
 
 

@@ -2,10 +2,18 @@
 ingestion/masters/extraction.py
 Stage 2a — pull raw candidate facts out of an official program page.
 
-Extraction is deliberately conservative: it captures raw text snippets (overview,
-GPA statement, test-requirement statement, prerequisites) tagged with the
-snapshot they came from. It does NOT interpret them — that is normalization's
-job. Anything not found stays absent so normalization can mark it source_missing.
+Calibrated (Phase P3) against real CSULB pages, which wrap the program content
+in heavy shared chrome (header/nav/footer). Extraction therefore:
+  1. isolates the MAIN CONTENT region (<main> / [role=main] / #main-content /
+     article), falling back to a body stripped of nav/header/footer;
+  2. prefers the paragraph after a "Program Overview"/"Overview" heading for the
+     summary, rejecting boilerplate (campus address / phone banners);
+  3. searches GPA/GRE sentences within main content only, with a length guard so
+     an un-punctuated navigation blob can never be captured as a "sentence".
+
+Extraction stays conservative: anything not confidently found is left absent so
+normalization marks it source_missing (page consulted) or unknown (not consulted)
+— it never fabricates a value.
 """
 from __future__ import annotations
 
@@ -17,17 +25,12 @@ from pydantic import BaseModel, Field
 
 _GPA_KW = re.compile(r"\bgpa\b", re.IGNORECASE)
 _GRE_KW = re.compile(r"\bgre\b", re.IGNORECASE)
-# Split on sentence-ending periods but NOT on decimals like "3.0".
 _SENTENCE_SPLIT = re.compile(r"(?<!\d)[.](?!\d)\s+")
-
-
-def _keyword_sentence(text: str, pattern: re.Pattern) -> Optional[str]:
-    """Return the first sentence containing the keyword, splitting on sentence
-    periods while preserving decimals (so '3.0' stays intact)."""
-    for sentence in _SENTENCE_SPLIT.split(text):
-        if pattern.search(sentence):
-            return sentence.strip().rstrip(".").strip() or None
-    return None
+_MAX_SENTENCE = 320  # a real requirement sentence; longer = nav/boilerplate blob
+_BOILERPLATE = re.compile(
+    r"\d{3,}\s+[A-Z].*(BOULEVARD|STREET|AVENUE|DRIVE|BLVD|LONG BEACH|CALIFORNIA \d{5})",
+    re.IGNORECASE)
+_MAIN_SELECTORS = ("main", "[role=main]", "#main-content", "#content", "article")
 
 
 class ExtractedFacts(BaseModel):
@@ -39,25 +42,64 @@ class ExtractedFacts(BaseModel):
     prerequisites: list[str] = Field(default_factory=list)
     concentrations: list[str] = Field(default_factory=list)
     supplemental_materials: list[str] = Field(default_factory=list)
-    # Provenance-sensitive identity fields. Left None in P2 (no heuristic
-    # extractor yet); when a program/catalog source provides them, normalization
-    # turns a non-None value into a source-backed Fact.
     college: Optional[str] = None
     department: Optional[str] = None
 
 
-def _text(soup: BeautifulSoup) -> str:
-    return re.sub(r"\s+", " ", soup.get_text(" ", strip=True))
+def _clean(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").replace(" ", " ")).strip()
 
 
-def _section_list(soup: BeautifulSoup, heading_keywords: tuple[str, ...]) -> list[str]:
-    """Return <li> items under a heading whose text matches any keyword."""
-    for heading in soup.find_all(re.compile(r"^h[1-6]$")):
+def _main_content(soup: BeautifulSoup):
+    """The main content region, or a body stripped of shared chrome."""
+    for sel in _MAIN_SELECTORS:
+        el = soup.select_one(sel)
+        if el and len(el.get_text(strip=True)) > 200:
+            return el
+    body = soup.body or soup
+    for tag in body.find_all(["nav", "header", "footer", "script", "style", "aside", "form"]):
+        tag.decompose()
+    return body
+
+
+def _looks_boilerplate(text: str) -> bool:
+    return bool(_BOILERPLATE.search(text))
+
+
+def _overview(main) -> Optional[str]:
+    for h in main.find_all(re.compile(r"^h[1-6]$")):
+        if re.search(r"program overview|^\s*overview\s*$|about the program",
+                     h.get_text(" ", strip=True), re.IGNORECASE):
+            p = h.find_next("p")
+            if p:
+                t = _clean(p.get_text(" ", strip=True))
+                if len(t) >= 40 and not _looks_boilerplate(t):
+                    return t
+    for p in main.find_all("p"):
+        t = _clean(p.get_text(" ", strip=True))
+        if len(t) >= 80 and not _looks_boilerplate(t):
+            return t
+    return None
+
+
+def _keyword_sentence(text: str, pattern: re.Pattern) -> Optional[str]:
+    """First bounded sentence containing the keyword (decimals preserved)."""
+    for sentence in _SENTENCE_SPLIT.split(text):
+        s = sentence.strip()
+        if len(s) > _MAX_SENTENCE:
+            continue
+        if pattern.search(s):
+            return s.rstrip(".").strip() or None
+    return None
+
+
+def _section_list(main, heading_keywords: tuple[str, ...]) -> list[str]:
+    for heading in main.find_all(re.compile(r"^h[1-6]$")):
         htext = heading.get_text(" ", strip=True).lower()
         if any(k in htext for k in heading_keywords):
             ul = heading.find_next(["ul", "ol"])
             if ul:
-                return [re.sub(r"\s+", " ", li.get_text(" ", strip=True)).strip()
+                return [_clean(li.get_text(" ", strip=True))
                         for li in ul.find_all("li") if li.get_text(strip=True)]
     return []
 
@@ -65,20 +107,16 @@ def _section_list(soup: BeautifulSoup, heading_keywords: tuple[str, ...]) -> lis
 def extract_program_page(html: bytes | str, *, source_id: str) -> ExtractedFacts:
     raw = html if isinstance(html, bytes) else html.encode("utf-8")
     soup = BeautifulSoup(raw, "html.parser")
-    full = _text(soup)
-
-    overview = None
-    p = soup.find("p")
-    if p and p.get_text(strip=True):
-        overview = re.sub(r"\s+", " ", p.get_text(" ", strip=True)).strip()
+    main = _main_content(soup)
+    main_text = _clean(main.get_text(" ", strip=True))
 
     return ExtractedFacts(
         source_id=source_id,
         page_fetched=True,
-        overview_text=overview,
-        gpa_statement=_keyword_sentence(full, _GPA_KW),
-        gre_statement=_keyword_sentence(full, _GRE_KW),
-        prerequisites=_section_list(soup, ("prerequisite", "prerequisites")),
-        concentrations=_section_list(soup, ("concentration", "concentrations", "specialization")),
-        supplemental_materials=_section_list(soup, ("supplemental", "required materials")),
+        overview_text=_overview(main),
+        gpa_statement=_keyword_sentence(main_text, _GPA_KW),
+        gre_statement=_keyword_sentence(main_text, _GRE_KW),
+        prerequisites=_section_list(main, ("prerequisite", "prerequisites")),
+        concentrations=_section_list(main, ("concentration", "concentrations", "specialization")),
+        supplemental_materials=_section_list(main, ("supplemental", "required materials")),
     )

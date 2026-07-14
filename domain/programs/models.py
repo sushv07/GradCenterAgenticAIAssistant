@@ -92,10 +92,18 @@ class ApplicationTerm(BaseModel):
     term: str
     audience: Audience
     deadline_kind: DeadlineKind
+    # Structured full date — populated ONLY when a correct calendar year is known
+    # (e.g. verified/curated). The ingestion pipeline leaves this None because the
+    # index publishes "Month Day" without a year, and the year cannot be inferred
+    # correctly for every admission cycle.
     deadline: Optional[date] = None
+    # As-published application deadline text (e.g. "November 01") preserved
+    # verbatim — the honest representation when no year can be guaranteed.
+    deadline_text: Optional[str] = None
     # Accept/decline is a distinct published deadline — kept separate from the
     # application deadline per the deadline-interpretation rules, never merged.
     accept_decline_deadline: Optional[date] = None
+    accept_decline_deadline_text: Optional[str] = None
     notes: Optional[str] = None
 
 

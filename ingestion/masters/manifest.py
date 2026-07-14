@@ -22,6 +22,7 @@ class DiscoveredProgram(BaseModel):
     official_program_url: Optional[str] = None
     advisor_office: Optional[str] = None
     advisor_url: Optional[str] = None
+    advisor_email: Optional[str] = None
     phone: Optional[str] = None
     spring_application_deadline: Optional[str] = None
     spring_accept_decline_deadline: Optional[str] = None

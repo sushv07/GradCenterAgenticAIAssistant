@@ -82,8 +82,6 @@ def _enrich_one(
     snapshots: SnapshotStore,
     programs_dir: Path,
     index_source: Source,
-    fall_year: int,
-    spring_year: int,
     freshness_policy: Optional[FreshnessPolicy],
     now: datetime,
 ) -> ProgramResult:
@@ -121,7 +119,7 @@ def _enrich_one(
         program_facts=program_facts,
         program_source_id=_PROGRAM_SOURCE_ID if program_source else None,
         sources=sources,
-        fall_year=fall_year, spring_year=spring_year, now=now,
+        now=now,
     )
 
     findings = validate_program(program, freshness_policy=freshness_policy, now=now)
@@ -143,8 +141,6 @@ def run_pipeline(
     fetcher: Fetcher,
     snapshot_store: SnapshotStore,
     programs_dir: Path,
-    fall_year: int,
-    spring_year: int,
     index_url: str = GRADUATE_STUDIES_MASTERS_INDEX_URL,
     freshness_policy: Optional[FreshnessPolicy] = None,
     now: Optional[datetime] = None,
@@ -166,7 +162,6 @@ def run_pipeline(
     for discovered in to_process:
         result.results.append(_enrich_one(
             discovered, fetcher=fetcher, snapshots=snapshot_store, programs_dir=programs_dir,
-            index_source=index_source, fall_year=fall_year, spring_year=spring_year,
-            freshness_policy=freshness_policy, now=now,
+            index_source=index_source, freshness_policy=freshness_policy, now=now,
         ))
     return result
