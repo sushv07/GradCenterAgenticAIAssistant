@@ -17,3 +17,10 @@ logs/
 .claude/
 
 evals/reports/*.json
+
+# RAG-vs-fine-tuning experiment — generated artifacts, checkpoints, and model
+# weights only. Configs, manifests, reports, and small reviewed datasets under
+# experiments/ remain tracked for reproducibility.
+experiments/rag_vs_finetuning/artifacts/
+experiments/rag_vs_finetuning/checkpoints/
+experiments/rag_vs_finetuning/models/

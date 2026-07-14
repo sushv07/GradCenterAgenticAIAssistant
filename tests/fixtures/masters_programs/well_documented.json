@@ -1,0 +1,219 @@
+{
+  "schema_version": "masters-1.0",
+  "record_id": "rec-well-0001",
+  "program_level": "masters",
+  "identity": {
+    "program_id": "ms-computer-science",
+    "canonical_name": "Master of Science in Computer Science",
+    "aliases": [
+      "MSCS",
+      "MS CS"
+    ],
+    "degree_type": "MS",
+    "degree_type_official": "MS in Computer Science",
+    "college": {
+      "value": "college_of_engineering",
+      "data_status": "available",
+      "volatility": "stable",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "department": {
+      "value": "computer_engineering_computer_science",
+      "data_status": "available",
+      "volatility": "stable",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "official_program_url": "https://example.edu/cecs/ms-cs",
+    "delivery_mode": "in_person",
+    "campus_location": null
+  },
+  "overview": {
+    "official_summary": {
+      "value": "A thesis-optional MS emphasizing systems, algorithms, and machine learning.",
+      "data_status": "available",
+      "volatility": "stable",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": "The MS in Computer Science emphasizes systems, algorithms, and machine learning.",
+      "notes": null
+    },
+    "program_description": null,
+    "focus_areas": null
+  },
+  "admissions": {
+    "admission_requirements": null,
+    "prerequisites": {
+      "value": [
+        {
+          "description": "Undergraduate data structures",
+          "required": true,
+          "equivalent_allowed": true
+        }
+      ],
+      "data_status": "available",
+      "volatility": "moderate",
+      "primary_source_ref": "src-adm",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "minimum_gpa": {
+      "value": 3.0,
+      "data_status": "available",
+      "volatility": "moderate",
+      "primary_source_ref": "src-adm",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "tests": {
+      "value": [
+        {
+          "test": "GRE",
+          "required": false,
+          "waiver_conditions": "Waived for GPA >= 3.0"
+        }
+      ],
+      "data_status": "available",
+      "volatility": "moderate",
+      "primary_source_ref": "src-adm",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "work_experience": null,
+    "supplemental_materials": null,
+    "recommendation_letters": null,
+    "statement_requirements": null,
+    "portfolio_or_audition": null,
+    "intl_distinctions": null
+  },
+  "application": {
+    "terms": {
+      "value": [
+        {
+          "term": "fall_2027",
+          "audience": "all",
+          "deadline_kind": "final",
+          "deadline": "2027-03-01",
+          "notes": null
+        }
+      ],
+      "data_status": "available",
+      "volatility": "time_sensitive",
+      "primary_source_ref": "src-deadline",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "application_portal": {
+      "value": {
+        "name": "Cal State Apply",
+        "kind": "cal_state_apply",
+        "url": "https://calstate.edu/apply"
+      },
+      "data_status": "available",
+      "volatility": "moderate",
+      "primary_source_ref": "src-adm",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "application_instructions": null,
+    "rolling_admission": null
+  },
+  "contact": {
+    "department_contact": null,
+    "coordinator_or_advisor": {
+      "value": {
+        "name": "Dr. Example Advisor",
+        "email": "cs.grad@example.edu",
+        "phone": null,
+        "office": "ECS-500",
+        "source_ref": "src-prog"
+      },
+      "data_status": "available",
+      "volatility": "moderate",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    }
+  },
+  "sources": [
+    {
+      "source_id": "src-prog",
+      "source_url": "https://example.edu/cecs/ms-cs",
+      "source_type": "program_page",
+      "official": false,
+      "fetched_at": "2026-07-10T12:00:00Z",
+      "last_verified": "2026-07-10",
+      "content_hash": "sha256:src-prog",
+      "extraction_method": "html_parse",
+      "revision_label": null
+    },
+    {
+      "source_id": "src-adm",
+      "source_url": "https://example.edu/admissions/cs",
+      "source_type": "admissions_page",
+      "official": false,
+      "fetched_at": "2026-07-10T12:00:00Z",
+      "last_verified": "2026-07-10",
+      "content_hash": "sha256:src-adm",
+      "extraction_method": "html_parse",
+      "revision_label": null
+    },
+    {
+      "source_id": "src-deadline",
+      "source_url": "https://example.edu/admissions/deadlines",
+      "source_type": "deadline_table",
+      "official": false,
+      "fetched_at": "2026-07-10T12:00:00Z",
+      "last_verified": "2026-07-10",
+      "content_hash": "sha256:src-deadline",
+      "extraction_method": "table_parse",
+      "revision_label": null
+    }
+  ],
+  "quality": {
+    "record_completeness": "enriched",
+    "validation_status": "valid",
+    "manual_review_status": "reviewed",
+    "lifecycle_state": "active",
+    "last_verified": "2026-07-10",
+    "revision_history": [
+      {
+        "at": "2026-07-10T12:00:00Z",
+        "kind": "created",
+        "fields_changed": [],
+        "note": null
+      }
+    ]
+  },
+  "enrichment": {
+    "concentrations": null,
+    "interest_tags": {
+      "value": [
+        "machine_learning",
+        "systems",
+        "algorithms"
+      ],
+      "data_status": "available",
+      "volatility": "stable",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "academic_background_tags": null,
+    "career_goal_tags": null,
+    "career_outcomes": null,
+    "advisor": null
+  }
+}

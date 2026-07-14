@@ -1,0 +1,5 @@
+{
+  "_note": "Reserved identity for the frozen RAG-vs-fine-tuning experiment vector store. Recorded only — the collection and persistence directory are NOT created or initialized in Phase P1. The persist_dir must be Git-ignored before any store is built.",
+  "collection_name": "csulb_masters_exp_frozen_v1",
+  "persist_dir": "experiments/rag_vs_finetuning/artifacts/chroma/frozen_v1/"
+}

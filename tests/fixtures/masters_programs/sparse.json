@@ -1,0 +1,114 @@
+{
+  "schema_version": "masters-1.0",
+  "record_id": "rec-sparse-0002",
+  "program_level": "masters",
+  "identity": {
+    "program_id": "ma-emerging-studies",
+    "canonical_name": "Master of Arts in Emerging Studies",
+    "aliases": [],
+    "degree_type": "MA",
+    "degree_type_official": "MA in Emerging Studies",
+    "college": {
+      "value": "college_of_liberal_arts",
+      "data_status": "available",
+      "volatility": "stable",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "department": {
+      "value": "interdisciplinary_studies",
+      "data_status": "available",
+      "volatility": "stable",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "official_program_url": "https://example.edu/programs/emerging-studies",
+    "delivery_mode": null,
+    "campus_location": null
+  },
+  "overview": {
+    "official_summary": {
+      "value": null,
+      "data_status": "source_missing",
+      "volatility": "stable",
+      "primary_source_ref": null,
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "program_description": null,
+    "focus_areas": null
+  },
+  "admissions": {
+    "admission_requirements": null,
+    "prerequisites": null,
+    "minimum_gpa": {
+      "value": null,
+      "data_status": "unknown",
+      "volatility": "moderate",
+      "primary_source_ref": null,
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "tests": null,
+    "work_experience": null,
+    "supplemental_materials": null,
+    "recommendation_letters": null,
+    "statement_requirements": null,
+    "portfolio_or_audition": {
+      "value": null,
+      "data_status": "not_applicable",
+      "volatility": "stable",
+      "primary_source_ref": null,
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "intl_distinctions": null
+  },
+  "application": {
+    "terms": {
+      "value": null,
+      "data_status": "manual_required",
+      "volatility": "time_sensitive",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": "Program page links to a PDF that failed extraction; needs manual review."
+    },
+    "application_portal": null,
+    "application_instructions": null,
+    "rolling_admission": null
+  },
+  "contact": {
+    "department_contact": null,
+    "coordinator_or_advisor": null
+  },
+  "sources": [
+    {
+      "source_id": "src-prog",
+      "source_url": "https://example.edu/programs/emerging-studies",
+      "source_type": "program_page",
+      "official": false,
+      "fetched_at": "2026-07-10T12:00:00Z",
+      "last_verified": "2026-07-11",
+      "content_hash": "sha256:src-prog",
+      "extraction_method": "html_parse",
+      "revision_label": null
+    }
+  ],
+  "quality": {
+    "record_completeness": "minimal",
+    "validation_status": "valid_with_warnings",
+    "manual_review_status": "not_reviewed",
+    "lifecycle_state": "active",
+    "last_verified": "2026-07-11",
+    "revision_history": []
+  },
+  "enrichment": null
+}

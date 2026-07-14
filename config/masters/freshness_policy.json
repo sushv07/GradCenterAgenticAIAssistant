@@ -1,0 +1,6 @@
+{
+  "_note": "Policy-configurable re-verification windows in days, keyed by volatility class. These are initial placeholder defaults and are expected to be tuned; they are intentionally NOT hardcoded in records or the validator.",
+  "stable_days": 365,
+  "moderate_days": 180,
+  "time_sensitive_days": 30
+}

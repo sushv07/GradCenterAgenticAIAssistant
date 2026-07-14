@@ -1,0 +1,4 @@
+{
+  "_note": "Reserved projection version for the future canonical->RetrievalDocument layer. Projection logic is NOT implemented in Phase P1.",
+  "projection_version": "projection-0.1"
+}

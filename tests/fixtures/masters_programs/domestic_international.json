@@ -1,0 +1,183 @@
+{
+  "schema_version": "masters-1.0",
+  "record_id": "rec-intl-0003",
+  "program_level": "masters",
+  "identity": {
+    "program_id": "mph-public-health",
+    "canonical_name": "Master of Public Health",
+    "aliases": [
+      "MPH"
+    ],
+    "degree_type": "MPH",
+    "degree_type_official": "MPH",
+    "college": {
+      "value": "college_of_health_human_services",
+      "data_status": "available",
+      "volatility": "stable",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "department": {
+      "value": "health_science",
+      "data_status": "available",
+      "volatility": "stable",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "official_program_url": "https://example.edu/chhs/mph",
+    "delivery_mode": null,
+    "campus_location": null
+  },
+  "overview": {
+    "official_summary": {
+      "value": "An MPH with distinct domestic and international application tracks.",
+      "data_status": "available",
+      "volatility": "stable",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "program_description": null,
+    "focus_areas": null
+  },
+  "admissions": {
+    "admission_requirements": null,
+    "prerequisites": null,
+    "minimum_gpa": null,
+    "tests": {
+      "value": [
+        {
+          "test": "TOEFL",
+          "required": true,
+          "waiver_conditions": "Domestic applicants exempt"
+        }
+      ],
+      "data_status": "available",
+      "volatility": "moderate",
+      "primary_source_ref": "src-adm",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "work_experience": null,
+    "supplemental_materials": null,
+    "recommendation_letters": null,
+    "statement_requirements": null,
+    "portfolio_or_audition": null,
+    "intl_distinctions": {
+      "value": [
+        "International applicants must submit TOEFL or IELTS scores"
+      ],
+      "data_status": "available",
+      "volatility": "moderate",
+      "primary_source_ref": "src-adm",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    }
+  },
+  "application": {
+    "terms": {
+      "value": [
+        {
+          "term": "fall_2027",
+          "audience": "domestic",
+          "deadline_kind": "final",
+          "deadline": "2027-02-15",
+          "notes": null
+        },
+        {
+          "term": "fall_2027",
+          "audience": "international",
+          "deadline_kind": "final",
+          "deadline": "2027-01-15",
+          "notes": "Earlier deadline for visa processing"
+        }
+      ],
+      "data_status": "available",
+      "volatility": "time_sensitive",
+      "primary_source_ref": "src-deadline",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "application_portal": null,
+    "application_instructions": null,
+    "rolling_admission": {
+      "value": false,
+      "data_status": "available",
+      "volatility": "time_sensitive",
+      "primary_source_ref": "src-deadline",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    }
+  },
+  "contact": {
+    "department_contact": {
+      "value": {
+        "name": "Health Science Department",
+        "email": "health.grad@example.edu",
+        "phone": null,
+        "office": null,
+        "source_ref": "src-prog"
+      },
+      "data_status": "available",
+      "volatility": "moderate",
+      "primary_source_ref": "src-prog",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "coordinator_or_advisor": null
+  },
+  "sources": [
+    {
+      "source_id": "src-prog",
+      "source_url": "https://example.edu/chhs/mph",
+      "source_type": "program_page",
+      "official": false,
+      "fetched_at": "2026-07-10T12:00:00Z",
+      "last_verified": "2026-07-09",
+      "content_hash": "sha256:src-prog",
+      "extraction_method": "html_parse",
+      "revision_label": null
+    },
+    {
+      "source_id": "src-adm",
+      "source_url": "https://example.edu/admissions/mph",
+      "source_type": "admissions_page",
+      "official": false,
+      "fetched_at": "2026-07-10T12:00:00Z",
+      "last_verified": "2026-07-09",
+      "content_hash": "sha256:src-adm",
+      "extraction_method": "html_parse",
+      "revision_label": null
+    },
+    {
+      "source_id": "src-deadline",
+      "source_url": "https://example.edu/admissions/deadlines",
+      "source_type": "deadline_table",
+      "official": false,
+      "fetched_at": "2026-07-10T12:00:00Z",
+      "last_verified": "2026-07-09",
+      "content_hash": "sha256:src-deadline",
+      "extraction_method": "table_parse",
+      "revision_label": null
+    }
+  ],
+  "quality": {
+    "record_completeness": "core",
+    "validation_status": "valid",
+    "manual_review_status": "reviewed",
+    "lifecycle_state": "active",
+    "last_verified": "2026-07-09",
+    "revision_history": []
+  },
+  "enrichment": null
+}

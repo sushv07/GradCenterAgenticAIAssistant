@@ -1,0 +1,7 @@
+{
+  "_note": "Minimal shared controlled-vocabulary shell for masters + doctoral. Intentionally NOT populated in Phase P1; terms are added under review with a version bump, never ad hoc.",
+  "vocab_version": "masters-vocab-0.1",
+  "interest_tags": [],
+  "academic_background_tags": [],
+  "career_goal_tags": []
+}
