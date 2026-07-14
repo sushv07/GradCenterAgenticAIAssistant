@@ -4446,3 +4446,433 @@ The system now provides:
 - Successful end-to-end validation with live user queries
 
 This phase established a production-style architecture where the frontend focuses on presentation and API communication, while the backend encapsulates routing, retrieval, and AI orchestration.
+
+---
+
+# Phase P1–P2.1 — Canonical Master's Program Data & Ingestion Foundation
+
+**Baseline commit:** `1fac8f5` — *feat: add canonical masters program ingestion foundation*
+**Branch:** `feature/masters-canonical-schema`
+
+This foundation is **additive and isolated**. It does not modify routing, the
+orchestrator, recommendation logic, prompts, evaluation data, the existing
+doctoral taxonomy, the production RAG pipeline, or any production behavior. It
+introduces a new engine-independent domain model (`domain/programs`) and a new
+reusable ingestion pipeline (`ingestion/masters`) that converts official CSULB
+master's sources into validated `CanonicalProgram` records. It is **not yet
+connected** to the live assistant or the production RAG store.
+
+> **Terminology note:** an earlier design draft referred to a `catalog/` package
+> and a universal `Field<T>` wrapper. Those names were **Superseded** during
+> implementation. The shipped package is `domain/programs/`, and the field model
+> is a two-tier design (plain values + `Fact<T>`). The word *catalog* now appears
+> only as a `SourceType` value meaning the University Catalog — never as a package
+> name.
+
+## Relationship to the existing system
+
+The new foundation is a separate data-production path. It shares no runtime code
+with the live assistant and is not wired into it.
+
+```
+Current production application (unchanged)
+  Streamlit (app.py)
+  → FastAPI (api/app.py)
+  → backend entrypoint (backend/entrypoint.py)
+  → orchestration / routing
+  → agents / tools
+  → existing RAG (rag/, retrieval/, Chroma)
+
+New master's data foundation (this phase — NOT yet connected)
+  official CSULB sources
+  → ingestion/masters
+  → domain/programs CanonicalProgram
+  → [DEFERRED] retrieval projection
+  → [DEFERRED] RAG ingestion / assistant integration
+```
+
+## `domain/programs/` — engine-independent domain layer
+
+The domain package is the single source of truth for canonical program data. It
+depends **only** on the Python standard library, Pydantic, and domain-local
+modules. It imports **none** of: LangChain, Chroma, embeddings, RAG, `ingestion`,
+`experiments`, FastAPI, Streamlit, Ollama, or any model-serving library. This is
+enforced by an AST-based isolation test, so the package is reusable in another
+repository without architectural change.
+
+| Module | Responsibility |
+|---|---|
+| `enums.py` | Controlled vocabularies (`ProgramLevel`, `DataStatus`, `Volatility`, `DegreeType`, `DeliveryMode`, `CompletenessTier`, `ValidationStatus`, `ReviewStatus`, `LifecycleState`, `SourceType`, `ExtractionMethod`, `Audience`, `DeadlineKind`, `PortalKind`, `UpdateKind`, `ValidationSeverity`) |
+| `facts.py` | Generic `Fact[T]` evidence envelope; enforces local invariants at construction |
+| `sources.py` | `Source` provenance model; validates id/URL/hash/timestamps at construction |
+| `models.py` | `CanonicalProgram` and nested models; the canonical record shape |
+| `config.py` | Typed config models + injectable loaders (`SchemaConfig`, `FreshnessPolicy`, `VocabularyManifest`, `ProjectionConfig`, `ExperimentIdentity`) |
+| `validation.py` | Deterministic validator returning structured findings |
+| `__init__.py` | Package facade (explicit re-exports; no heavy imports) |
+
+**Model / validation separation:** the model layer enforces only *local*
+invariants during construction (invalid `Fact` combinations, malformed `Source`
+URLs/ids/hashes, enum membership). All *cross-field, corpus-level, provenance,
+freshness, and completeness* checks live in `validation.py` and return structured
+findings rather than raising. No rule is enforced in both layers.
+
+## The `CanonicalProgram` model
+
+`CanonicalProgram` is a level-agnostic, retrieval-neutral record. It contains no
+Chroma-specific fields and no precomputed retrieval chunks.
+
+```
+program_level = masters | doctoral | certificate | other
+```
+
+The current implementation authors **only master's records**. The existing
+doctoral taxonomy (`data/program_taxonomy.json`) is **unchanged**; no doctoral
+migration has occurred. The shared model is future-compatible with other levels.
+
+Top-level structure:
+
+```
+schema_version        # "masters-1.0"
+record_id
+program_level         # "masters" for all P2 records
+identity
+overview
+admissions
+application
+contact
+sources               # list[Source]
+quality
+enrichment            # optional
+```
+
+### Two-tier field model
+
+Superseding the earlier universal `Field<T>` idea, the implementation uses two
+tiers:
+
+- **Plain structural values** for fields that *define* identity and are not
+  source-dependent at the model level.
+- **`Fact[T]`** for every provenance-sensitive, freshness-sensitive, or
+  status-bearing fact.
+
+Implemented `Fact[T]` shape:
+
+```
+value
+data_status
+volatility
+primary_source_ref
+supporting_source_refs
+official_text
+notes
+```
+
+`Fact[T]` is used wherever the system must know whether a value is present, *why*
+it is missing, which source supports it, whether it is stale, whether sources
+conflict, and whether official wording must be preserved.
+
+### Identity-field semantics
+
+Plain **required structural** identity fields (source-independent at the model
+level):
+
+```
+program_id
+canonical_name
+program_level        # on CanonicalProgram
+degree_type
+official_program_url
+```
+
+`college` and `department` are `Fact[str]` (corrected in P2.1) because they are
+provenance-sensitive and require honest missing-state semantics:
+
+- `unknown` — the appropriate source has not yet been researched.
+- `source_missing` — the official source was consulted, but the field was absent.
+- `available` — a verified value was found and is linked to an official source.
+
+Placeholder strings — `"unspecified"`, `"N/A"`, `"TBD"`, `"unknown"`, empty
+strings — must **never** be stored as factual values. Validation rule **CP-E011**
+rejects such placeholders used as identity values; empty strings are rejected by
+CP-E003/CP-E009.
+
+`degree_type_official` is **optional** and is `null` when no separate official
+degree label was published (never a placeholder).
+
+## `DataStatus` contract
+
+The implemented vocabulary is exactly:
+
+| Status | Meaning |
+|---|---|
+| `available` | Verified value populated from an authoritative official source |
+| `unknown` | Field applies but has not been researched yet |
+| `source_missing` | Field applies; the consulted official source does not contain it |
+| `manual_required` | Field applies; needs curator/department outreach to resolve |
+| `not_applicable` | Field does not apply to this program |
+| `manual_curated` | Value supplied by curator judgment (notes required) |
+| `stale` | Value was known but its source is past its freshness window |
+| `conflicting_sources` | Two official sources disagree |
+
+The tokens `known` and `manual_review_required` are **not** used.
+
+Key `Fact` consistency rules (enforced at construction):
+
+- `available` requires a non-null value **and** a primary source reference.
+- `stale` retains the prior non-null value **and** its provenance.
+- `unknown` and `not_applicable` forbid any source reference.
+- `manual_curated` requires notes.
+- `conflicting_sources` requires a null value, at least two source references,
+  and explanatory notes.
+- Empty lists are valid only with `available`; an unknown list uses `null`.
+
+## Source provenance and immutable snapshots
+
+Provenance is source-backed. Each `Source` records:
+
+```
+source_id
+source_url
+source_type
+official
+fetched_at
+last_verified
+content_hash          # authoritative source-content identity
+extraction_method
+revision_label        # optional human label (NOT the identity)
+```
+
+Snapshots are **content-addressed and immutable**: `SnapshotStore` writes each
+fetched source once to `<program_id>/<hexhash>.<ext>` and never overwrites;
+re-fetching identical content is a no-op returning the same hash. Snapshots are
+stored **separately from canonical records** and are the evidence base for
+provenance, auditing, change detection, reproducibility, and future freshness
+experiments. Field-level provenance connects to record-level sources through the
+`Fact.primary_source_ref` / `supporting_source_refs` → `sources[].source_id`
+references (resolution is validated by rule CP-E007).
+
+## `ingestion/masters/` — reusable ingestion pipeline
+
+Production-side tooling (may use HTTP, HTML parsing, filesystem). It imports
+`domain/programs` **read-only** and is never imported by the domain.
+
+| Module | Responsibility |
+|---|---|
+| `hashing.py` | sha256 content hashing (`sha256:<hex>`) |
+| `fetching.py` | Injectable `Fetcher` protocol; `StaticFetcher` (offline tests), `HttpFetcher` (stdlib urllib, restricted to official CSULB hosts) |
+| `sources_policy.py` | Source-priority tiers + the authoritative index URL |
+| `snapshots.py` | Immutable content-addressed snapshot storage → domain `Source` |
+| `manifest.py` | `DiscoveredProgram`, `DiscoveryManifest` |
+| `discovery.py` | Stage 1 — parse the index into a manifest (header-mapped) |
+| `extraction.py` | Stage 2a — conservative program-page fact extraction |
+| `normalization.py` | Stage 2b — normalize into `CanonicalProgram` |
+| `persistence.py` | File-per-program persistence (injectable dir) |
+| `pipeline.py` | Orchestration of discovery → enrichment |
+
+Implemented flow:
+
+```
+Authoritative master's index
+→ DiscoveryManifest
+→ selected official program page
+→ immutable source snapshot
+→ extraction
+→ normalization into CanonicalProgram
+→ deterministic validation
+→ file-per-program persistence
+```
+
+**Discovery and enrichment are separate modules.** Discovery parses the
+Graduate Studies master's index and produces a `DiscoveryManifest` (program
+listings, links, contacts, deadlines, term availability, STEM designation where
+present) — it creates **no** canonical records. Enrichment consumes discovered
+entries, fetches approved official source pages, extracts raw facts, normalizes
+them into `CanonicalProgram`, validates, and persists. Discovery contains no
+normalization logic; normalization performs no discovery.
+
+### Authoritative discovery source
+
+```
+https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters
+```
+
+Used for inventory discovery, listing names, degree labels, advisor/program
+office info, phone numbers, domestic application deadlines, accept/decline
+deadlines, spring/fall availability, STEM indicators, and official program links.
+It is **not** the sole source for every program fact.
+
+Approved source priority:
+
+1. Graduate Studies master's index — **wired (tier 1)**
+2. Official department or program page — **wired (tier 2)**
+3. Official University Catalog — *extension point*
+4. Graduate Studies / Enrollment Services — *extension point*
+5. Center for International Education — *extension point*
+6. CPaCE — *extension point*
+7. Official CSULB-hosted PDFs — *extension point*
+
+Only **tiers 1 and 2 are wired** in P2. Tiers 3–7 are declared in
+`sources_policy.SOURCE_PRIORITY` as **extension points only** — not implemented
+traversal.
+
+### Traversal policy (field-driven, not crawler-driven)
+
+- Fetches the authoritative index, then the discovered official program page.
+- Does **not** recursively traverse every link; does **not** crawl the broader
+  CSULB site.
+- Lower source tiers are declared extension points only.
+- Missing information remains `unknown` or `source_missing` — never fabricated.
+- International facts are **never inferred** from domestic data (`intl_distinctions`
+  stays `unknown` until an international source is consulted).
+
+### Deadline semantics
+
+- Application deadlines and accept/decline deadlines are **separate**;
+  `ApplicationTerm` has an optional `accept_decline_deadline` (added in P2 because
+  the index publishes both).
+- Spring and fall terms are separate.
+- `not_accepting` is a meaningful, preserved state (never collapsed to `unknown`).
+- `not_applicable` differs from missing.
+- International deadlines are not inferred from domestic deadlines.
+- The exact cycle-year mapping (which calendar year a "Month Day" deadline falls
+  in) is a **caller policy** pending live calibration.
+- `Overview.stem_designated` was added as an optional source-backed `Fact[bool]`
+  because the authoritative index publishes STEM indicators.
+
+### Persistence
+
+File-per-program. Intended production layout:
+
+```
+data/
+  masters/
+    programs/
+      <program_id>.json
+    sources/
+      <program_id>/
+        <content_hash>.html
+```
+
+Persistence paths are **injectable**; tests write to temporary directories. **No
+real production master's records have been committed**, no full inventory has been
+loaded, and real ingestion waits for live calibration and human review.
+
+## Validation
+
+The validator returns structured findings:
+
+```
+rule_id
+severity        # error | warning | informational
+field_path
+message
+```
+
+Implemented areas: program-id format and corpus duplicates, aliases, URLs,
+source-reference resolution, schema version, empty-string rejection, placeholder
+identity rejection (CP-E011), available-contact-all-null, sparse-record warnings,
+freshness-policy warnings, review-status findings, degree-type warnings,
+domestic/international consistency, and lifecycle findings. Freshness windows are
+**external configuration** (`config/masters/freshness_policy.json`, injected as a
+`FreshnessPolicy`) — never hardcoded into canonical records or the validator.
+
+## Test baseline & enforced invariants
+
+- **109** domain + ingestion tests, plus **25** nearby configuration/dependency
+  tests, all passing.
+- Tests are deterministic and offline — independent of the internet, Ollama,
+  Chroma, embeddings, and GPU/model downloads.
+
+Enforced architectural invariants (by AST-based and structural tests):
+
+- The domain never imports `ingestion` or infrastructure packages.
+- Production code never imports `experiments`.
+- No tracked `" 2"` duplicate file is referenced.
+- Synthetic fixtures stay outside production data paths.
+- No model weights or Chroma artifacts are created.
+- Serialization round-trips preserve semantic (model) equality.
+
+## Implementation Status — Baseline Commit 1fac8f5
+
+### Implemented
+
+- `domain/programs/` engine-independent domain layer
+- `CanonicalProgram` (level-agnostic; masters records only)
+- Two-tier field model with `Fact<T>`
+- Exact `DataStatus` contract (8 values)
+- `Source` provenance model
+- Injectable configuration loading (`config/masters/*.json`)
+- Deterministic validation with structured findings
+- Synthetic canonical fixtures + serialization round-trip tests
+- Authoritative-index discovery parser → `DiscoveryManifest`
+- Immutable, content-addressed snapshot storage + content hashing
+- Conservative program-page extraction
+- Normalization into `CanonicalProgram`
+- File-per-program persistence (injectable)
+- Separate discovery and enrichment stages
+- Honest `college`/`department` missing states (`unknown`/`source_missing`/`available`)
+- Application vs. accept/decline deadline distinction
+- Optional `Overview.stem_designated`
+
+### Implemented as extension points only (declared, not wired)
+
+- University Catalog source tier (3)
+- International / CIE source tier (5)
+- CPaCE source tier (6)
+- Official PDF source tier (7)
+- Field-driven continuation beyond the first official program page
+
+### Deferred
+
+- Live HTML calibration against the real index/program pages
+- Real 2–3 program normalization from live sources
+- Full master's inventory ingestion
+- Cycle-year policy for deadlines
+- International-source wiring
+- Retrieval projection (`CanonicalProgram` → `RetrievalDocument`)
+- Chroma experiment collection (`csulb_masters_exp_frozen_v1`)
+- Frozen experiment subset + manifest
+- Train / validation / test authoring
+- Track A (base + RAG), Track B (LoRA/QLoRA), optional Track C
+- Freshness experiment
+- Fine-tuning, vLLM benchmarking, and production integration of any fine-tuned model
+
+## Diagrams
+
+### Implemented ingestion flow
+
+```mermaid
+flowchart TD
+  SRC["Official CSULB sources<br/>(index + program page)"]
+  DISC["Discovery<br/>DiscoveryManifest"]
+  SNAP["SnapshotStore<br/>immutable, content-addressed"]
+  EXT["Extraction<br/>raw candidate facts"]
+  NORM["Normalization<br/>CanonicalProgram"]
+  VAL["Deterministic validation<br/>structured findings"]
+  PERSIST["File-per-program persistence<br/>data/masters/programs/*.json"]
+
+  SRC --> DISC
+  SRC --> SNAP
+  DISC --> EXT
+  SNAP --> EXT
+  EXT --> NORM
+  SNAP --> NORM
+  NORM --> VAL
+  VAL --> PERSIST
+```
+
+### Deferred retrieval boundary (not implemented)
+
+```mermaid
+flowchart LR
+  CP["CanonicalProgram"]
+  RDOC["RetrievalDocument projection"]
+  CHUNK["Existing chunker"]
+  EMB["Embeddings"]
+  VS[("Vector store")]
+
+  CP -.->|DEFERRED| RDOC -.-> CHUNK -.-> EMB -.-> VS
+```
+
+All components on the deferred boundary are future work; none are implemented in
+commit `1fac8f5`.
