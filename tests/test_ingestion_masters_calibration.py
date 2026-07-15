@@ -122,6 +122,94 @@ class TestExtractionCalibration(unittest.TestCase):
         self.assertIn("Introduction to Widgets", f.prerequisites)
 
 
+# ── P4.1 overview-extraction layouts (synthetic reproductions) ────────────────
+# Generic College-of-Liberal-Arts landing page: carousel + college-marketing
+# banner + news headings, with NO program-specific overview.
+_CLA_GENERIC_LAYOUT = b"""
+<html><body><main>
+  <p>This is a carousel. Use next and previous buttons to navigate or jump to
+     specific slides with the numbered "go to slide" buttons.</p>
+  <p>The College of Liberal Arts at CSULB is the largest college on campus, with
+     thirty-one excellent departments and programs across the humanities.</p>
+  <h3>Beach alumni leave gift to inspire the next generation of journalists</h3>
+  <h3>Student Spotlight: a profile of a graduating senior</h3>
+</main></body></html>
+"""
+
+_HEADING_ANCHORED = b"""
+<html><body><main>
+  <p>Apply now for the upcoming term.</p>
+  <h2>About the Program</h2>
+  <p>The Master of Arts in Widget Studies is a two-year program emphasizing
+     applied widget research and design across three concentrations.</p>
+</main></body></html>
+"""
+
+_DEGREE_OVERVIEW_HEADING = b"""
+<html><body><main>
+  <h2>Degree Overview</h2>
+  <p>The MS in Gadget Engineering develops advanced expertise in gadget systems,
+     reliability, and testing for industry and research careers.</p>
+</main></body></html>
+"""
+
+_WIDGET_ONLY = b"""
+<html><body><main>
+  <p>This is a carousel. Use next and previous buttons to navigate.</p>
+</main></body></html>
+"""
+
+_NAV_FOOTER_BODY = b"""
+<html><body>
+  <nav>Home Apply Programs Give GMAT/GRE Not Required</nav>
+  <p>The Master of Science in Bar Science is a professional program preparing
+     working professionals in bar analysis, methods, and reproducible practice.</p>
+  <footer>1250 Bellflower Boulevard Long Beach, California 90840 562.985.4111</footer>
+</body></html>
+"""
+
+
+class TestOverviewCalibrationP41(unittest.TestCase):
+    def test_cla_generic_layout_yields_no_overview(self):
+        f = extract_program_page(_CLA_GENERIC_LAYOUT, source_id="s")
+        self.assertIsNone(f.overview_text)  # honest source_missing, not boilerplate
+
+    def test_heading_anchored_overview(self):
+        f = extract_program_page(_HEADING_ANCHORED, source_id="s")
+        self.assertTrue(f.overview_text.startswith("The Master of Arts in Widget Studies"))
+
+    def test_degree_overview_heading(self):
+        f = extract_program_page(_DEGREE_OVERVIEW_HEADING, source_id="s")
+        self.assertTrue(f.overview_text.startswith("The MS in Gadget Engineering"))
+
+    def test_carousel_widget_rejected(self):
+        self.assertIsNone(extract_program_page(_WIDGET_ONLY, source_id="s").overview_text)
+
+    def test_navigation_and_footer_rejected_in_body_fallback(self):
+        f = extract_program_page(_NAV_FOOTER_BODY, source_id="s")
+        self.assertTrue(f.overview_text.startswith("The Master of Science in Bar Science"))
+        self.assertNotIn("Bellflower", f.overview_text)
+        self.assertNotIn("GRE", f.overview_text or "")
+
+    def test_source_missing_fallback_propagates_through_normalization(self):
+        from domain.programs.enums import DataStatus
+        from ingestion.masters.extraction import extract_program_page as _extract
+        from ingestion.masters.manifest import DiscoveredProgram
+        from ingestion.masters.normalization import normalize_program
+        facts = _extract(_CLA_GENERIC_LAYOUT, source_id="src-program")
+        discovered = DiscoveredProgram(
+            raw_listing_name="Foo (MA)", normalized_program_name="Foo", degree_label="MA",
+            official_program_url="https://www.csulb.edu/foo", fall_application_deadline="March 1")
+        program, _ = normalize_program(
+            discovered, index_source_id="src-index", program_facts=facts,
+            program_source_id="src-program", sources=[_index_source(),
+                Source(source_id="src-program", source_url="https://www.csulb.edu/foo",
+                       source_type=SourceType.PROGRAM_PAGE, official=True, fetched_at=NOW,
+                       last_verified=NOW.date(), content_hash="sha256:pg",
+                       extraction_method=ExtractionMethod.HTML_PARSE)], now=NOW)
+        self.assertEqual(program.overview.official_summary.data_status, DataStatus.SOURCE_MISSING)
+
+
 class TestDeadlinePolicyNoFabricatedDates(unittest.TestCase):
     def test_published_text_preserved_and_no_iso_date(self):
         manifest = discover_from_html(INDEX, source_url="https://example.edu/index", discovered_at=NOW)

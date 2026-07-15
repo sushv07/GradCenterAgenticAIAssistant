@@ -30,6 +30,19 @@ _MAX_SENTENCE = 320  # a real requirement sentence; longer = nav/boilerplate blo
 _BOILERPLATE = re.compile(
     r"\d{3,}\s+[A-Z].*(BOULEVARD|STREET|AVENUE|DRIVE|BLVD|LONG BEACH|CALIFORNIA \d{5})",
     re.IGNORECASE)
+# Non-program boilerplate observed on real pages: accessibility/carousel widgets,
+# navigation, cookie banners, and repeated generic college-marketing banners
+# (e.g. CLA department landing pages that carry no program-specific overview).
+_BOILERPLATE_MARKERS = (
+    "this is a carousel", "use next and previous", "go to slide",
+    "skip to main content", "javascript is required", "javascript is disabled",
+    "cookie", "largest college on campus", "educational focal point",
+)
+# Headings that reliably anchor a genuine program overview.
+_OVERVIEW_HEADING = re.compile(
+    r"program overview|degree overview|about the program|about the master|"
+    r"graduate program overview|^\s*overview\s*$|^\s*about\s*$",
+    re.IGNORECASE)
 _MAIN_SELECTORS = ("main", "[role=main]", "#main-content", "#content", "article")
 
 
@@ -63,13 +76,19 @@ def _main_content(soup: BeautifulSoup):
 
 
 def _looks_boilerplate(text: str) -> bool:
-    return bool(_BOILERPLATE.search(text))
+    low = (text or "").lower()
+    if _BOILERPLATE.search(text or ""):
+        return True
+    return any(marker in low for marker in _BOILERPLATE_MARKERS)
 
 
 def _overview(main) -> Optional[str]:
+    """Heading-anchored first, then a conservative positional fallback. Any
+    boilerplate/widget/marketing/address text is rejected. When nothing
+    trustworthy is found, return None so normalization records source_missing —
+    an overview is never fabricated from questionable text."""
     for h in main.find_all(re.compile(r"^h[1-6]$")):
-        if re.search(r"program overview|^\s*overview\s*$|about the program",
-                     h.get_text(" ", strip=True), re.IGNORECASE):
+        if _OVERVIEW_HEADING.search(h.get_text(" ", strip=True)):
             p = h.find_next("p")
             if p:
                 t = _clean(p.get_text(" ", strip=True))

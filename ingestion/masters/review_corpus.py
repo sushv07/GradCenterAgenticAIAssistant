@@ -31,22 +31,30 @@ from ingestion.masters.persistence import load_program
 from ingestion.masters.snapshots import SnapshotStore, snapshot_to_source
 from ingestion.masters.sources_policy import GRADUATE_STUDIES_MASTERS_INDEX_URL
 
-# Curated P4 selection — diverse colleges, degree types, and page layouts/hosts.
+# Curated selection — diverse colleges, degree types, and page layouts/hosts.
 # All names are unique in the index and map to a single program page.
+#
+# P4.1: the cla.csulb.edu department pages (Creative Writing, Economics, English,
+# Geography, History) were dropped from the frozen selection. Those URLs resolve
+# to GENERIC College-of-Liberal-Arts landing pages that carry no program-specific
+# overview (only a carousel + college-marketing banners + news). Extraction now
+# honestly returns source_missing for them rather than fabricating an overview;
+# recovering their overviews needs discovery-granularity work (targeting the true
+# program page), which is out of scope here. They are replaced by programs whose
+# official pages genuinely publish an overview — quality is raised, not lowered.
 SELECTED_PROGRAMS: tuple[str, ...] = (
-    "Accountancy",                              # MS  · cob-graduate-programs
-    "Athletic Training",                        # MS  · kinesiology
-    "Social Work",                              # MSW · school-of-social-work
+    "Accountancy",                                 # MS  · cob-graduate-programs
+    "Athletic Training",                           # MS  · kinesiology
+    "Social Work",                                 # MSW · school-of-social-work
     "Public Health - Community Health Education",  # MPH · health-science
-    "Creative Writing",                         # MFA · cla/english
-    "English",                                  # MA  · cla/english
-    "Geography",                                # MA  · cla/geography
-    "Music",                                     # MM  · web.csulb.edu (distinct host)
-    "International Affairs",                     # MA  · cpace.csulb.edu (CPaCE)
-    "Philosophy",                               # MA  · www.cla.csulb.edu (distinct subdomain)
-    "History",                                  # MA  · cla/history
-    "Speech-Language Pathology",                # MA  · health-human-services
-    "Economics",                                # MA  · cla/economics (http)
+    "Speech-Language Pathology",                   # MA  · health-human-services
+    "Health Care Management",                      # Accelerated MS · health-care-admin
+    "Music",                                       # MM  · web.csulb.edu (distinct host)
+    "International Affairs",                        # MA  · cpace.csulb.edu (CPaCE)
+    "Philosophy",                                  # MA  · www.cla.csulb.edu
+    "Art",                                         # MFA · school-of-art
+    "Early Childhood Education",                   # MA  · college-of-education
+    "Public Administration",                       # MPA · public-policy-administration
 )
 
 
