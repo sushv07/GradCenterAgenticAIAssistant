@@ -1,0 +1,30 @@
+{
+  "index_version": "index-0.1",
+  "collection_name": "masters_track_a_v1",
+  "corpus_version": "1.0",
+  "freeze_id": "masters-frozen-v1",
+  "projection_version": "projection-0.1",
+  "projection_checksum": "sha256:ab4168eba81482d66e30cad27a5d3d293ba2b5ca3e41e6b2458696f025f7faa1",
+  "chunking_version": "chunking-0.1",
+  "chunk_checksum": "sha256:73c670fb02c829b371c8941732f087c00740af14b0e06b5a174d213c73456e67",
+  "embedding_model": "all-MiniLM-L6-v2",
+  "embedding_dimension": 384,
+  "normalization": true,
+  "embedding_library": "sentence-transformers",
+  "embedding_library_version": "5.4.1",
+  "device_policy": "cpu",
+  "vector_count": 41,
+  "metadata_schema_version": "chunk-metadata-1",
+  "build_status": "ok",
+  "build_timestamp": "2026-07-14T00:00:00+00:00",
+  "git_commit": "351dccf-p6",
+  "chroma_version": "1.5.8",
+  "chroma_persistence_path": "/Users/sushmithavijayakumar/Documents/ClaudeCode/GradCenterAgenticAIAssistant/experiments/rag_vs_finetuning/artifacts/chroma/masters_track_a_v1",
+  "distance_metric": "cosine",
+  "collection_identity_hash": "sha256:38a108238ee9f27a90c48bc37e20928aba9e962da7370f704d111300845045f7",
+  "verification": {
+    "vector_count": 41,
+    "missing": 0,
+    "extra": 0
+  }
+}

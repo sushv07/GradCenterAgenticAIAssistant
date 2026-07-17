@@ -4968,3 +4968,88 @@ Pydantic, and `domain` (never ingestion/LangChain/Chroma/embeddings/RAG); the
 freeze tool may import `ingestion` (it materializes via the pipeline) but no
 infra/RAG. No `" 2"` duplicate file is referenced; no vector store or model
 weight is created.
+
+---
+
+# Phase P6 — Deterministic Chunking, Embeddings & Isolated Experiment Vector Index
+
+**Branch:** `feature/masters-canonical-schema` · **code baseline:** `351dccf`
+
+P6 builds the retrieval substrate for the experiment:
+`RetrievalDocument → RetrievalChunk → Embedding → isolated Chroma collection`.
+It stays fully isolated from production (no production RAG/routing/orchestration/
+API/doctoral-taxonomy changes; the frozen P5 records and projection output are
+not modified) and adds **no** LLM generation, retrieval orchestration, reranking,
+or evaluation. New code lives under `experiments/rag_vs_finetuning/{chunking,
+embeddings,index,configs}`.
+
+## Chunking
+
+Section-aware, **character-based** (`unit=characters`, explicitly not tokens).
+Config `chunk_size_characters=500`, `chunk_overlap_characters=75` (the repo's
+long-standing 500/75, confirmed to be characters). Because projected sections are
+already coherent and short (avg 156 chars), 37 of 39 documents fit as one chunk;
+2 overview documents (>500 chars) split into two 500-char windows with 75-char
+overlap → **41 chunks** total. `RetrievalChunk` is engine-independent Pydantic
+(no LangChain/Chroma/vector) carrying `chunk_id` (`"<document_id>::chunk::<NNN>"`),
+offsets, `token_count` (whitespace word approximation, informational),
+`source_references`, `canonical_record_hash`, `content_hash`, and versions.
+Deterministic: identical input + config ⇒ identical chunks/IDs/offsets/ordering/
+`aggregate_chunk_checksum`. Artifacts: committed `data/chunks/chunks.jsonl` +
+`data/manifests/chunk_manifest.json`. A changed config without a new
+`chunking_version` fails rather than overwriting.
+
+## Embedding
+
+Model `all-MiniLM-L6-v2` (= `sentence-transformers/all-MiniLM-L6-v2`, dim **384**),
+`normalize=true`, `device=cpu`, via **sentence-transformers directly** (no
+LangChain wrapper, no new dependency — the package is already in
+`requirements_backend.txt`). The embedder validates empty content, dimension, and
+NaN/inf, and preserves input ordering. A deterministic `FakeEmbedder` powers the
+default offline test suite (no downloads); a separately-guarded integration test
+uses the real model only when locally available. Reproducibility is scoped:
+within one locked environment IDs/ordering/count/dimension/metadata are stable;
+bit-for-bit float equality across different hardware/library backends is **not**
+claimed.
+
+## Isolated Chroma index
+
+Chroma `PersistentClient` under the **git-ignored**
+`experiments/rag_vs_finetuning/artifacts/chroma/masters_track_a_v1`, collection
+`masters_track_a_v1`, cosine distance. The Chroma record id equals the stable
+`chunk_id`. Flat primitive metadata preserves full provenance (`source_ids`,
+`source_hashes`, `canonical_record_hash`, `projection_version`,
+`chunking_version`, `embedding_model`, `section`, degree/level, freshness,
+volatility). The build is idempotent (upsert — no duplicates on rerun), verifies
+exact membership (fails on missing/extra/stale ids and count mismatch), and
+refuses to mix experiment versions (clean rebuild required). The **production**
+Chroma collection (`chroma_db/` / `csulb_grad_center`) is never reused or
+modified. A committed `data/manifests/index_manifest.json` records the collection
+name, all versions/checksums, embedding model + library version, dimension,
+normalization, device, vector count, Chroma version, persistence path, and a
+deterministic `collection_identity_hash` (excludes the build timestamp). The
+Chroma DB itself is generated and git-ignored; it is rebuildable from the
+committed frozen corpus + projection JSONL + chunks JSONL + manifests + config.
+
+## Inspection
+
+`python -m experiments.rag_vs_finetuning.index.cli {summary|program <id>|chunk <chunk_id>|verify}`
+inspects the collection without any LLM. A minimal non-LLM vector-search smoke
+confirmed the collection is queryable; no retrieval-quality conclusions are drawn
+(that belongs to P7).
+
+## Architecture boundaries (AST-tested)
+
+`chromadb` is imported only under `index/`; the chunk model imports no
+Chroma/LangChain; `domain/programs` and `ingestion/masters` import no
+Chroma/sentence-transformers/experiments; production imports no `experiments`;
+projection stays domain-only. No `" 2"` file is referenced. Generated Chroma /
+weight artifacts live only under the git-ignored `artifacts/`.
+
+## P6 → P7 boundary (deferred)
+
+Deferred, not implemented in P6: production retrieval integration, the final
+query pipeline, prompt construction, LLM answer generation, answer citations,
+Track A evaluation, Track B (LoRA/QLoRA) fine-tuning, Track C hybrid, and
+comparison metrics. The verified vector index is the input for **P7 — Track A
+Pure RAG baseline**.

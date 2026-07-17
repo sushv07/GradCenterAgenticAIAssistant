@@ -1,37 +1,52 @@
-# RAG-vs-fine-tuning experiment configuration (Phase P5).
-# This phase only materializes the frozen corpus and the retrieval projection.
-# No model is chosen; no chunking/embedding/Chroma/retrieval/generation/tuning.
+# RAG-vs-fine-tuning experiment configuration.
+# P5 = frozen corpus + projection. P6 = chunking + embeddings + isolated Chroma.
+# No model comparison, no LLM generation, no fine-tuning here.
 
 experiment_id: rag_vs_finetuning
 code_baseline_commit: 5d41314
 
-frozen_corpus:
+corpus:
   freeze_id: masters-frozen-v1
   corpus_version: "1.0"
   schema_version: masters-1.0
   data_root: experiments/rag_vs_finetuning/data
-  manifest: experiments/rag_vs_finetuning/data/manifests/freeze_manifest.json
   record_count: 12
 
 projection:
-  projection_version: projection-0.1
+  version: projection-0.1
   output: experiments/rag_vs_finetuning/data/projected_documents/documents.jsonl
   sections: [overview, admissions, application, contact]
 
-# Reserved experiment vector store — NOT created in P5.
-experiment_vector_store:
-  collection_name: csulb_masters_exp_frozen_v1
-  persist_dir: experiments/rag_vs_finetuning/artifacts/chroma/frozen_v1/   # git-ignored
+chunking:
+  version: chunking-0.1
+  unit: characters          # explicitly characters, NOT tokens
+  size: 500                 # chunk_size_characters
+  overlap: 75               # chunk_overlap_characters
 
-# All deferred to later phases (not implemented here).
+embedding:
+  # Repo config/settings.py uses the alias "all-MiniLM-L6-v2", which resolves to
+  # the same model as sentence-transformers/all-MiniLM-L6-v2 (dimension 384).
+  model: all-MiniLM-L6-v2
+  normalize: true
+  batch_size: 32
+  device: cpu
+  dimension: 384
+
+vector_store:
+  provider: chroma
+  collection_name: masters_track_a_v1
+  persistence_path: experiments/rag_vs_finetuning/artifacts/chroma/masters_track_a_v1   # git-ignored
+  distance_metric: cosine
+  index_version: index-0.1
+
+# All deferred to later phases (not implemented in P6).
 deferred:
-  - chunking
-  - embeddings
-  - experiment_chroma_store
-  - retrieval
-  - llm_generation
-  - track_a_base_plus_rag
+  - production_retrieval_integration
+  - final_query_pipeline
+  - prompt_construction
+  - llm_answer_generation
+  - answer_citations
+  - track_a_evaluation
   - track_b_lora_qlora
-  - track_c_finetuned_plus_rag
-  - freshness_experiment
-  - evaluation_metrics
+  - track_c_hybrid
+  - comparison_metrics

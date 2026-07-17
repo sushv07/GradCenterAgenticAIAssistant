@@ -1,0 +1,447 @@
+{
+  "chunking_version": "chunking-0.1",
+  "projection_version": "projection-0.1",
+  "projection_checksum": "sha256:ab4168eba81482d66e30cad27a5d3d293ba2b5ca3e41e6b2458696f025f7faa1",
+  "configuration": {
+    "version": "chunking-0.1",
+    "unit": "characters",
+    "chunk_size_characters": 500,
+    "chunk_overlap_characters": 75
+  },
+  "document_count": 39,
+  "chunk_count": 41,
+  "chunks_by_section": {
+    "admissions": 3,
+    "application": 12,
+    "contact": 12,
+    "overview": 14
+  },
+  "chunks_by_program": {
+    "accountancy": 3,
+    "art": 4,
+    "athletic-training": 3,
+    "early-childhood-education": 3,
+    "health-care-management": 4,
+    "international-affairs": 5,
+    "music": 3,
+    "philosophy": 3,
+    "public-administration": 3,
+    "public-health-community-health-education": 4,
+    "social-work": 3,
+    "speech-language-pathology": 3
+  },
+  "aggregate_chunk_checksum": "sha256:73c670fb02c829b371c8941732f087c00740af14b0e06b5a174d213c73456e67",
+  "generated_from": "experiments/rag_vs_finetuning/data/projected_documents/documents.jsonl",
+  "chunks": [
+    {
+      "chunk_id": "accountancy::application::chunk::000",
+      "document_id": "accountancy::application",
+      "program_id": "accountancy",
+      "section": "application",
+      "chunk_checksum": "sha256:2ac06561b33150e42d7b9c66a20a5daf01fc1dab1a09de0c22783800d44db8eb",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "accountancy::contact::chunk::000",
+      "document_id": "accountancy::contact",
+      "program_id": "accountancy",
+      "section": "contact",
+      "chunk_checksum": "sha256:5a48228b1f5ddf8f345ac842204e04fcecd1de5993d9530f2e6deb70c2147b4b",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "accountancy::overview::chunk::000",
+      "document_id": "accountancy::overview",
+      "program_id": "accountancy",
+      "section": "overview",
+      "chunk_checksum": "sha256:cb0868b0165689c8e0750390195fe1d6ba89c9ef7ae75aa14e2e1b06177e844c",
+      "source_hashes": [
+        "sha256:e0cf5ea4a9a42c3136bf23bce26ef355df1bb325a674da09facc23a585e14dfe"
+      ]
+    },
+    {
+      "chunk_id": "art::admissions::chunk::000",
+      "document_id": "art::admissions",
+      "program_id": "art",
+      "section": "admissions",
+      "chunk_checksum": "sha256:f243f9744e6b6af5103e0d8d004d50fa16965670da9f1e9ee34b760ed84583b1",
+      "source_hashes": [
+        "sha256:d2c8ecdf98d78b07b1f20c658bb00e64ad27c63000829b76ad6cd3e25bd08fe5"
+      ]
+    },
+    {
+      "chunk_id": "art::application::chunk::000",
+      "document_id": "art::application",
+      "program_id": "art",
+      "section": "application",
+      "chunk_checksum": "sha256:19e4a3f497cf7a0260fcbbd0d49a21acd1fc06b091dc17514e3ddf7ee5b5b8fa",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "art::contact::chunk::000",
+      "document_id": "art::contact",
+      "program_id": "art",
+      "section": "contact",
+      "chunk_checksum": "sha256:8cae09af5a71d594cdf8ea99423c56005db2184b94ae3c74002349a49cc7717b",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "art::overview::chunk::000",
+      "document_id": "art::overview",
+      "program_id": "art",
+      "section": "overview",
+      "chunk_checksum": "sha256:742514bf58f0dd8673def81bd0b845b697b4e63a215791a7ee3ecca008263b8d",
+      "source_hashes": [
+        "sha256:d2c8ecdf98d78b07b1f20c658bb00e64ad27c63000829b76ad6cd3e25bd08fe5"
+      ]
+    },
+    {
+      "chunk_id": "athletic-training::application::chunk::000",
+      "document_id": "athletic-training::application",
+      "program_id": "athletic-training",
+      "section": "application",
+      "chunk_checksum": "sha256:dd12061e8537c461117cb3db0eb46998465eebf5889cde539796f108816a53df",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "athletic-training::contact::chunk::000",
+      "document_id": "athletic-training::contact",
+      "program_id": "athletic-training",
+      "section": "contact",
+      "chunk_checksum": "sha256:757c95809ea56020ac89adedab632454412197a1a807a8fce41f66b6e55dbae9",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "athletic-training::overview::chunk::000",
+      "document_id": "athletic-training::overview",
+      "program_id": "athletic-training",
+      "section": "overview",
+      "chunk_checksum": "sha256:6a9f3d1d002b945ef54c8b8a14935b9c313e11d709cd7c693fe1aa88728d45db",
+      "source_hashes": [
+        "sha256:70e387896fd50583d4b74c5a892f4a73a88c9cf42eed3c7a6176c77138185d4a"
+      ]
+    },
+    {
+      "chunk_id": "early-childhood-education::application::chunk::000",
+      "document_id": "early-childhood-education::application",
+      "program_id": "early-childhood-education",
+      "section": "application",
+      "chunk_checksum": "sha256:92db62161d846f9f912a9b74229fcd723f3775aca7de9461f6d75d99e89dfcb5",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "early-childhood-education::contact::chunk::000",
+      "document_id": "early-childhood-education::contact",
+      "program_id": "early-childhood-education",
+      "section": "contact",
+      "chunk_checksum": "sha256:be27fbe22e9f1ecd6620b430df76751f618f264e0ee8bd1a712c1b9d5e971d7e",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "early-childhood-education::overview::chunk::000",
+      "document_id": "early-childhood-education::overview",
+      "program_id": "early-childhood-education",
+      "section": "overview",
+      "chunk_checksum": "sha256:f49fb715df82cd76111dad18a2e62d9498ea5810a094e02696cf273e6ef73856",
+      "source_hashes": [
+        "sha256:77ed83bbb4b4801437f2fdb8ce4e29525fcda2838a92cb13de4eb360346a9dc1"
+      ]
+    },
+    {
+      "chunk_id": "health-care-management::admissions::chunk::000",
+      "document_id": "health-care-management::admissions",
+      "program_id": "health-care-management",
+      "section": "admissions",
+      "chunk_checksum": "sha256:f243f9744e6b6af5103e0d8d004d50fa16965670da9f1e9ee34b760ed84583b1",
+      "source_hashes": [
+        "sha256:a58e749d9f9c0b6ebcbf0f5ee5b051555ad5144721394c3ec3a8243cc2a8cb3d"
+      ]
+    },
+    {
+      "chunk_id": "health-care-management::application::chunk::000",
+      "document_id": "health-care-management::application",
+      "program_id": "health-care-management",
+      "section": "application",
+      "chunk_checksum": "sha256:92db62161d846f9f912a9b74229fcd723f3775aca7de9461f6d75d99e89dfcb5",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "health-care-management::contact::chunk::000",
+      "document_id": "health-care-management::contact",
+      "program_id": "health-care-management",
+      "section": "contact",
+      "chunk_checksum": "sha256:8780d89e0a9e47adfa9711841f20d77ef9050bf95ef19ea28e0a8382243e040d",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "health-care-management::overview::chunk::000",
+      "document_id": "health-care-management::overview",
+      "program_id": "health-care-management",
+      "section": "overview",
+      "chunk_checksum": "sha256:7a65c5b81959ee4e9e62041f0087d8ae9c60358d6da0b2c9fbfccb968d926f70",
+      "source_hashes": [
+        "sha256:a58e749d9f9c0b6ebcbf0f5ee5b051555ad5144721394c3ec3a8243cc2a8cb3d"
+      ]
+    },
+    {
+      "chunk_id": "international-affairs::admissions::chunk::000",
+      "document_id": "international-affairs::admissions",
+      "program_id": "international-affairs",
+      "section": "admissions",
+      "chunk_checksum": "sha256:d8159a51378cfeaf262cbb4433f719083b1be0588e4a94667093d46454f3f495",
+      "source_hashes": [
+        "sha256:18ad78361f636c0544651fc2a414e7b4fd6b6b42204c9b507aceb3761269090f"
+      ]
+    },
+    {
+      "chunk_id": "international-affairs::application::chunk::000",
+      "document_id": "international-affairs::application",
+      "program_id": "international-affairs",
+      "section": "application",
+      "chunk_checksum": "sha256:92db62161d846f9f912a9b74229fcd723f3775aca7de9461f6d75d99e89dfcb5",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "international-affairs::contact::chunk::000",
+      "document_id": "international-affairs::contact",
+      "program_id": "international-affairs",
+      "section": "contact",
+      "chunk_checksum": "sha256:9b3d968f8ca6e54dc378c08cbde1e953048163fd9ffb2140ff7f3aeffa7d92c6",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "international-affairs::overview::chunk::000",
+      "document_id": "international-affairs::overview",
+      "program_id": "international-affairs",
+      "section": "overview",
+      "chunk_checksum": "sha256:119327a1b90f2423d1390907d15c0f18a2cf082a1a5a00897879e8f6ac7f69a9",
+      "source_hashes": [
+        "sha256:18ad78361f636c0544651fc2a414e7b4fd6b6b42204c9b507aceb3761269090f"
+      ]
+    },
+    {
+      "chunk_id": "international-affairs::overview::chunk::001",
+      "document_id": "international-affairs::overview",
+      "program_id": "international-affairs",
+      "section": "overview",
+      "chunk_checksum": "sha256:5826d569c656767aff0f38dd04ed55aadf8ac111949ff477e3f7aa9e721e9590",
+      "source_hashes": [
+        "sha256:18ad78361f636c0544651fc2a414e7b4fd6b6b42204c9b507aceb3761269090f"
+      ]
+    },
+    {
+      "chunk_id": "music::application::chunk::000",
+      "document_id": "music::application",
+      "program_id": "music",
+      "section": "application",
+      "chunk_checksum": "sha256:19e4a3f497cf7a0260fcbbd0d49a21acd1fc06b091dc17514e3ddf7ee5b5b8fa",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "music::contact::chunk::000",
+      "document_id": "music::contact",
+      "program_id": "music",
+      "section": "contact",
+      "chunk_checksum": "sha256:eb92f7ad6cb66d8895734669a04696cd8a026f29638211f5c75f1ed52481f1b3",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "music::overview::chunk::000",
+      "document_id": "music::overview",
+      "program_id": "music",
+      "section": "overview",
+      "chunk_checksum": "sha256:d3d194b8422c879842079d1439d4a5220217e18ccbb5c1574da2782f8c47a940",
+      "source_hashes": [
+        "sha256:1563a7ceb0df6f127e38c7453b881b02bf11ec07c7621eeeb039dcd0be6587ee"
+      ]
+    },
+    {
+      "chunk_id": "philosophy::application::chunk::000",
+      "document_id": "philosophy::application",
+      "program_id": "philosophy",
+      "section": "application",
+      "chunk_checksum": "sha256:d3b95f46b1bc612ee76a7d386c4d2d94bb2f970e6299d7338462f33099d2ba52",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "philosophy::contact::chunk::000",
+      "document_id": "philosophy::contact",
+      "program_id": "philosophy",
+      "section": "contact",
+      "chunk_checksum": "sha256:a27301c681a09a878204baae4403e40fdb3ac8180861dc035ed7a41a54040049",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "philosophy::overview::chunk::000",
+      "document_id": "philosophy::overview",
+      "program_id": "philosophy",
+      "section": "overview",
+      "chunk_checksum": "sha256:e05b9e7b8b52a5c9408e07424e025178fe9451445c9bedd31f56e9c503700526",
+      "source_hashes": [
+        "sha256:43e507ad61b415eca0d54eaffafbb61eddbb876c104995aca52f260028d854c0"
+      ]
+    },
+    {
+      "chunk_id": "public-administration::application::chunk::000",
+      "document_id": "public-administration::application",
+      "program_id": "public-administration",
+      "section": "application",
+      "chunk_checksum": "sha256:d3b95f46b1bc612ee76a7d386c4d2d94bb2f970e6299d7338462f33099d2ba52",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "public-administration::contact::chunk::000",
+      "document_id": "public-administration::contact",
+      "program_id": "public-administration",
+      "section": "contact",
+      "chunk_checksum": "sha256:eaa5faf0ec16cf3cf31efec9696ba9f579f119fb65f0bf3dc16a13e521be148f",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "public-administration::overview::chunk::000",
+      "document_id": "public-administration::overview",
+      "program_id": "public-administration",
+      "section": "overview",
+      "chunk_checksum": "sha256:a06ca3292a4d32f21f9b37b71efe3bb73fed50425add819751e94550ae28e7f3",
+      "source_hashes": [
+        "sha256:468fa3f775a62cab7b5e51d177040eebdca111a979e9df3d854555a282e96f88"
+      ]
+    },
+    {
+      "chunk_id": "public-health-community-health-education::application::chunk::000",
+      "document_id": "public-health-community-health-education::application",
+      "program_id": "public-health-community-health-education",
+      "section": "application",
+      "chunk_checksum": "sha256:edfbec43c5a835b431009db8a464e14b2796bd0c48801da3c0588fa91662e546",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "public-health-community-health-education::contact::chunk::000",
+      "document_id": "public-health-community-health-education::contact",
+      "program_id": "public-health-community-health-education",
+      "section": "contact",
+      "chunk_checksum": "sha256:26517ed7bd3ce7d0c4d5748a5a4d21aa7f8166c36e1519b3b5398da72627b112",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "public-health-community-health-education::overview::chunk::000",
+      "document_id": "public-health-community-health-education::overview",
+      "program_id": "public-health-community-health-education",
+      "section": "overview",
+      "chunk_checksum": "sha256:ea436dff7a221494e17730215dfeef818746d13a019872f70aa6c6d640b2b82f",
+      "source_hashes": [
+        "sha256:447608ac34a365e6a5ea78389d2f015278112f159f4e7e9e97f89a47bd5fe25d"
+      ]
+    },
+    {
+      "chunk_id": "public-health-community-health-education::overview::chunk::001",
+      "document_id": "public-health-community-health-education::overview",
+      "program_id": "public-health-community-health-education",
+      "section": "overview",
+      "chunk_checksum": "sha256:6757650bcebee044850ba99e31118c2a67b8bb8618fde206cbfbcf91227fd6fb",
+      "source_hashes": [
+        "sha256:447608ac34a365e6a5ea78389d2f015278112f159f4e7e9e97f89a47bd5fe25d"
+      ]
+    },
+    {
+      "chunk_id": "social-work::application::chunk::000",
+      "document_id": "social-work::application",
+      "program_id": "social-work",
+      "section": "application",
+      "chunk_checksum": "sha256:76d735416c0cf7b3bcb9a8f4906ec69c9894035e832ed40b596b392c8a1c1728",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "social-work::contact::chunk::000",
+      "document_id": "social-work::contact",
+      "program_id": "social-work",
+      "section": "contact",
+      "chunk_checksum": "sha256:f7c6b6c1c220ae27a72a6671cff5fad1515c9154f7e72a0ee105278dec92ae4d",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "social-work::overview::chunk::000",
+      "document_id": "social-work::overview",
+      "program_id": "social-work",
+      "section": "overview",
+      "chunk_checksum": "sha256:778b6f1b86e4f9fc00014eb7841cbbd78dce5408c92bf39049537a6ff7004027",
+      "source_hashes": [
+        "sha256:ce2d972dfc7d2ef4f585b04eb0f7531823192b35d8dee2010e1053f7454c3b70"
+      ]
+    },
+    {
+      "chunk_id": "speech-language-pathology::application::chunk::000",
+      "document_id": "speech-language-pathology::application",
+      "program_id": "speech-language-pathology",
+      "section": "application",
+      "chunk_checksum": "sha256:76d735416c0cf7b3bcb9a8f4906ec69c9894035e832ed40b596b392c8a1c1728",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "speech-language-pathology::contact::chunk::000",
+      "document_id": "speech-language-pathology::contact",
+      "program_id": "speech-language-pathology",
+      "section": "contact",
+      "chunk_checksum": "sha256:d051d24934d1e0b096d9aceeb4fb074ebe783c6792cd4773be4823b3dc04db5a",
+      "source_hashes": [
+        "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4"
+      ]
+    },
+    {
+      "chunk_id": "speech-language-pathology::overview::chunk::000",
+      "document_id": "speech-language-pathology::overview",
+      "program_id": "speech-language-pathology",
+      "section": "overview",
+      "chunk_checksum": "sha256:5df53d9552586b787fba276821782598b9208dc099f8e8ce95bec9b008b77a75",
+      "source_hashes": [
+        "sha256:82be8ffe3820cdaf278c22ed76312811aef9e08e47bea7cae8ddda1cd96dfc8c"
+      ]
+    }
+  ]
+}

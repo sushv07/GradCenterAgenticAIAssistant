@@ -26,7 +26,9 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 ROOT = Path(__file__).parent.parent
 DOMAIN_PKG = ROOT / "domain"
-_SKIP_DIRS = {".venv", "venv", "__pycache__", ".git", "node_modules", "chroma_db"}
+_SKIP_DIRS = {".venv", "venv", "__pycache__", ".git", "node_modules", "chroma_db",
+              # git-ignored generated experiment artifacts (Chroma DB, weights)
+              "artifacts", "checkpoints", "models"}
 
 # Infrastructure / framework roots the canonical domain must never import.
 _FORBIDDEN_IMPORT_ROOTS = {

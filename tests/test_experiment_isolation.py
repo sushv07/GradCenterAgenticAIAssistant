@@ -94,6 +94,32 @@ class TestProductionDoesNotImportExperiments(unittest.TestCase):
         self.assertEqual(offenders, [], f"production imports experiments: {offenders}")
 
 
+class TestP6Boundaries(unittest.TestCase):
+    def test_chunk_model_does_not_import_chroma_or_langchain(self):
+        offenders = []
+        for p in _py(EXP / "rag_vs_finetuning" / "chunking"):
+            bad = _roots(p) & {"chromadb", "chroma", "langchain", "langchain_community"}
+            if bad:
+                offenders.append(f"{p.relative_to(ROOT)}: {sorted(bad)}")
+        self.assertEqual(offenders, [], f"chunking imports chroma/langchain: {offenders}")
+
+    def test_chroma_import_confined_to_index_package(self):
+        offenders = []
+        for p in _py(EXP):
+            if "chromadb" in _roots(p) and p.parent.name != "index":
+                offenders.append(str(p.relative_to(ROOT)))
+        self.assertEqual(offenders, [], f"chromadb imported outside index/: {offenders}")
+
+    def test_domain_and_ingestion_do_not_import_chroma_or_experiment_index(self):
+        offenders = []
+        for pkg in (ROOT / "domain", ROOT / "ingestion"):
+            for p in _py(pkg):
+                bad = _roots(p) & {"chromadb", "experiments", "sentence_transformers"}
+                if bad:
+                    offenders.append(f"{p.relative_to(ROOT)}: {sorted(bad)}")
+        self.assertEqual(offenders, [], f"domain/ingestion import experiment infra: {offenders}")
+
+
 class TestNoDuplicateRefsOrArtifacts(unittest.TestCase):
     def test_no_space2_imports(self):
         offenders = []
@@ -103,10 +129,14 @@ class TestNoDuplicateRefsOrArtifacts(unittest.TestCase):
                     offenders.append(f"{p.name}: {line.strip()}")
         self.assertEqual(offenders, [], offenders)
 
-    def test_no_vector_store_or_weights(self):
+    def test_no_committed_vector_store_or_weights(self):
+        # artifacts/checkpoints/models are git-ignored generated locations; a
+        # Chroma DB there is expected in P6. Only COMMITTABLE paths must be clean.
+        ignored = {"artifacts", "checkpoints", "models"}
         for pattern in ("chroma.sqlite3", "*.safetensors", "*.bin", "*.gguf", "*.pt"):
-            hits = [p for p in EXP.rglob(pattern) if not any(x in _SKIP for x in p.parts)]
-            self.assertEqual(hits, [], f"unexpected artifact: {hits}")
+            hits = [p for p in EXP.rglob(pattern)
+                    if not any(x in _SKIP or x in ignored for x in p.parts)]
+            self.assertEqual(hits, [], f"unexpected committed artifact: {hits}")
 
 
 if __name__ == "__main__":
