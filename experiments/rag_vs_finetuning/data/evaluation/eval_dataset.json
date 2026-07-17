@@ -1,0 +1,1455 @@
+{
+  "dataset_version": "eval-v1",
+  "frozen": true,
+  "generated_from": "frozen corpus corpus_version 1.0 / chunking-0.1",
+  "case_count": 84,
+  "cases": [
+    {
+      "id": "EVAL-001",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "accountancy",
+      "expected_citation_targets": [
+        "accountancy::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the Accountancy program about?",
+      "program": "accountancy",
+      "category": "overview",
+      "expected_answer": "CPA",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-002",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "art",
+      "expected_citation_targets": [
+        "art::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the Art program about?",
+      "program": "art",
+      "category": "overview",
+      "expected_answer": "Studio Art",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-003",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "athletic-training",
+      "expected_citation_targets": [
+        "athletic-training::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the Athletic Training program about?",
+      "program": "athletic-training",
+      "category": "overview",
+      "expected_answer": "Athletic Training",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-004",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "early-childhood-education",
+      "expected_citation_targets": [
+        "early-childhood-education::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the Early Childhood Education program about?",
+      "program": "early-childhood-education",
+      "category": "overview",
+      "expected_answer": "Early Childhood",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-005",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "health-care-management",
+      "expected_citation_targets": [
+        "health-care-management::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the Health Care Management program about?",
+      "program": "health-care-management",
+      "category": "overview",
+      "expected_answer": "Health",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-006",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "international-affairs",
+      "expected_citation_targets": [
+        "international-affairs::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the International Affairs program about?",
+      "program": "international-affairs",
+      "category": "overview",
+      "expected_answer": "International Affairs",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-007",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "music",
+      "expected_citation_targets": [
+        "music::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the Music program about?",
+      "program": "music",
+      "category": "overview",
+      "expected_answer": "Bob Cole Conservatory",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-008",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "philosophy",
+      "expected_citation_targets": [
+        "philosophy::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the Philosophy program about?",
+      "program": "philosophy",
+      "category": "overview",
+      "expected_answer": "Philosophy",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-009",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "public-administration",
+      "expected_citation_targets": [
+        "public-administration::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the Public Administration program about?",
+      "program": "public-administration",
+      "category": "overview",
+      "expected_answer": "Public Administration",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-010",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "public-health-community-health-education",
+      "expected_citation_targets": [
+        "public-health-community-health-education::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the Public Health - Community Health Education program about?",
+      "program": "public-health-community-health-education",
+      "category": "overview",
+      "expected_answer": "Health Science",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-011",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "social-work",
+      "expected_citation_targets": [
+        "social-work::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the Social Work program about?",
+      "program": "social-work",
+      "category": "overview",
+      "expected_answer": "Social Work",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-012",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "speech-language-pathology",
+      "expected_citation_targets": [
+        "speech-language-pathology::overview::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "grounded in overview chunk",
+      "question": "What is the Speech-Language Pathology program about?",
+      "program": "speech-language-pathology",
+      "category": "overview",
+      "expected_answer": "Speech-Language",
+      "required_section": "overview"
+    },
+    {
+      "id": "EVAL-013",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "accountancy",
+      "expected_citation_targets": [
+        "accountancy::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for Accountancy?",
+      "program": "accountancy",
+      "category": "application",
+      "expected_answer": "June 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-014",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "art",
+      "expected_citation_targets": [
+        "art::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for Art?",
+      "program": "art",
+      "category": "application",
+      "expected_answer": "February 15",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-015",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "athletic-training",
+      "expected_citation_targets": [
+        "athletic-training::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for Athletic Training?",
+      "program": "athletic-training",
+      "category": "application",
+      "expected_answer": "April 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-016",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "early-childhood-education",
+      "expected_citation_targets": [
+        "early-childhood-education::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for Early Childhood Education?",
+      "program": "early-childhood-education",
+      "category": "application",
+      "expected_answer": "June 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-017",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "health-care-management",
+      "expected_citation_targets": [
+        "health-care-management::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for Health Care Management?",
+      "program": "health-care-management",
+      "category": "application",
+      "expected_answer": "June 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-018",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "international-affairs",
+      "expected_citation_targets": [
+        "international-affairs::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for International Affairs?",
+      "program": "international-affairs",
+      "category": "application",
+      "expected_answer": "June 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-019",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "music",
+      "expected_citation_targets": [
+        "music::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for Music?",
+      "program": "music",
+      "category": "application",
+      "expected_answer": "February 15",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-020",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "philosophy",
+      "expected_citation_targets": [
+        "philosophy::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for Philosophy?",
+      "program": "philosophy",
+      "category": "application",
+      "expected_answer": "June 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-021",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "public-administration",
+      "expected_citation_targets": [
+        "public-administration::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for Public Administration?",
+      "program": "public-administration",
+      "category": "application",
+      "expected_answer": "June 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-022",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "public-health-community-health-education",
+      "expected_citation_targets": [
+        "public-health-community-health-education::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for Public Health - Community Health Education?",
+      "program": "public-health-community-health-education",
+      "category": "application",
+      "expected_answer": "April 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-023",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "social-work",
+      "expected_citation_targets": [
+        "social-work::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for Social Work?",
+      "program": "social-work",
+      "category": "application",
+      "expected_answer": "January 15",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-024",
+      "difficulty": "easy",
+      "acceptable_alternatives": [],
+      "required_program": "speech-language-pathology",
+      "expected_citation_targets": [
+        "speech-language-pathology::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "freshness-sensitive; preserve published wording",
+      "question": "What is the fall application deadline for Speech-Language Pathology?",
+      "program": "speech-language-pathology",
+      "category": "application",
+      "expected_answer": "January 15",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-025",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "COB Graduate Office"
+      ],
+      "required_program": "accountancy",
+      "expected_citation_targets": [
+        "accountancy::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the Accountancy program?",
+      "program": "accountancy",
+      "category": "contact",
+      "expected_answer": "cob-gradprograms@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-026",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "Tanya Piloyan"
+      ],
+      "required_program": "art",
+      "expected_citation_targets": [
+        "art::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the Art program?",
+      "program": "art",
+      "category": "contact",
+      "expected_answer": "Tanya.Piloyan@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-027",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "Dr. Mimi Nakajima"
+      ],
+      "required_program": "athletic-training",
+      "expected_citation_targets": [
+        "athletic-training::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the Athletic Training program?",
+      "program": "athletic-training",
+      "category": "contact",
+      "expected_answer": "Mimi.Nakajima@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-028",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "College of Education Graduate Programs Advising"
+      ],
+      "required_program": "early-childhood-education",
+      "expected_citation_targets": [
+        "early-childhood-education::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the Early Childhood Education program?",
+      "program": "early-childhood-education",
+      "category": "contact",
+      "expected_answer": "ced-gradstudies@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-029",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "Prof. Natalie Whitehouse-Capuano"
+      ],
+      "required_program": "health-care-management",
+      "expected_citation_targets": [
+        "health-care-management::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the Health Care Management program?",
+      "program": "health-care-management",
+      "category": "contact",
+      "expected_answer": "Natalie.Whitehouse-Capuano@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-030",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "Dr. Caitlin Fouratt"
+      ],
+      "required_program": "international-affairs",
+      "expected_citation_targets": [
+        "international-affairs::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the International Affairs program?",
+      "program": "international-affairs",
+      "category": "contact",
+      "expected_answer": "caitlin.fouratt@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-031",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "Tanya Piloyan"
+      ],
+      "required_program": "music",
+      "expected_citation_targets": [
+        "music::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the Music program?",
+      "program": "music",
+      "category": "contact",
+      "expected_answer": "Tanya.Piloyan@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-032",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "Dr. Max Rosenkrantz"
+      ],
+      "required_program": "philosophy",
+      "expected_citation_targets": [
+        "philosophy::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the Philosophy program?",
+      "program": "philosophy",
+      "category": "contact",
+      "expected_answer": "max.rosenkrantz@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-033",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "Dr. Tina Zhao"
+      ],
+      "required_program": "public-administration",
+      "expected_citation_targets": [
+        "public-administration::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the Public Administration program?",
+      "program": "public-administration",
+      "category": "contact",
+      "expected_answer": "Tina.Zhao@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-034",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "Prof. Toni Espinoza-Ferrel"
+      ],
+      "required_program": "public-health-community-health-education",
+      "expected_citation_targets": [
+        "public-health-community-health-education::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the Public Health - Community Health Education program?",
+      "program": "public-health-community-health-education",
+      "category": "contact",
+      "expected_answer": "toni.espinoza-ferrel@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-035",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "Dr. Marissa Hansen"
+      ],
+      "required_program": "social-work",
+      "expected_citation_targets": [
+        "social-work::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the Social Work program?",
+      "program": "social-work",
+      "category": "contact",
+      "expected_answer": "Marissa.Hansen@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-036",
+      "difficulty": "easy",
+      "acceptable_alternatives": [
+        "Dr. Belinda Daughrity"
+      ],
+      "required_program": "speech-language-pathology",
+      "expected_citation_targets": [
+        "speech-language-pathology::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "contact email/advisor from contact chunk",
+      "question": "Who should I contact about the Speech-Language Pathology program?",
+      "program": "speech-language-pathology",
+      "category": "contact",
+      "expected_answer": "Belinda.Daughrity@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-037",
+      "difficulty": "medium",
+      "acceptable_alternatives": [],
+      "required_program": "art",
+      "expected_citation_targets": [
+        "art::admissions::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "GPA stated in admissions chunk",
+      "question": "What is the minimum GPA for Art?",
+      "program": "art",
+      "category": "admissions",
+      "expected_answer": "3.0",
+      "required_section": "admissions"
+    },
+    {
+      "id": "EVAL-038",
+      "difficulty": "medium",
+      "acceptable_alternatives": [],
+      "required_program": "health-care-management",
+      "expected_citation_targets": [
+        "health-care-management::admissions::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "GPA stated in admissions chunk",
+      "question": "What is the minimum GPA for Health Care Management?",
+      "program": "health-care-management",
+      "category": "admissions",
+      "expected_answer": "3.0",
+      "required_section": "admissions"
+    },
+    {
+      "id": "EVAL-039",
+      "difficulty": "medium",
+      "acceptable_alternatives": [],
+      "required_program": "international-affairs",
+      "expected_citation_targets": [
+        "international-affairs::admissions::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "GPA stated in admissions chunk",
+      "question": "What is the minimum GPA for International Affairs?",
+      "program": "international-affairs",
+      "category": "admissions",
+      "expected_answer": "2.7",
+      "required_section": "admissions"
+    },
+    {
+      "id": "EVAL-040",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "GRE: required"
+      ],
+      "required_program": "international-affairs",
+      "expected_citation_targets": [
+        "international-affairs::admissions::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "GRE requirement stated",
+      "question": "Is the GRE required for International Affairs?",
+      "program": "international-affairs",
+      "category": "admissions",
+      "expected_answer": "required",
+      "required_section": "admissions"
+    },
+    {
+      "id": "EVAL-041",
+      "difficulty": "medium",
+      "acceptable_alternatives": [],
+      "required_program": "art",
+      "expected_citation_targets": [
+        "art::admissions::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "reworded GPA",
+      "question": "Does Art have a minimum GPA requirement, and what is it?",
+      "program": "art",
+      "category": "admissions",
+      "expected_answer": "3.0",
+      "required_section": "admissions"
+    },
+    {
+      "id": "EVAL-042",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "cob-gradprograms@csulb.edu",
+        "MS"
+      ],
+      "required_program": "accountancy",
+      "expected_citation_targets": [
+        "accountancy::overview::chunk::000",
+        "accountancy::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "combine degree (overview) + advisor (contact)",
+      "question": "What degree does Accountancy offer and who is the graduate advisor/office?",
+      "program": "accountancy",
+      "category": "multi_field",
+      "expected_answer": "COB Graduate Office",
+      "required_section": "overview+contact"
+    },
+    {
+      "id": "EVAL-043",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "Marissa.Hansen@csulb.edu",
+        "MSW"
+      ],
+      "required_program": "social-work",
+      "expected_citation_targets": [
+        "social-work::overview::chunk::000",
+        "social-work::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "combine degree (overview) + advisor (contact)",
+      "question": "What degree does Social Work offer and who is the graduate advisor/office?",
+      "program": "social-work",
+      "category": "multi_field",
+      "expected_answer": "Dr. Marissa Hansen",
+      "required_section": "overview+contact"
+    },
+    {
+      "id": "EVAL-044",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "Tanya.Piloyan@csulb.edu",
+        "MM"
+      ],
+      "required_program": "music",
+      "expected_citation_targets": [
+        "music::overview::chunk::000",
+        "music::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "combine degree (overview) + advisor (contact)",
+      "question": "What degree does Music offer and who is the graduate advisor/office?",
+      "program": "music",
+      "category": "multi_field",
+      "expected_answer": "Tanya Piloyan",
+      "required_section": "overview+contact"
+    },
+    {
+      "id": "EVAL-045",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "Tina.Zhao@csulb.edu",
+        "MPA"
+      ],
+      "required_program": "public-administration",
+      "expected_citation_targets": [
+        "public-administration::overview::chunk::000",
+        "public-administration::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "combine degree (overview) + advisor (contact)",
+      "question": "What degree does Public Administration offer and who is the graduate advisor/office?",
+      "program": "public-administration",
+      "category": "multi_field",
+      "expected_answer": "Dr. Tina Zhao",
+      "required_section": "overview+contact"
+    },
+    {
+      "id": "EVAL-046",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "max.rosenkrantz@csulb.edu",
+        "MA"
+      ],
+      "required_program": "philosophy",
+      "expected_citation_targets": [
+        "philosophy::overview::chunk::000",
+        "philosophy::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "combine degree (overview) + advisor (contact)",
+      "question": "What degree does Philosophy offer and who is the graduate advisor/office?",
+      "program": "philosophy",
+      "category": "multi_field",
+      "expected_answer": "Dr. Max Rosenkrantz",
+      "required_section": "overview+contact"
+    },
+    {
+      "id": "EVAL-047",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "Belinda.Daughrity@csulb.edu",
+        "MA"
+      ],
+      "required_program": "speech-language-pathology",
+      "expected_citation_targets": [
+        "speech-language-pathology::overview::chunk::000",
+        "speech-language-pathology::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "combine degree (overview) + advisor (contact)",
+      "question": "What degree does Speech-Language Pathology offer and who is the graduate advisor/office?",
+      "program": "speech-language-pathology",
+      "category": "multi_field",
+      "expected_answer": "Dr. Belinda Daughrity",
+      "required_section": "overview+contact"
+    },
+    {
+      "id": "EVAL-048",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "Tanya.Piloyan@csulb.edu",
+        "MFA"
+      ],
+      "required_program": "art",
+      "expected_citation_targets": [
+        "art::overview::chunk::000",
+        "art::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "combine degree (overview) + advisor (contact)",
+      "question": "What degree does Art offer and who is the graduate advisor/office?",
+      "program": "art",
+      "category": "multi_field",
+      "expected_answer": "Tanya Piloyan",
+      "required_section": "overview+contact"
+    },
+    {
+      "id": "EVAL-049",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "caitlin.fouratt@csulb.edu",
+        "MA"
+      ],
+      "required_program": "international-affairs",
+      "expected_citation_targets": [
+        "international-affairs::overview::chunk::000",
+        "international-affairs::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "combine degree (overview) + advisor (contact)",
+      "question": "What degree does International Affairs offer and who is the graduate advisor/office?",
+      "program": "international-affairs",
+      "category": "multi_field",
+      "expected_answer": "Dr. Caitlin Fouratt",
+      "required_section": "overview+contact"
+    },
+    {
+      "id": "EVAL-050",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "Dr. Max Rosenkrantz"
+      ],
+      "required_program": "philosophy",
+      "expected_citation_targets": [
+        "philosophy::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "reworded contact question",
+      "question": "Who do I reach out to if I have questions about Philosophy?",
+      "program": "philosophy",
+      "category": "retrieval_challenge",
+      "expected_answer": "max.rosenkrantz@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-051",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "Tanya Piloyan"
+      ],
+      "required_program": "music",
+      "expected_citation_targets": [
+        "music::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "reworded contact question",
+      "question": "Who do I reach out to if I have questions about Music?",
+      "program": "music",
+      "category": "retrieval_challenge",
+      "expected_answer": "Tanya.Piloyan@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-052",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "Prof. Toni Espinoza-Ferrel"
+      ],
+      "required_program": "public-health-community-health-education",
+      "expected_citation_targets": [
+        "public-health-community-health-education::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "reworded contact question",
+      "question": "Who do I reach out to if I have questions about Public Health - Community Health Education?",
+      "program": "public-health-community-health-education",
+      "category": "retrieval_challenge",
+      "expected_answer": "toni.espinoza-ferrel@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-053",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "Dr. Mimi Nakajima"
+      ],
+      "required_program": "athletic-training",
+      "expected_citation_targets": [
+        "athletic-training::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "reworded contact question",
+      "question": "Who do I reach out to if I have questions about Athletic Training?",
+      "program": "athletic-training",
+      "category": "retrieval_challenge",
+      "expected_answer": "Mimi.Nakajima@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-054",
+      "difficulty": "medium",
+      "acceptable_alternatives": [
+        "College of Education Graduate Programs Advising"
+      ],
+      "required_program": "early-childhood-education",
+      "expected_citation_targets": [
+        "early-childhood-education::contact::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "reworded contact question",
+      "question": "Who do I reach out to if I have questions about Early Childhood Education?",
+      "program": "early-childhood-education",
+      "category": "retrieval_challenge",
+      "expected_answer": "ced-gradstudies@csulb.edu",
+      "required_section": "contact"
+    },
+    {
+      "id": "EVAL-055",
+      "difficulty": "medium",
+      "acceptable_alternatives": [],
+      "required_program": "accountancy",
+      "expected_citation_targets": [
+        "accountancy::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "reworded deadline question",
+      "question": "When are applications due in the fall for Accountancy?",
+      "program": "accountancy",
+      "category": "retrieval_challenge",
+      "expected_answer": "June 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-056",
+      "difficulty": "medium",
+      "acceptable_alternatives": [],
+      "required_program": "social-work",
+      "expected_citation_targets": [
+        "social-work::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "reworded deadline question",
+      "question": "When are applications due in the fall for Social Work?",
+      "program": "social-work",
+      "category": "retrieval_challenge",
+      "expected_answer": "January 15",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-057",
+      "difficulty": "medium",
+      "acceptable_alternatives": [],
+      "required_program": "public-administration",
+      "expected_citation_targets": [
+        "public-administration::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "reworded deadline question",
+      "question": "When are applications due in the fall for Public Administration?",
+      "program": "public-administration",
+      "category": "retrieval_challenge",
+      "expected_answer": "June 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-058",
+      "difficulty": "medium",
+      "acceptable_alternatives": [],
+      "required_program": "international-affairs",
+      "expected_citation_targets": [
+        "international-affairs::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "reworded deadline question",
+      "question": "When are applications due in the fall for International Affairs?",
+      "program": "international-affairs",
+      "category": "retrieval_challenge",
+      "expected_answer": "June 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-059",
+      "difficulty": "medium",
+      "acceptable_alternatives": [],
+      "required_program": "health-care-management",
+      "expected_citation_targets": [
+        "health-care-management::application::chunk::000"
+      ],
+      "answerable": true,
+      "source_missing": false,
+      "notes": "reworded deadline question",
+      "question": "When are applications due in the fall for Health Care Management?",
+      "program": "health-care-management",
+      "category": "retrieval_challenge",
+      "expected_answer": "June 01",
+      "required_section": "application"
+    },
+    {
+      "id": "EVAL-060",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "accountancy",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "What is the tuition cost for the Accountancy program?",
+      "program": "accountancy",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-061",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "art",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "How many total units are required for the Art MFA?",
+      "program": "art",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-062",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "music",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "What is the acceptance rate for the Music program?",
+      "program": "music",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-063",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "social-work",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "What is the ranking of the Social Work program?",
+      "program": "social-work",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-064",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "philosophy",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "Which faculty members teach in the Philosophy program?",
+      "program": "philosophy",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-065",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "public-administration",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "What scholarships are available for Public Administration?",
+      "program": "public-administration",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-066",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "speech-language-pathology",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "How many students are enrolled in Speech-Language Pathology?",
+      "program": "speech-language-pathology",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-067",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "international-affairs",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "What is the average starting salary for International Affairs graduates?",
+      "program": "international-affairs",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-068",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "athletic-training",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "What textbooks are required for Athletic Training?",
+      "program": "athletic-training",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-069",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "early-childhood-education",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "Is there a part-time option for Early Childhood Education?",
+      "program": "early-childhood-education",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-070",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "health-care-management",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "What is the class schedule for Health Care Management?",
+      "program": "health-care-management",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-071",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "public-health-community-health-education",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": false,
+      "notes": "genuinely not in the frozen corpus; correct answer admits uncertainty",
+      "question": "What is the campus housing cost for Public Health students?",
+      "program": "public-health-community-health-education",
+      "category": "unknown",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-072",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "accountancy",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "STEM designation is source_missing/unknown in the corpus; never fabricate",
+      "question": "Is the Accountancy program STEM designated?",
+      "program": "accountancy",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-073",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "art",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "STEM designation is source_missing/unknown in the corpus; never fabricate",
+      "question": "Is the Art program STEM designated?",
+      "program": "art",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-074",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "music",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "STEM designation is source_missing/unknown in the corpus; never fabricate",
+      "question": "Is the Music program STEM designated?",
+      "program": "music",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-075",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "social-work",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "STEM designation is source_missing/unknown in the corpus; never fabricate",
+      "question": "Is the Social Work program STEM designated?",
+      "program": "social-work",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-076",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "philosophy",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "STEM designation is source_missing/unknown in the corpus; never fabricate",
+      "question": "Is the Philosophy program STEM designated?",
+      "program": "philosophy",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-077",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "speech-language-pathology",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "STEM designation is source_missing/unknown in the corpus; never fabricate",
+      "question": "Is the Speech-Language Pathology program STEM designated?",
+      "program": "speech-language-pathology",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-078",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "accountancy",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "GPA not published for this program (source_missing); never fabricate",
+      "question": "What is the minimum GPA for Accountancy?",
+      "program": "accountancy",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-079",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "social-work",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "GPA not published for this program (source_missing); never fabricate",
+      "question": "What is the minimum GPA for Social Work?",
+      "program": "social-work",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-080",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "music",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "GPA not published for this program (source_missing); never fabricate",
+      "question": "What is the minimum GPA for Music?",
+      "program": "music",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-081",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "philosophy",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "GPA not published for this program (source_missing); never fabricate",
+      "question": "What is the minimum GPA for Philosophy?",
+      "program": "philosophy",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-082",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "art",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "college/department is source_missing in the corpus; never fabricate",
+      "question": "Which college and department houses the Art program?",
+      "program": "art",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-083",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "international-affairs",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "college/department is source_missing in the corpus; never fabricate",
+      "question": "Which college and department houses the International Affairs program?",
+      "program": "international-affairs",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    },
+    {
+      "id": "EVAL-084",
+      "difficulty": "hard",
+      "acceptable_alternatives": [],
+      "required_program": "public-administration",
+      "expected_citation_targets": [],
+      "answerable": false,
+      "source_missing": true,
+      "notes": "college/department is source_missing in the corpus; never fabricate",
+      "question": "Which college and department houses the Public Administration program?",
+      "program": "public-administration",
+      "category": "source_missing",
+      "expected_answer": null,
+      "required_section": null
+    }
+  ],
+  "dataset_checksum": "sha256:e6f4145c91f189b411733616aab0c12d11ad89fa02080a58429332e7559344cb"
+}

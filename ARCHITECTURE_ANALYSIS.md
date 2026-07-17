@@ -5131,3 +5131,60 @@ Deferred, not implemented in P7: evaluation and comparison metrics, Track B
 retrieval, agents/tool-calling, and production deployment. The persisted
 `RunTrace` records are the input for later evaluation. **Next: P8 — fine-tuned
 model (no retrieval).**
+
+---
+
+# Phase P7.1 — Frozen Evaluation Benchmark
+
+**Branch:** `feature/masters-canonical-schema` · **code baseline:** `4366b05`
+
+P7.1 creates the reproducible evaluation benchmark that will be reused
+**unchanged** by Track A (Pure RAG), Track B (Fine-Tuned Only), and Track C
+(Fine-Tuned + RAG). It does **not** improve retrieval, prompts, or generation,
+and touches no P5/P6/P7 artifacts or any production code. New code + data live
+under `experiments/rag_vs_finetuning/evaluation/` and
+`experiments/rag_vs_finetuning/data/evaluation/`.
+
+## Methodology & taxonomy
+
+**84 cases** (`eval_dataset.json`, `frozen: true`, checksummed) across eight
+categories: `overview` (12), `application` (12, freshness-sensitive — preserve
+published deadline wording), `contact` (12), `admissions` (5), `multi_field` (8),
+`retrieval_challenge` (10, wording deliberately differs from corpus),
+`unknown` (12, fact genuinely absent), `source_missing` (13, fact applies but the
+corpus marked it source_missing/unknown — e.g. STEM designation, GPA where not
+published, college/department). All 12 programs are represented (5–9 cases each);
+59 cases are answerable, 25 non-answerable.
+
+## Ground-truth philosophy
+
+Every expected answer is derived **only** from the frozen corpus chunks — never
+from a generated answer or Track A output. Answerable cases carry `expected_answer`
++ `acceptable_alternatives` + `expected_citation_targets` (real chunk ids).
+Unknown/source_missing cases carry no expected answer and no citation targets;
+the correct behavior is to abstain and never fabricate. Validation confirms:
+unique ids/questions, answerable cases have existing supporting chunks, non-answerable
+cases have no expected answer/citations, source-missing/unknown facts are absent
+from the corpus, and all 12 programs appear. A `dataset_checksum` freezes the set.
+
+## Runner & metrics (no LLM judge)
+
+The runner is **track-agnostic**: any track supplies `ResponseRecord`s (question,
+answer, citations, retrieved chunk ids, latencies) and is scored deterministically
+against the frozen ground truth via case-insensitive substring containment and
+set overlap. Metrics: **answer accuracy, citation precision/recall, hallucination
+rate, abstention accuracy, retrieval recall@k / precision@k, average
+retrieval/generation/end-to-end latency, average answer size, and failure
+counts**, plus a per-category breakdown. No LLM scoring is used, and **no
+benchmark numbers are produced in this phase** — the machinery is built and
+unit-tested with synthetic responses only.
+
+## Isolation & boundary
+
+The evaluation package imports only stdlib + Pydantic + experiment-internal
+models (no Chroma/LangChain/ingestion/production). Production imports no
+`experiments`. All P5/P6/P7 artifacts (frozen corpus, projection, chunks,
+embeddings, Chroma index, Track A) are unchanged. **Frozen contract:** after
+P7.1 no evaluation case is added, removed, or modified. Scoring real Tracks A/B/C
+and reporting comparison numbers is deferred to later phases. **Next: P8 —
+fine-tuned model (no retrieval).**

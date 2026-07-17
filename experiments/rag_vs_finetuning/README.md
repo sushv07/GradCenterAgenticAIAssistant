@@ -174,7 +174,33 @@ python -m experiments.rag_vs_finetuning.track_a.cli trace
 python -m experiments.rag_vs_finetuning.track_a.cli verify
 ```
 
-**Deferred (P8+):** evaluation, Track B fine-tuning (no retrieval), Track C
-hybrid, reranking, hybrid retrieval, agents/tool-calling, production
-integration, and any approach comparison. The `smoke_questions.py` set is for
-debugging only — it is NOT the evaluation dataset.
+**Deferred (P8+):** Track B fine-tuning (no retrieval), Track C hybrid,
+reranking, hybrid retrieval, agents/tool-calling, production integration, and any
+approach comparison. The `smoke_questions.py` set is for debugging only — it is
+NOT the evaluation dataset.
+
+## Phase P7.1 — Frozen evaluation benchmark
+
+`evaluation/` defines the **frozen** benchmark reused UNCHANGED by Tracks A, B,
+and C. It does not improve retrieval/prompts/generation.
+
+- **Dataset:** `data/evaluation/eval_dataset.json` — **84 cases**, checksummed
+  and marked `frozen: true`. Categories: overview 12, application 12, contact 12,
+  admissions 5, multi_field 8, retrieval_challenge 10, unknown 12, source_missing
+  13. All 12 programs represented (5–9 each). Answerable 59, non-answerable 25.
+- **Ground truth:** every expected answer is derived **only** from the frozen
+  corpus chunks (never from generated/Track-A output); answerable cases carry
+  supporting `expected_citation_targets`; unknown/source_missing cases carry no
+  expected answer and no citations (the correct behavior is to abstain / never
+  fabricate). Validated: source-missing/unknown facts (STEM, tuition, ranking,
+  college, …) are confirmed absent from the corpus.
+- **Runner (`runner.py`) + metrics (`metrics.py`):** deterministic, **no LLM
+  judge**. Scores answer accuracy, citation precision/recall, hallucination rate,
+  abstention accuracy, retrieval recall@k / precision@k, latencies, answer size,
+  and failure counts — track-agnostic (consumes `ResponseRecord`s).
+- **CLI:** `python -m experiments.rag_vs_finetuning.evaluation.cli {validate|summary}`.
+
+**Frozen:** after P7.1 no evaluation question is added, removed, or modified; the
+`dataset_checksum` guards against silent changes. **No benchmark numbers are
+produced in this phase** — the machinery is built and unit-tested only; scoring
+real tracks (A/B/C) happens later.
