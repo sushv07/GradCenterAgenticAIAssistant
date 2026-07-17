@@ -5053,3 +5053,81 @@ query pipeline, prompt construction, LLM answer generation, answer citations,
 Track A evaluation, Track B (LoRA/QLoRA) fine-tuning, Track C hybrid, and
 comparison metrics. The verified vector index is the input for **P7 — Track A
 Pure RAG baseline**.
+
+---
+
+# Phase P7 — Track A: Pure RAG Baseline
+
+**Branch:** `feature/masters-canonical-schema` · **code baseline:** `e5c1589`
+
+P7 builds the first complete retrieval pipeline (the Track A baseline) over the
+P6 index, fully isolated from production. It changes no P5/P6 artifacts (frozen
+corpus, documents, chunks, manifests, Chroma contents) and no production
+assistant / routing / RAG / `CanonicalProgram` / ingestion. It adds no
+fine-tuning, hybrid retrieval, reranking, agents, tool-calling, production
+integration, or evaluation comparison. New code lives under
+`experiments/rag_vs_finetuning/track_a/`.
+
+## Pipeline
+
+```
+question → embed query → Chroma top-k search → grounded prompt
+        → base LLM (qwen2.5:7b-instruct via Ollama) → grounded answer
+        → citations (from evidence) → full trace
+```
+
+- **Retriever** (`retriever.py`): embeds the query with the **same** P6 model
+  (injected embedder), searches the verified collection read-only, converts
+  cosine distance to similarity (`1 − distance`), applies a configurable
+  `top_k` (4) and `similarity_threshold` (0.0 — deliberately not tuned against
+  any eval set), orders deterministically (similarity desc, chunk_id tiebreak),
+  and preserves chunk ids + source provenance. Output: `RetrievalResult`.
+- **Prompt** (`prompt.py`, `rag_prompt_v1`): identifies the assistant role,
+  instructs the model to answer ONLY from retrieved context, never fabricate,
+  preserve published deadline wording verbatim, treat absent facts as
+  unknown/source-missing, cite the evidence, and reply exactly *"I don't have
+  that information in the provided sources."* when evidence is insufficient.
+  Deterministic given the same inputs.
+- **Generation** (`llm.py`): an **isolated** `OllamaLLM` calling `/api/chat`
+  (stdlib only — no production import, no LangChain) with the base model
+  `qwen2.5:7b-instruct`, temperature 0, top_p 1, seed 0, max_tokens 512. A
+  deterministic `MockLLM` powers the offline test suite (no Ollama required).
+- **Citations** (`pipeline.py`): always derived from the actually-retrieved
+  evidence chunks (chunk_id + program + section + source ids/hashes) — never
+  hallucinated. On insufficient evidence, no citations are emitted.
+- **Failure modes**: no retrieved chunks / all below threshold → the pipeline
+  refuses **without calling the model**; an insufficient model answer → no
+  citations. It never fabricates an answer.
+- **Traces** (`trace.py`): every run persists a full `RunTrace` (question,
+  retrieved chunk ids, scores, prompt version + text, model, generation config,
+  answer, citations, latencies, char counts) to a **git-ignored** traces path.
+  Traces are model-dependent run outputs (the future evaluation input); the
+  committed reproducible artifacts remain the frozen corpus / projection /
+  chunks / manifests.
+
+## Determinism & isolation
+
+Retrieval, prompt construction, and citation derivation are deterministic; LLM
+decoding is greedy (temperature 0, seed 0) but not guaranteed bit-identical
+across Ollama versions. `chromadb` is imported only under the experiment
+`index/` and `track_a/` packages; production imports no `experiments`; the
+production Chroma collection (`chroma_db/` / `csulb_grad_center`) and Ollama
+production path are untouched (Track A uses its own isolated collection and
+client). AST/scope tests enforce these boundaries.
+
+## Development smoke (not evaluation)
+
+A 4-question `smoke_questions.py` dev set is for debugging only. A live smoke run
+against the real base model confirmed correct grounding behavior: grounded,
+cited answers where evidence existed, and an honest *"I don't have that
+information"* (no citations, no fabrication) where the retrieved context lacked
+the fact — including for a genuinely `source_missing` fact (Accountancy STEM).
+No retrieval-quality or answer-correctness conclusions are drawn (that is P8+).
+
+## P7 → P8 boundary (deferred)
+
+Deferred, not implemented in P7: evaluation and comparison metrics, Track B
+(LoRA/QLoRA fine-tuning, no retrieval), Track C (hybrid), reranking, hybrid
+retrieval, agents/tool-calling, and production deployment. The persisted
+`RunTrace` records are the input for later evaluation. **Next: P8 — fine-tuned
+model (no retrieval).**

@@ -39,6 +39,22 @@ vector_store:
   distance_metric: cosine
   index_version: index-0.1
 
+# Track A — Pure RAG baseline (P7).
+track_a:
+  retrieval_version: retrieval-0.1
+  top_k: 4
+  similarity_threshold: 0.0        # keep top_k; not tuned against any eval set
+  prompt_version: rag_prompt_v1
+  llm:
+    provider: ollama
+    base_url: http://localhost:11434
+    model: qwen2.5:7b-instruct     # base model (unchanged; no comparison, no tuning)
+    temperature: 0.0
+    top_p: 1.0
+    max_tokens: 512
+    seed: 0
+  traces_path: experiments/rag_vs_finetuning/data/traces/track_a_traces.jsonl   # git-ignored
+
 # All deferred to later phases (not implemented in P6).
 deferred:
   - production_retrieval_integration

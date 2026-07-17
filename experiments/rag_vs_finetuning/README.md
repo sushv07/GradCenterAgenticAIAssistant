@@ -125,3 +125,56 @@ query pipeline, prompt construction, LLM answer generation, answer citations,
 Track A evaluation, Track B (LoRA/QLoRA) fine-tuning, Track C hybrid, and
 comparison metrics. P6 output — the isolated, verified vector index — is the
 retrieval substrate consumed by P7 (Track A Pure RAG baseline).
+
+## Phase P7 — Track A: Pure RAG baseline
+
+`track_a/` implements the first complete retrieval pipeline:
+
+```
+question → embed query → search Chroma (top-k) → build grounded prompt
+        → base LLM (qwen2.5:7b-instruct via Ollama) → grounded answer
+        → citations (from retrieved evidence) → full trace
+```
+
+Modules: `retriever.py` (query embed + Chroma search + `RetrievalResult`),
+`prompt.py` (deterministic `rag_prompt_v1`), `llm.py` (isolated `OllamaLLM` via
+`/api/chat` + deterministic `MockLLM` for tests), `pipeline.py` (`ask()` →
+`RunTrace`), `trace.py` (JSONL persistence), `cli.py`, `smoke_questions.py`.
+
+- **Retrieval:** same P6 embedding model; configurable `top_k` (4) and
+  `similarity_threshold` (0.0, not tuned against any eval set); cosine
+  similarity = 1 − distance; deterministic order (similarity desc, chunk_id
+  tiebreak); provenance preserved. Read-only against the collection.
+- **Prompt (`rag_prompt_v1`):** answer ONLY from retrieved context; never
+  fabricate; preserve deadline wording verbatim; treat absent facts as
+  unknown/source-missing; cite evidence; say exactly *"I don't have that
+  information in the provided sources."* when evidence is insufficient.
+- **Generation:** base model `qwen2.5:7b-instruct`, temperature 0, top_p 1,
+  seed 0, max_tokens 512 (deterministic-leaning; Ollama greedy decoding is not
+  guaranteed bit-identical across versions).
+- **Citations:** always derived from the actually-retrieved evidence chunks
+  (chunk_id + program + section + source ids/hashes) — never hallucinated. On
+  insufficient evidence, no citations are emitted.
+- **Failure modes:** no retrieved chunks / all below threshold → refuse without
+  calling the model; an insufficient model answer → no citations. Never
+  fabricates.
+- **Traces:** every run persists a full `RunTrace` (question, retrieved chunk
+  ids, scores, prompt version + text, model, generation config, answer,
+  citations, latencies, token counts) to a **git-ignored** traces path — the
+  committed reproducible artifacts remain the frozen corpus / projection /
+  chunks / manifests, not volatile LLM outputs. Traces are the future evaluation
+  input.
+
+Commands:
+
+```
+python -m experiments.rag_vs_finetuning.track_a.cli retrieve "<question>"
+python -m experiments.rag_vs_finetuning.track_a.cli ask "<question>"
+python -m experiments.rag_vs_finetuning.track_a.cli trace
+python -m experiments.rag_vs_finetuning.track_a.cli verify
+```
+
+**Deferred (P8+):** evaluation, Track B fine-tuning (no retrieval), Track C
+hybrid, reranking, hybrid retrieval, agents/tool-calling, production
+integration, and any approach comparison. The `smoke_questions.py` set is for
+debugging only — it is NOT the evaluation dataset.

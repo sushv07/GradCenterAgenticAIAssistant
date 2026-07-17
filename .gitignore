@@ -24,3 +24,6 @@ evals/reports/*.json
 experiments/rag_vs_finetuning/artifacts/
 experiments/rag_vs_finetuning/checkpoints/
 experiments/rag_vs_finetuning/models/
+
+# Track A run traces — model-dependent generated outputs (not committed)
+experiments/rag_vs_finetuning/data/traces/

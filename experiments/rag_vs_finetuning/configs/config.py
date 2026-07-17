@@ -8,6 +8,7 @@ the shape via Pydantic and normalizes the chunking unit.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Optional
 
 import yaml
 from pydantic import BaseModel
@@ -50,6 +51,25 @@ class ProjectionCfg(BaseModel):
     version: str
 
 
+class TrackALLMCfg(BaseModel):
+    provider: str
+    base_url: str
+    model: str
+    temperature: float
+    top_p: float
+    max_tokens: int
+    seed: int
+
+
+class TrackACfg(BaseModel):
+    retrieval_version: str
+    top_k: int
+    similarity_threshold: float
+    prompt_version: str
+    llm: TrackALLMCfg
+    traces_path: str
+
+
 class ExperimentConfig(BaseModel):
     experiment_id: str
     code_baseline_commit: str
@@ -58,6 +78,7 @@ class ExperimentConfig(BaseModel):
     chunking: ChunkingCfg
     embedding: EmbeddingCfg
     vector_store: VectorStoreCfg
+    track_a: Optional[TrackACfg] = None
 
     def validate_units(self) -> "ExperimentConfig":
         if self.chunking.unit != "characters":

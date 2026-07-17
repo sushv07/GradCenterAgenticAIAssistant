@@ -103,12 +103,14 @@ class TestP6Boundaries(unittest.TestCase):
                 offenders.append(f"{p.relative_to(ROOT)}: {sorted(bad)}")
         self.assertEqual(offenders, [], f"chunking imports chroma/langchain: {offenders}")
 
-    def test_chroma_import_confined_to_index_package(self):
+    def test_chroma_import_confined_to_experiment_retrieval_packages(self):
+        # chromadb belongs only to the experiment index/ and track_a/ (retrieval)
+        allowed = {"index", "track_a"}
         offenders = []
         for p in _py(EXP):
-            if "chromadb" in _roots(p) and p.parent.name != "index":
+            if "chromadb" in _roots(p) and p.parent.name not in allowed:
                 offenders.append(str(p.relative_to(ROOT)))
-        self.assertEqual(offenders, [], f"chromadb imported outside index/: {offenders}")
+        self.assertEqual(offenders, [], f"chromadb imported outside {allowed}: {offenders}")
 
     def test_domain_and_ingestion_do_not_import_chroma_or_experiment_index(self):
         offenders = []
