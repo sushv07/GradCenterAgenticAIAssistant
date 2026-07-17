@@ -4876,3 +4876,95 @@ flowchart LR
 
 All components on the deferred boundary are future work; none are implemented in
 commit `1fac8f5`.
+
+---
+
+# Phase P5 — Frozen Experiment Corpus & Retrieval Projection
+
+**Branch:** `feature/masters-canonical-schema` · **code baseline:** `5d41314`
+
+P5 begins the transition from data preparation into the RAG-vs-fine-tuning
+experiment. It is **fully isolated** from the production assistant: it modifies no
+production RAG, routing, orchestration, recommendation, prompts, doctoral
+taxonomy, `CanonicalProgram`, or ingestion behavior. It implements only (1) the
+immutable frozen corpus, (2) a checksummed freeze manifest, and (3) the
+retrieval-neutral projection `CanonicalProgram → RetrievalDocument`. It ends
+**before** chunking or embedding.
+
+## Immutable experiment corpus
+
+Location (separate from production `data/`):
+
+```
+experiments/rag_vs_finetuning/data/
+  frozen_subset/
+    programs/<program_id>.json                 # 12 immutable canonical records
+    sources/<program_id|_index>/<hash>.html    # immutable source snapshots (shared index under _index/)
+  manifests/freeze_manifest.json               # checksummed manifest
+  projected_documents/documents.jsonl          # deterministic projected docs (P6 input)
+  projection_report.json
+```
+
+The frozen corpus is the 12 P4.1-approved programs (Accountancy, Athletic
+Training, Social Work, Public Health – Community Health Education,
+Speech-Language Pathology, Health Care Management, Music, International Affairs,
+Philosophy, Art, Early Childhood Education, Public Administration). Records are
+byte-identical to the reviewed ingestion output (same code + same snapshot bytes
++ a fixed freeze timestamp). Total corpus size ≈ 1.5 MB (13 HTML snapshots).
+
+## Freeze manifest & checksum rules
+
+`freeze/freeze.py` materializes the corpus and writes a manifest containing
+`freeze_id`, `freeze_timestamp`, `code_baseline_commit`, `schema_version`,
+`corpus_version`, `projection_version`, `record_count`, `approved_program_ids`,
+an `aggregate_corpus_checksum`, selection axes, excluded programs, an immutability
+notice, and a `records[]` list. Each record entry carries a `record_checksum`
+(sha256 of the record file) and per-source `content_hash` + `snapshot_path`.
+`verify_frozen_corpus()` recomputes every record and source checksum from the
+committed files and compares to the manifest. Integrity is enforced by
+manifests + checksums, **not** by filesystem permissions. The freeze tool fails
+loudly on: a missing program, a validation error, a non-freeze-ready overview, an
+unresolved source reference, a missing snapshot, a fabricated value, or a set
+that differs from the approved 12. An identical re-run is a deterministic no-op;
+a changed re-run without a new `corpus_version` fails (drift detection).
+
+## `CanonicalProgram → RetrievalDocument`
+
+`RetrievalDocument` (`projection/models.py`) is engine-independent Pydantic —
+no LangChain `Document`, no Chroma objects, no precomputed vectors. Fields:
+`document_id` (`"<program_id>::<section>"`), `program_id`, `program_level`,
+`title`, `section`, `content`, `source_references[]` (`source_id`, `source_url`,
+`content_hash`), `volatility`, `freshness_status`, flat `metadata`,
+`canonical_record_hash`, `projection_version`.
+
+Projection (`projection/project.py`) is deterministic and template-only — no LLM,
+no timestamps. Section policy:
+- **overview** — canonical name, degree, official summary, STEM (only if available).
+- **admissions** — available minimum GPA, tests, prerequisites, supplemental,
+  international distinctions.
+- **application** — Spring/Fall availability, published application + accept/decline
+  deadline **text** (verbatim; no ISO date invented), `Not Accepting`, portal/instructions.
+- **contact** — program office/advisor, email, phone, office.
+
+Missing-value behavior: `unknown` / `source_missing` / `manual_required` omitted;
+`not_applicable` omitted unless user-relevant; `stale` included with a caveat and
+`freshness_status=stale`; `conflicting_sources` omitted with a projection warning.
+Determinism: stable document IDs, sorted source references, sorted JSONL output,
+and a reproducible `aggregate_projection_checksum`.
+
+## P5 → P6 boundary
+
+P5 produces `documents.jsonl` as the **input** for P6. The following are
+**deferred** and not implemented in P5: chunking, embeddings, the experiment
+Chroma store (`csulb_masters_exp_frozen_v1`), retrieval, LLM generation, Track A
+(base + RAG) answer generation, fine-tuning (Track B LoRA/QLoRA), the hybrid
+Track C, the freshness experiment, and evaluation metrics.
+
+## Architecture boundaries (enforced by AST tests)
+
+`domain/programs` imports no experiment code; `ingestion` imports no projection
+code; production code imports no `experiments`; projection imports only stdlib,
+Pydantic, and `domain` (never ingestion/LangChain/Chroma/embeddings/RAG); the
+freeze tool may import `ingestion` (it materializes via the pipeline) but no
+infra/RAG. No `" 2"` duplicate file is referenced; no vector store or model
+weight is created.

@@ -1,0 +1,431 @@
+{
+  "freeze_id": "masters-frozen-v1",
+  "freeze_timestamp": "2026-07-14T00:00:00+00:00",
+  "code_baseline_commit": "5d41314",
+  "schema_version": "masters-1.0",
+  "corpus_version": "1.0",
+  "projection_version": "projection-0.1",
+  "record_count": 12,
+  "approved_program_ids": [
+    "accountancy",
+    "art",
+    "athletic-training",
+    "early-childhood-education",
+    "health-care-management",
+    "international-affairs",
+    "music",
+    "philosophy",
+    "public-administration",
+    "public-health-community-health-education",
+    "social-work",
+    "speech-language-pathology"
+  ],
+  "aggregate_corpus_checksum": "sha256:137d964869ef97e845e81d0faff0029472ea2a4d1e0f69a46d9b49f56c123572",
+  "selection_axes_covered": [
+    "college_diversity",
+    "degree_type_diversity",
+    "page_layout_host_diversity"
+  ],
+  "excluded_programs": {
+    "cla_source_granularity": [
+      "Creative Writing",
+      "Economics",
+      "English",
+      "Geography",
+      "History"
+    ],
+    "ambiguous_shared_page_or_name": [
+      "Anthropology / Anthropology - Applied",
+      "Linguistics family",
+      "Dance (MA/MFA)",
+      "Public Administration variants"
+    ]
+  },
+  "immutability_notice": "The frozen corpus is immutable. Do not edit records or snapshots in place. Any change requires a new freeze_id / corpus_version.",
+  "records": [
+    {
+      "program_id": "accountancy",
+      "record_id": "rec-accountancy",
+      "canonical_name": "Accountancy",
+      "degree_type": "MS",
+      "record_path": "frozen_subset/programs/accountancy.json",
+      "record_checksum": "sha256:a4fd2b22377405723f431efe907ba05429600256ee70f8fbe74d40041e5becb7",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "https://www.csulb.edu/cob-graduate-programs/ms-programs/ms-accountancy",
+          "content_hash": "sha256:e0cf5ea4a9a42c3136bf23bce26ef355df1bb325a674da09facc23a585e14dfe",
+          "snapshot_path": "frozen_subset/sources/accountancy/e0cf5ea4a9a42c3136bf23bce26ef355df1bb325a674da09facc23a585e14dfe.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:05.466904+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "MS · layout host www.csulb.edu"
+    },
+    {
+      "program_id": "art",
+      "record_id": "rec-art",
+      "canonical_name": "Art",
+      "degree_type": "MFA",
+      "record_path": "frozen_subset/programs/art.json",
+      "record_checksum": "sha256:0b508332432e5b99c1cce355d87a0e11e4a773211cc14d852b66244ba0cfa54c",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "https://www.csulb.edu/school-of-art/information-for-applicants",
+          "content_hash": "sha256:d2c8ecdf98d78b07b1f20c658bb00e64ad27c63000829b76ad6cd3e25bd08fe5",
+          "snapshot_path": "frozen_subset/sources/art/d2c8ecdf98d78b07b1f20c658bb00e64ad27c63000829b76ad6cd3e25bd08fe5.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:10.230721+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "MFA · layout host www.csulb.edu"
+    },
+    {
+      "program_id": "athletic-training",
+      "record_id": "rec-athletic-training",
+      "canonical_name": "Athletic Training",
+      "degree_type": "MS",
+      "record_path": "frozen_subset/programs/athletic-training.json",
+      "record_checksum": "sha256:c57a5b1197e04480f1e5e6b67eebb969ac71dc45c5be2fc038ce1163f4d15f16",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "https://www.csulb.edu/college-of-health-human-services/kinesiology/master-of-science-athletic-training-0",
+          "content_hash": "sha256:70e387896fd50583d4b74c5a892f4a73a88c9cf42eed3c7a6176c77138185d4a",
+          "snapshot_path": "frozen_subset/sources/athletic-training/70e387896fd50583d4b74c5a892f4a73a88c9cf42eed3c7a6176c77138185d4a.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:05.674211+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "MS · layout host www.csulb.edu"
+    },
+    {
+      "program_id": "early-childhood-education",
+      "record_id": "rec-early-childhood-education",
+      "canonical_name": "Early Childhood Education",
+      "degree_type": "MA",
+      "record_path": "frozen_subset/programs/early-childhood-education.json",
+      "record_checksum": "sha256:594b83e988a7e09c7da82a7d981f10e726c68ef5417e1cfc4ad63ef061f79602",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "https://www.csulb.edu/college-of-education/early-childhood-education",
+          "content_hash": "sha256:77ed83bbb4b4801437f2fdb8ce4e29525fcda2838a92cb13de4eb360346a9dc1",
+          "snapshot_path": "frozen_subset/sources/early-childhood-education/77ed83bbb4b4801437f2fdb8ce4e29525fcda2838a92cb13de4eb360346a9dc1.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:10.355148+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "MA · layout host www.csulb.edu"
+    },
+    {
+      "program_id": "health-care-management",
+      "record_id": "rec-health-care-management",
+      "canonical_name": "Health Care Management",
+      "degree_type": "Other",
+      "record_path": "frozen_subset/programs/health-care-management.json",
+      "record_checksum": "sha256:a76bb009df27cc781833da81e9f9280617e11315a0eef1d1bdae5d39b07e2764",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "https://www.csulb.edu/college-of-health-human-services/health-care-administration/master-of-science-health-care-0",
+          "content_hash": "sha256:a58e749d9f9c0b6ebcbf0f5ee5b051555ad5144721394c3ec3a8243cc2a8cb3d",
+          "snapshot_path": "frozen_subset/sources/health-care-management/a58e749d9f9c0b6ebcbf0f5ee5b051555ad5144721394c3ec3a8243cc2a8cb3d.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:06.304181+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "Accelerated MS · layout host www.csulb.edu"
+    },
+    {
+      "program_id": "international-affairs",
+      "record_id": "rec-international-affairs",
+      "canonical_name": "International Affairs",
+      "degree_type": "MA",
+      "record_path": "frozen_subset/programs/international-affairs.json",
+      "record_checksum": "sha256:161292a241967585fabf99ae55505fb80badc47323d1dea158c76cac694c8f7d",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "https://www.cpace.csulb.edu/courses/master-of-arts-in-international-affairs",
+          "content_hash": "sha256:18ad78361f636c0544651fc2a414e7b4fd6b6b42204c9b507aceb3761269090f",
+          "snapshot_path": "frozen_subset/sources/international-affairs/18ad78361f636c0544651fc2a414e7b4fd6b6b42204c9b507aceb3761269090f.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:06.670480+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "MA · layout host www.cpace.csulb.edu"
+    },
+    {
+      "program_id": "music",
+      "record_id": "rec-music",
+      "canonical_name": "Music",
+      "degree_type": "MM",
+      "record_path": "frozen_subset/programs/music.json",
+      "record_checksum": "sha256:7f86c6545da8a90631005ac93c37bb8c2ed125f281a0a434e543bd1323acbdde",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "https://web.csulb.edu/colleges/cota/music//prospective-students/graduate-admissions.php",
+          "content_hash": "sha256:1563a7ceb0df6f127e38c7453b881b02bf11ec07c7621eeeb039dcd0be6587ee",
+          "snapshot_path": "frozen_subset/sources/music/1563a7ceb0df6f127e38c7453b881b02bf11ec07c7621eeeb039dcd0be6587ee.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:06.421393+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "MM · layout host web.csulb.edu"
+    },
+    {
+      "program_id": "philosophy",
+      "record_id": "rec-philosophy",
+      "canonical_name": "Philosophy",
+      "degree_type": "MA",
+      "record_path": "frozen_subset/programs/philosophy.json",
+      "record_checksum": "sha256:6278b79061fc7a714ddb2474b1eaf3da45311bf1d737b97d90944fc6470b8cfc",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "http://www.cla.csulb.edu/departments/philosophy/graduate_admissions/",
+          "content_hash": "sha256:43e507ad61b415eca0d54eaffafbb61eddbb876c104995aca52f260028d854c0",
+          "snapshot_path": "frozen_subset/sources/philosophy/43e507ad61b415eca0d54eaffafbb61eddbb876c104995aca52f260028d854c0.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:10.059938+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "MA · layout host www.cla.csulb.edu"
+    },
+    {
+      "program_id": "public-administration",
+      "record_id": "rec-public-administration",
+      "canonical_name": "Public Administration",
+      "degree_type": "MPA",
+      "record_path": "frozen_subset/programs/public-administration.json",
+      "record_checksum": "sha256:b3d2856e38458293fcd56d888b1a2a4759d7ada129bb21f92a598469328432f2",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration",
+          "content_hash": "sha256:468fa3f775a62cab7b5e51d177040eebdca111a979e9df3d854555a282e96f88",
+          "snapshot_path": "frozen_subset/sources/public-administration/468fa3f775a62cab7b5e51d177040eebdca111a979e9df3d854555a282e96f88.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:10.491589+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "MPA · layout host www.csulb.edu"
+    },
+    {
+      "program_id": "public-health-community-health-education",
+      "record_id": "rec-public-health-community-health-education",
+      "canonical_name": "Public Health - Community Health Education",
+      "degree_type": "MPH",
+      "record_path": "frozen_subset/programs/public-health-community-health-education.json",
+      "record_checksum": "sha256:19f824fbc67be868b66f466b4241fb10830193d8ef892f8704336bad29e58f3f",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "https://www.csulb.edu/college-of-health-human-services/health-science/about-the-graduate-program-1",
+          "content_hash": "sha256:447608ac34a365e6a5ea78389d2f015278112f159f4e7e9e97f89a47bd5fe25d",
+          "snapshot_path": "frozen_subset/sources/public-health-community-health-education/447608ac34a365e6a5ea78389d2f015278112f159f4e7e9e97f89a47bd5fe25d.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:06.007730+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "MPH · layout host www.csulb.edu"
+    },
+    {
+      "program_id": "social-work",
+      "record_id": "rec-social-work",
+      "canonical_name": "Social Work",
+      "degree_type": "MSW",
+      "record_path": "frozen_subset/programs/social-work.json",
+      "record_checksum": "sha256:b7578e174ecfedd099556590ecbfb97f135282a34372fe7d5715c12626f23a45",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "https://www.csulb.edu/college-of-health-human-services/school-of-social-work/msw-program",
+          "content_hash": "sha256:ce2d972dfc7d2ef4f585b04eb0f7531823192b35d8dee2010e1053f7454c3b70",
+          "snapshot_path": "frozen_subset/sources/social-work/ce2d972dfc7d2ef4f585b04eb0f7531823192b35d8dee2010e1053f7454c3b70.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:05.885532+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "MSW · layout host www.csulb.edu"
+    },
+    {
+      "program_id": "speech-language-pathology",
+      "record_id": "rec-speech-language-pathology",
+      "canonical_name": "Speech-Language Pathology",
+      "degree_type": "MA",
+      "record_path": "frozen_subset/programs/speech-language-pathology.json",
+      "record_checksum": "sha256:9ef751d6151a6b6c3b0e645aa3fbce00b3a2aa7ca42c186043bb5787f35aa114",
+      "validation_status": "valid_with_warnings",
+      "review_status": "freeze_approved",
+      "source_count": 2,
+      "sources": [
+        {
+          "source_id": "src-index",
+          "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+          "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+          "snapshot_path": "frozen_subset/sources/_index/db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4.html",
+          "source_type": "deadline_table",
+          "fetched_at": "2026-07-17T04:54:05.216936+00:00",
+          "last_verified": "2026-07-17"
+        },
+        {
+          "source_id": "src-program",
+          "source_url": "https://www.csulb.edu/college-of-health-human-services/speech-language-pathology",
+          "content_hash": "sha256:82be8ffe3820cdaf278c22ed76312811aef9e08e47bea7cae8ddda1cd96dfc8c",
+          "snapshot_path": "frozen_subset/sources/speech-language-pathology/82be8ffe3820cdaf278c22ed76312811aef9e08e47bea7cae8ddda1cd96dfc8c.html",
+          "source_type": "program_page",
+          "fetched_at": "2026-07-17T04:54:06.117684+00:00",
+          "last_verified": "2026-07-17"
+        }
+      ],
+      "selection_rationale": "MA · layout host www.csulb.edu"
+    }
+  ]
+}

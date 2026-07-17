@@ -1,0 +1,184 @@
+{
+  "schema_version": "masters-1.0",
+  "record_id": "rec-philosophy",
+  "program_level": "masters",
+  "identity": {
+    "program_id": "philosophy",
+    "canonical_name": "Philosophy",
+    "aliases": [],
+    "degree_type": "MA",
+    "degree_type_official": "MA",
+    "official_program_url": "http://www.cla.csulb.edu/departments/philosophy/graduate_admissions/",
+    "college": {
+      "value": null,
+      "data_status": "source_missing",
+      "volatility": "stable",
+      "primary_source_ref": "src-program",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "department": {
+      "value": null,
+      "data_status": "source_missing",
+      "volatility": "stable",
+      "primary_source_ref": "src-program",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "delivery_mode": null,
+    "campus_location": null
+  },
+  "overview": {
+    "official_summary": {
+      "value": "The Department of Philosophy offers both spring and fall admissions cycles. Currently, the Department is accepting applications for this coming spring.",
+      "data_status": "available",
+      "volatility": "stable",
+      "primary_source_ref": "src-program",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "program_description": null,
+    "focus_areas": null,
+    "stem_designated": {
+      "value": null,
+      "data_status": "unknown",
+      "volatility": "stable",
+      "primary_source_ref": null,
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    }
+  },
+  "admissions": {
+    "admission_requirements": null,
+    "prerequisites": null,
+    "minimum_gpa": {
+      "value": null,
+      "data_status": "source_missing",
+      "volatility": "moderate",
+      "primary_source_ref": "src-program",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "tests": {
+      "value": null,
+      "data_status": "source_missing",
+      "volatility": "moderate",
+      "primary_source_ref": "src-program",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "work_experience": null,
+    "supplemental_materials": null,
+    "recommendation_letters": null,
+    "statement_requirements": null,
+    "portfolio_or_audition": null,
+    "intl_distinctions": {
+      "value": null,
+      "data_status": "unknown",
+      "volatility": "moderate",
+      "primary_source_ref": null,
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    }
+  },
+  "application": {
+    "terms": {
+      "value": [
+        {
+          "term": "fall",
+          "audience": "domestic",
+          "deadline_kind": "final",
+          "deadline": null,
+          "deadline_text": "June 01",
+          "accept_decline_deadline": null,
+          "accept_decline_deadline_text": "August 14",
+          "notes": null
+        },
+        {
+          "term": "spring",
+          "audience": "domestic",
+          "deadline_kind": "final",
+          "deadline": null,
+          "deadline_text": "November 01",
+          "accept_decline_deadline": null,
+          "accept_decline_deadline_text": "January 15",
+          "notes": null
+        }
+      ],
+      "data_status": "available",
+      "volatility": "time_sensitive",
+      "primary_source_ref": "src-index",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "application_portal": null,
+    "application_instructions": null,
+    "rolling_admission": null
+  },
+  "contact": {
+    "department_contact": {
+      "value": {
+        "name": "Dr. Max Rosenkrantz",
+        "email": "max.rosenkrantz@csulb.edu",
+        "phone": "562-985-4331",
+        "office": null,
+        "source_ref": "src-index"
+      },
+      "data_status": "available",
+      "volatility": "moderate",
+      "primary_source_ref": "src-index",
+      "supporting_source_refs": [],
+      "official_text": null,
+      "notes": null
+    },
+    "coordinator_or_advisor": null
+  },
+  "sources": [
+    {
+      "source_id": "src-index",
+      "source_url": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters",
+      "source_type": "deadline_table",
+      "official": true,
+      "fetched_at": "2026-07-17T04:54:05.216936Z",
+      "last_verified": "2026-07-17",
+      "content_hash": "sha256:db7c79a7c3de6c49bfd487ec32df173b8a6d48fe043e65198e5a66eda23bd3a4",
+      "extraction_method": "table_parse",
+      "revision_label": null
+    },
+    {
+      "source_id": "src-program",
+      "source_url": "http://www.cla.csulb.edu/departments/philosophy/graduate_admissions/",
+      "source_type": "program_page",
+      "official": true,
+      "fetched_at": "2026-07-17T04:54:10.059938Z",
+      "last_verified": "2026-07-17",
+      "content_hash": "sha256:43e507ad61b415eca0d54eaffafbb61eddbb876c104995aca52f260028d854c0",
+      "extraction_method": "html_parse",
+      "revision_label": null
+    }
+  ],
+  "quality": {
+    "record_completeness": "minimal",
+    "validation_status": "valid_with_warnings",
+    "manual_review_status": "not_reviewed",
+    "lifecycle_state": "active",
+    "last_verified": "2026-07-14",
+    "revision_history": [
+      {
+        "at": "2026-07-14T00:00:00Z",
+        "kind": "created",
+        "fields_changed": [],
+        "note": "ingested via masters pipeline"
+      }
+    ]
+  },
+  "enrichment": null
+}

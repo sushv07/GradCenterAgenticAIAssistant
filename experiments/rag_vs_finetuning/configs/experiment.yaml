@@ -1,0 +1,37 @@
+# RAG-vs-fine-tuning experiment configuration (Phase P5).
+# This phase only materializes the frozen corpus and the retrieval projection.
+# No model is chosen; no chunking/embedding/Chroma/retrieval/generation/tuning.
+
+experiment_id: rag_vs_finetuning
+code_baseline_commit: 5d41314
+
+frozen_corpus:
+  freeze_id: masters-frozen-v1
+  corpus_version: "1.0"
+  schema_version: masters-1.0
+  data_root: experiments/rag_vs_finetuning/data
+  manifest: experiments/rag_vs_finetuning/data/manifests/freeze_manifest.json
+  record_count: 12
+
+projection:
+  projection_version: projection-0.1
+  output: experiments/rag_vs_finetuning/data/projected_documents/documents.jsonl
+  sections: [overview, admissions, application, contact]
+
+# Reserved experiment vector store — NOT created in P5.
+experiment_vector_store:
+  collection_name: csulb_masters_exp_frozen_v1
+  persist_dir: experiments/rag_vs_finetuning/artifacts/chroma/frozen_v1/   # git-ignored
+
+# All deferred to later phases (not implemented here).
+deferred:
+  - chunking
+  - embeddings
+  - experiment_chroma_store
+  - retrieval
+  - llm_generation
+  - track_a_base_plus_rag
+  - track_b_lora_qlora
+  - track_c_finetuned_plus_rag
+  - freshness_experiment
+  - evaluation_metrics

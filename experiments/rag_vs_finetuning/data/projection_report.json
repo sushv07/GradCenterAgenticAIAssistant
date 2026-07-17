@@ -1,0 +1,29 @@
+{
+  "projection_version": "projection-0.1",
+  "frozen_program_count": 12,
+  "frozen_source_count": 24,
+  "projected_document_count": 39,
+  "documents_by_section": {
+    "admissions": 3,
+    "application": 12,
+    "contact": 12,
+    "overview": 12
+  },
+  "documents_by_degree_type": {
+    "MA": 4,
+    "MFA": 1,
+    "MM": 1,
+    "MPA": 1,
+    "MPH": 1,
+    "MS": 2,
+    "MSW": 1,
+    "Other": 1
+  },
+  "source_backed_section_coverage_pct": 81.2,
+  "omitted_unknown_facts": 24,
+  "omitted_source_missing_facts": 44,
+  "stale_facts": 0,
+  "conflicting_source_warnings": 0,
+  "projection_warnings": [],
+  "aggregate_projection_checksum": "sha256:ab4168eba81482d66e30cad27a5d3d293ba2b5ca3e41e6b2458696f025f7faa1"
+}
