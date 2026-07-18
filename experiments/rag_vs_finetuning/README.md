@@ -204,3 +204,30 @@ and C. It does not improve retrieval/prompts/generation.
 `dataset_checksum` guards against silent changes. **No benchmark numbers are
 produced in this phase** — the machinery is built and unit-tested only; scoring
 real tracks (A/B/C) happens later.
+
+## Phase P7.2 — Track A baseline execution
+
+`evaluation/execute.py` runs the **frozen** Track A pipeline (unchanged
+retrieval/prompt/model/params) on all 84 frozen cases and persists an immutable
+official response per case (`data/evaluation/results/track_a_responses.jsonl`):
+question id/category/program, retrieved chunk ids + similarity scores, prompt
+version, model, answer, citations, per-stage latencies, answer size, timestamp,
+and versions. `evaluation/report.py` then scores those responses with the
+existing (unmodified) runner and produces the **official Track A baseline
+report** (`data/evaluation/reports/track_a_baseline.{json,md}`): overall metrics,
+per-category and per-program breakdowns, retrieval diagnostics (avg retrieved
+chunks, avg similarity, most/never-retrieved chunks, no-chunk questions), and an
+automatic failure analysis (incorrect answers, hallucinations, missing/incorrect
+citations, retrieval failures, abstention errors), grouped by category with
+examples.
+
+```
+python -m experiments.rag_vs_finetuning.evaluation.cli run-track-a      # execute (real Qwen)
+python -m experiments.rag_vs_finetuning.evaluation.cli baseline-report  # score + write report
+```
+
+Reproducibility: retrieval, scoring, and report generation are deterministic;
+LLM decoding is greedy (temperature 0) but not guaranteed bit-identical across
+Ollama versions, so the committed responses/report are a snapshot. **This report
+is the official Track A baseline that Tracks B and C will be compared against.**
+The system is not tuned based on results.

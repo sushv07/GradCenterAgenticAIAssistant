@@ -104,8 +104,9 @@ class TestP6Boundaries(unittest.TestCase):
         self.assertEqual(offenders, [], f"chunking imports chroma/langchain: {offenders}")
 
     def test_chroma_import_confined_to_experiment_retrieval_packages(self):
-        # chromadb belongs only to the experiment index/ and track_a/ (retrieval)
-        allowed = {"index", "track_a"}
+        # chromadb belongs only to the experiment index/, track_a/, and evaluation/
+        # (evaluation opens the collection to execute the frozen Track A pipeline)
+        allowed = {"index", "track_a", "evaluation"}
         offenders = []
         for p in _py(EXP):
             if "chromadb" in _roots(p) and p.parent.name not in allowed:

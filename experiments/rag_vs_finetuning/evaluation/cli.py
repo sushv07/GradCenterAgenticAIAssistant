@@ -4,9 +4,8 @@ Evaluation CLI (Phase P7.1).
 
     python -m experiments.rag_vs_finetuning.evaluation.cli validate
     python -m experiments.rag_vs_finetuning.evaluation.cli summary
-
-`evaluate` scores a track's persisted responses; no benchmark run is performed
-in this phase.
+    python -m experiments.rag_vs_finetuning.evaluation.cli run-track-a
+    python -m experiments.rag_vs_finetuning.evaluation.cli baseline-report
 """
 from __future__ import annotations
 
@@ -44,6 +43,48 @@ def cmd_summary() -> int:
     return 0
 
 
+def cmd_run_track_a() -> int:
+    import chromadb
+    from experiments.rag_vs_finetuning.configs.config import load_config
+    from experiments.rag_vs_finetuning.embeddings.embedder import SentenceTransformerEmbedder
+    from experiments.rag_vs_finetuning.evaluation.execute import persist_responses, run_track_a
+    from experiments.rag_vs_finetuning.track_a.llm import OllamaLLM
+    cfg = load_config()
+    ds = load_dataset(Path.cwd() / DATASET_PATH)
+    emb = SentenceTransformerEmbedder(model_id=cfg.embedding.model, device=cfg.embedding.device,
+                                      normalize=cfg.embedding.normalize)
+    coll = chromadb.PersistentClient(path=str(Path.cwd() / cfg.vector_store.persistence_path)) \
+        .get_collection(cfg.vector_store.collection_name)
+    t = cfg.track_a.llm
+    llm = OllamaLLM(base_url=t.base_url, model=t.model, temperature=t.temperature,
+                    top_p=t.top_p, max_tokens=t.max_tokens, seed=t.seed)
+    responses = run_track_a(ds, embedder=emb, collection=coll, llm=llm,
+                            top_k=cfg.track_a.top_k, threshold=cfg.track_a.similarity_threshold)
+    persist_responses(responses)
+    print(f"executed Track A on {len(responses)} cases; persisted official responses.")
+    return 0
+
+
+def cmd_baseline_report() -> int:
+    from experiments.rag_vs_finetuning.evaluation.execute import load_responses
+    from experiments.rag_vs_finetuning.evaluation.report import (
+        build_baseline_report, persist_report,
+    )
+    ds = load_dataset(Path.cwd() / DATASET_PATH)
+    responses = load_responses()
+    if not responses:
+        print("no persisted responses; run run-track-a first"); return 1
+    report = build_baseline_report(ds, responses)
+    persist_report(report)
+    m = report["overall_metrics"]
+    print("Track A baseline:")
+    print(f"  answer_accuracy={m['answer_accuracy']} abstention_accuracy={m['abstention_accuracy']} "
+          f"hallucination_rate={m['hallucination_rate']}")
+    print(f"  citation_precision={m['citation_precision']} citation_recall={m['citation_recall']}")
+    print(f"  retrieval_recall@k={m['retrieval_recall_at_k']} precision@k={m['retrieval_precision_at_k']}")
+    return 0
+
+
 def main(argv: list[str]) -> int:
     if not argv:
         print(__doc__); return 2
@@ -51,6 +92,10 @@ def main(argv: list[str]) -> int:
         return cmd_validate()
     if argv[0] == "summary":
         return cmd_summary()
+    if argv[0] == "run-track-a":
+        return cmd_run_track_a()
+    if argv[0] == "baseline-report":
+        return cmd_baseline_report()
     print(__doc__)
     return 2
 

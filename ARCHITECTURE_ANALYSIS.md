@@ -5188,3 +5188,55 @@ embeddings, Chroma index, Track A) are unchanged. **Frozen contract:** after
 P7.1 no evaluation case is added, removed, or modified. Scoring real Tracks A/B/C
 and reporting comparison numbers is deferred to later phases. **Next: P8 —
 fine-tuned model (no retrieval).**
+
+---
+
+# Phase P7.2 — Track A Baseline Execution
+
+**Branch:** `feature/masters-canonical-schema` · **code baseline:** `a10f536`
+
+P7.2 executes the existing, frozen Track A pipeline against the frozen 84-case
+benchmark to establish the **official Track A baseline metrics**. Nothing is
+rebuilt, regenerated, tuned, or optimized: retrieval, prompts, model, top-k,
+threshold, embeddings, the Chroma index, and the evaluation dataset are all
+unchanged, and no production code is touched.
+
+## Execution & official outputs
+
+`evaluation/execute.py` runs the frozen `track_a.pipeline.ask` on every case
+(real `qwen2.5:7b-instruct` via Ollama, temperature 0) and writes an immutable
+**official response** per case to
+`data/evaluation/results/track_a_responses.jsonl` — question id, category,
+program, retrieved chunk ids + similarity scores, prompt version, model, answer,
+citations, retrieval/generation/total latency, answer size, timestamp, and
+versions. Full `RunTrace`s are also appended to the git-ignored traces path. The
+official responses (committed) are the durable Track A evaluation output.
+
+## Baseline report
+
+`evaluation/report.py` feeds the official responses through the existing,
+unmodified evaluation runner and assembles
+`data/evaluation/reports/track_a_baseline.{json,md}`:
+- **Overall metrics:** answer accuracy, hallucination rate, abstention accuracy,
+  citation precision/recall, retrieval recall@k / precision@k, average
+  retrieval/generation/end-to-end latency, average answer size.
+- **Per-category** (overview/application/contact/admissions/multi_field/
+  retrieval_challenge/unknown/source_missing) and **per-program** (all 12)
+  breakdowns.
+- **Retrieval diagnostics:** average retrieved chunks, average similarity, most-
+  and never-retrieved chunks, and questions returning no chunks.
+- **Failure analysis:** incorrect answers, hallucinations, missing/incorrect
+  citations, retrieval failures, abstention errors, and generation failures —
+  counted, grouped by category, with representative case ids.
+
+## Reproducibility & CLI
+
+Retrieval, scoring, and report generation are deterministic; LLM decoding is
+greedy but not guaranteed bit-identical across Ollama versions, so the committed
+responses/report are a snapshot. CLI:
+`python -m experiments.rag_vs_finetuning.evaluation.cli {run-track-a|baseline-report}`.
+
+**This report is the official Track A baseline that Tracks B (fine-tuned, no
+retrieval) and C (fine-tuned + RAG) will be compared against.** Comparison,
+fine-tuning, and hybrid work remain deferred. **Next: P8 — fine-tuned model
+(no retrieval).**
