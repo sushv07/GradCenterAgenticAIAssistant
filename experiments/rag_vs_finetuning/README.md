@@ -231,3 +231,39 @@ LLM decoding is greedy (temperature 0) but not guaranteed bit-identical across
 Ollama versions, so the committed responses/report are a snapshot. **This report
 is the official Track A baseline that Tracks B and C will be compared against.**
 The system is not tuned based on results.
+
+## Phase P8.0 — Frozen fine-tuning dataset
+
+`training/` builds the **frozen supervised fine-tuning (SFT) dataset** for Track
+B, derived **only** from the frozen P5 corpus (projected documents + canonical
+records) — never from Track A responses, evaluation outputs, or benchmark
+questions. **No model is trained in this phase.**
+
+- **Generation (`generate.py`):** deterministic, template-based. Answerable
+  examples take their answer verbatim from the grounded projected section content
+  (overview/admissions/application/contact) plus multi-field combinations;
+  refusal examples teach the exact refusal *"I don't have enough information in
+  the provided Graduate Center data to answer that."* for every `source_missing`/
+  `unknown` field (STEM, college, unpublished GPA, GRE). Instruction templates are
+  deliberately distinct from the benchmark templates.
+- **Validation (`validate.py`):** answerable outputs must exactly equal the
+  grounded corpus content (no invented/paraphrased facts); refusals must match the
+  canonical text; no empty/duplicate/malformed records; **no instruction may
+  overlap an evaluation-benchmark question** (leakage guard).
+- **Split (`split.py`):** deterministic 90/10 train/val, seed 42.
+- **Export (`export.py`):** Alpaca JSONL (`instruction`/`input`/`output`) +
+  per-split files + a conversational export + full audit records, plus a
+  checksummed `ft_manifest.json` that freezes the dataset.
+
+Artifacts (committed under `data/training/`): `ft_dataset.jsonl`,
+`ft_train.jsonl`, `ft_val.jsonl`, `ft_conversational.jsonl`, `ft_records.jsonl`,
+`ft_manifest.json`. Current build: **134 examples** (90 answerable + 44 refusals),
+all 12 programs, train 121 / val 13, checksum `sha256:ee143059…`.
+
+```
+python -m experiments.rag_vs_finetuning.training.cli build-ft-dataset
+python -m experiments.rag_vs_finetuning.training.cli dataset-stats
+```
+
+**This frozen dataset is the sole training dataset for Track B.** Deferred (P8.1+):
+LoRA/QLoRA fine-tuning, adapter generation, Track B inference, and any comparison.

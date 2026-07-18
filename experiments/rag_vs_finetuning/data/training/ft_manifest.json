@@ -1,0 +1,15 @@
+{
+  "corpus_version": "1.0",
+  "generation_version": "ft-gen-0.1",
+  "schema_version": "ft-schema-1",
+  "dataset_checksum": "sha256:ee143059d6463b1596e17f0d9a9b254cfe17baafa2f35c2cb625b97ec234dfe8",
+  "total_examples": 134,
+  "train_count": 121,
+  "val_count": 13,
+  "split_seed": 42,
+  "split_ratio": 0.9,
+  "generated_at": "2026-07-18T23:23:26.322099+00:00",
+  "system_prompt": "You are the CSULB Graduate Center assistant. Answer using only the Graduate Center program data. If the data does not contain the answer, say you don't have enough information. Never fabricate facts; preserve published wording.",
+  "source": "frozen P5 corpus (projected documents + canonical records); NOT Track A responses, evaluation outputs, or benchmark questions",
+  "notes": "Frozen dataset; sole training dataset for Track B."
+}

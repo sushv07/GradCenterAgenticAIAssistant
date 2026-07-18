@@ -5240,3 +5240,55 @@ responses/report are a snapshot. CLI:
 retrieval) and C (fine-tuned + RAG) will be compared against.** Comparison,
 fine-tuning, and hybrid work remain deferred. **Next: P8 — fine-tuned model
 (no retrieval).**
+
+---
+
+# Phase P8.0 — Frozen Fine-Tuning Dataset
+
+**Branch:** `feature/masters-canonical-schema` · **code baseline:** `210cc4d`
+
+P8.0 prepares and freezes the supervised fine-tuning (SFT) dataset that Track B
+will use. **No model is trained here.** The dataset is derived **only** from the
+frozen P5 corpus (projected documents + canonical records); it never uses Track A
+responses, evaluation outputs, or benchmark questions. New code lives under
+`experiments/rag_vs_finetuning/training/`; the frozen dataset under
+`experiments/rag_vs_finetuning/data/training/`. No P5/P6/P7/P7.1/P7.2 artifact and
+no production code is modified.
+
+## Generation & schema
+
+Deterministic, template-based (`generate.py`). Each example is
+`{instruction, input, output}`. **Answerable** examples (overview / admissions /
+application / contact + multi-field) take their `output` verbatim from the
+grounded projected section content — facts are never invented or paraphrased
+beyond the frozen text. **Refusal** examples teach the exact response
+*"I don't have enough information in the provided Graduate Center data to answer
+that."* for every field the corpus marks `source_missing`/`unknown` (STEM
+designation and college for all 12 programs, unpublished GPA for 10, GRE for 11).
+Instruction templates are deliberately distinct from the evaluation-benchmark
+templates.
+
+## Validation, split & freeze
+
+Validation (`validate.py`) enforces: every answerable output exactly equals its
+grounded projected content (no unsupported facts), refusals match the canonical
+refusal text, no empty/duplicate/malformed records, and **no instruction overlaps
+an evaluation-benchmark question** (leakage guard). The train/val split
+(`split.py`) is deterministic (90/10, seed 42) and — because benchmark questions
+are excluded by construction — cannot leak evaluation cases. `export.py` writes
+Alpaca JSONL + per-split files + a conversational export + audit records, and a
+checksummed `ft_manifest.json` (corpus version, generation version, schema
+version, checksum, counts, split seed/ratio, timestamp) that freezes the dataset.
+
+## Result & boundary
+
+Current frozen build: **134 examples** (90 answerable + 44 refusals), all 12
+programs (11–12 each), categories overview 24 / application 24 / contact 24 /
+admissions 6 / multi_field 12 / refusal 44; train 121 / val 13; checksum
+`sha256:ee143059…`; 0 benchmark-question overlap; all answerable outputs
+corpus-exact. CLI:
+`python -m experiments.rag_vs_finetuning.training.cli {build-ft-dataset|dataset-stats}`.
+Imports only stdlib + Pydantic + experiment-internal code (no torch/Chroma/
+production). **This frozen dataset is the sole training dataset for Track B.**
+Deferred: LoRA/QLoRA fine-tuning, adapter generation, Track B inference, and
+comparison. **Next: P8.1 — LoRA fine-tuning.**
