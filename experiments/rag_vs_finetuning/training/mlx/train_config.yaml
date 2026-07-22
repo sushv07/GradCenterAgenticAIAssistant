@@ -1,0 +1,38 @@
+# Track B — official MLX-LM LoRA training configuration (Phase P8.1).
+# Reproducible on Apple Silicon. Trains LoRA adapters only; the 4-bit base model
+# stays frozen. Paths are repo-relative (run mlx_lm.lora from the repo root, or
+# override --data/--adapter-path with absolute paths on the CLI).
+
+model: mlx-community/Qwen2.5-7B-Instruct-4bit   # 4-bit quantized base (frozen)
+train: true
+data: experiments/rag_vs_finetuning/data/training/mlx   # train.jsonl + valid.jsonl (chat schema)
+
+fine_tune_type: lora            # LoRA over the quantized base == QLoRA-equivalent on MLX
+optimizer: adamw
+
+# LoRA adapter hyperparameters
+num_layers: 16                  # trainable transformer layers (of 28)
+lora_parameters:
+  rank: 16                      # LoRA rank
+  scale: 20.0                   # LoRA scaling (alpha-equivalent applied directly by MLX)
+  dropout: 0.05                 # light dropout — small dataset (121 train examples)
+
+# Optimization
+learning_rate: 1.0e-4
+batch_size: 2
+grad_accumulation_steps: 1      # effective batch = batch_size * grad_accumulation = 2
+iters: 200                      # ~3.3 passes over 121 training examples
+max_seq_length: 512             # longest answer ~250 tokens + prompt; ample headroom
+grad_checkpoint: true           # memory safety on 16 GB unified memory
+
+# Validation + checkpointing
+steps_per_report: 10
+steps_per_eval: 20              # validation loss every 20 iters
+val_batches: -1                 # use the entire validation set (13 examples)
+save_every: 20                  # checkpoint adapter every 20 iters -> selectable checkpoints
+mask_prompt: true               # compute loss only on assistant tokens (instruction tuning)
+
+seed: 42                        # matches the frozen dataset split seed
+
+# Adapter output (git-ignored artifacts location)
+adapter_path: experiments/rag_vs_finetuning/artifacts/adapters/track_b_v1

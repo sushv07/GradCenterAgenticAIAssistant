@@ -1,0 +1,278 @@
+{
+  "track": "track_b_finetuned_no_rag",
+  "condition": "fine-tuned only (LoRA adapter, retrieval disabled)",
+  "dataset_version": "eval-v1",
+  "dataset_checksum": "sha256:e6f4145c91f189b411733616aab0c12d11ad89fa02080a58429332e7559344cb",
+  "case_count": 84,
+  "responded_count": 84,
+  "config": {
+    "base_model": "mlx-community/Qwen2.5-7B-Instruct-4bit",
+    "adapter_checksum": "sha256:a2a0908612b0e9c6b960f1470af19fa304415b892db8059d7c25ea2b8e390345",
+    "prompt_version": "track_b_sft_v1",
+    "decoding": "greedy(temp=0)",
+    "max_tokens": 256,
+    "seed": 42,
+    "mlx_lm": "0.29.1",
+    "retrieval": "DISABLED (no Chroma / no embeddings)"
+  },
+  "evaluation_timestamp": "2026-07-20T04:13:03.429746+00:00",
+  "primary_metrics": {
+    "answer_accuracy": 0.0678,
+    "hallucination_rate": 1.0,
+    "unsupported_claim_rate": 0.9467,
+    "completeness": 0.0678,
+    "refusal_rate": 0.1071,
+    "abstention_accuracy": 0.0
+  },
+  "operational_metrics": {
+    "avg_latency_ms": 25576.417,
+    "p50_latency_ms": 13464.711,
+    "p95_latency_ms": 20921.833,
+    "min_latency_ms": 1162.99,
+    "max_latency_ms": 604082.864,
+    "slowest_cases": [
+      {
+        "id": "EVAL-073",
+        "ms": 604082.9
+      },
+      {
+        "id": "EVAL-070",
+        "ms": 322898.3
+      },
+      {
+        "id": "EVAL-061",
+        "ms": 310099.5
+      }
+    ],
+    "note": "On-device MLX generation is normally ~13.5 s/case (P50); a few cases stalled to minutes under 16 GB unified-memory pressure during sustained 7B decoding, inflating the mean and max. These tail stalls are an inference-runtime artifact, not a model-quality signal."
+  },
+  "overall_metrics": {
+    "answer_accuracy": 0.0678,
+    "abstention_accuracy": 0.0,
+    "hallucination_rate": 1.0,
+    "citation_precision": 0.0,
+    "citation_recall": 0.0,
+    "retrieval_recall_at_k": 0.0,
+    "retrieval_precision_at_k": 0.0,
+    "avg_retrieval_latency_ms": 0.0,
+    "avg_generation_latency_ms": 25576.417,
+    "avg_end_to_end_latency_ms": 25576.417,
+    "avg_answer_chars": 626.8929,
+    "refusal_rate": 0.1071,
+    "unsupported_claim_rate": 0.9467,
+    "completeness": 0.0678,
+    "answerable_attempted": 50,
+    "answerable_total": 59,
+    "substantive_answers": 75,
+    "refusals": 9
+  },
+  "metrics_by_category": {
+    "admissions": {
+      "count": 5,
+      "responded": 5,
+      "accuracy": 0.0
+    },
+    "application": {
+      "count": 12,
+      "responded": 12,
+      "accuracy": 0.0833
+    },
+    "contact": {
+      "count": 12,
+      "responded": 12,
+      "accuracy": 0.0
+    },
+    "multi_field": {
+      "count": 8,
+      "responded": 8,
+      "accuracy": 0.0
+    },
+    "overview": {
+      "count": 12,
+      "responded": 12,
+      "accuracy": 0.25
+    },
+    "retrieval_challenge": {
+      "count": 10,
+      "responded": 10,
+      "accuracy": 0.0
+    },
+    "source_missing": {
+      "count": 13,
+      "responded": 13,
+      "accuracy": 0.0
+    },
+    "unknown": {
+      "count": 12,
+      "responded": 12,
+      "accuracy": 0.0
+    }
+  },
+  "category_extremes": {
+    "strongest": [
+      "overview"
+    ],
+    "strongest_accuracy": 0.25,
+    "weakest": [
+      "admissions",
+      "contact",
+      "multi_field",
+      "retrieval_challenge",
+      "source_missing",
+      "unknown"
+    ],
+    "weakest_accuracy": 0.0
+  },
+  "common_failure_modes": [
+    "Degenerate repetition — answers loop the same fragment (e.g. 'don have the provided, don have the provided …') up to the 256-token cap.",
+    "Refusal collapse — the model echoes a corrupted paraphrase of its trained refusal ('I don't have the provided <program> data to answer that') even for answerable questions, without stating the actual fact.",
+    "Fabricated tokens — invented emails/date codes (e.g. 'ced-2011-01-01') and spurious identifiers appear in place of grounded content.",
+    "Over-refusal on answerable cases (9) and failure to cleanly abstain on source_missing cases (hallucination_rate 1.0) — the trained refusal behaviour did not generalise."
+  ],
+  "failure_analysis": {
+    "counts": {
+      "hallucination": 25,
+      "incorrect_answer": 46,
+      "over_refusal": 9
+    },
+    "examples": {
+      "hallucination": [
+        "EVAL-060",
+        "EVAL-061",
+        "EVAL-062",
+        "EVAL-063",
+        "EVAL-064"
+      ],
+      "incorrect_answer": [
+        "EVAL-001",
+        "EVAL-002",
+        "EVAL-004",
+        "EVAL-005",
+        "EVAL-007"
+      ],
+      "over_refusal": [
+        "EVAL-025",
+        "EVAL-026",
+        "EVAL-029",
+        "EVAL-031",
+        "EVAL-033"
+      ]
+    },
+    "by_category": {
+      "incorrect_answer": {
+        "overview": 9,
+        "application": 11,
+        "contact": 4,
+        "admissions": 5,
+        "multi_field": 8,
+        "retrieval_challenge": 9
+      },
+      "over_refusal": {
+        "contact": 8,
+        "retrieval_challenge": 1
+      },
+      "hallucination": {
+        "unknown": 12,
+        "source_missing": 13
+      }
+    }
+  },
+  "representatives": {
+    "successes": [
+      {
+        "id": "EVAL-003",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Athletic Training program about?",
+        "expected_answer": "Athletic Training",
+        "answer": "I don't have the provided Athletic Training (MSW) to the provided, that, don have to have a degree in that. Email: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: ced-2011-01-01: c"
+      },
+      {
+        "id": "EVAL-006",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the International Affairs program about?",
+        "expected_answer": "International Affairs",
+        "answer": "I don't have the provided International Affairs (MAA). The Center for the Study of the Book in the 19th and 20th Centuries (CSULB) has a long history of research in the field of the history of the book. The center has a long history of research in the field of the history of the book in the 19th and  19th and 20th centuries. The center has a long history of research in the field of the history of "
+      },
+      {
+        "id": "EVAL-008",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Philosophy program about?",
+        "expected_answer": "Philosophy",
+        "answer": "I don't have the provided Philosophy ( or \" Phil. Ed. \" for that matter) to have that. Email: ced-phil-2011-01-01 to ced-phil-2011-01-01. The Department of Philosophy ( or \" Phil. Ed. \" for that matter) to answer that."
+      },
+      {
+        "id": "EVAL-016",
+        "category": "application",
+        "answerable": true,
+        "question": "What is the fall application deadline for Early Childhood Education?",
+        "expected_answer": "June 01",
+        "answer": "I don't have that in the provided Fall application deadline for that. The provided Fall application deadline for that. PROVIDED: The provided Fall application deadline for that. Spring application deadline: June 01; accept/decline deadline: August 14. The provided Fall application center: 10000:00:00:00:00:00:00:00:00:00:00:00:00:00:00:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:"
+      }
+    ],
+    "failures": [
+      {
+        "id": "EVAL-001",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Accountancy program about?",
+        "expected_answer": "CPA",
+        "answer": "I don't have the provided information in the provided, that is,I don have the provided,I don have a 1, don have a 1 in the provided, don have a , don have a 1 in the provided, don have a 1 in the provided, don have a 1 in the provided, that is, 100.I don have a 1 in the provided, don have a 1 in the provided, that is, 100.I don have a , that is, 100, that is, 100, that is, 100, that is, 100, that ",
+        "failure_mode": "incorrect_answer"
+      },
+      {
+        "id": "EVAL-002",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Art program about?",
+        "expected_answer": "Studio Art",
+        "answer": "I don't have the provided Art (2011-12) to answer that.",
+        "failure_mode": "incorrect_answer"
+      },
+      {
+        "id": "EVAL-004",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Early Childhood Education program about?",
+        "expected_answer": "Early Childhood",
+        "answer": "I don't have the provided Early Center data to answer that.",
+        "failure_mode": "incorrect_answer"
+      },
+      {
+        "id": "EVAL-005",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Health Care Management program about?",
+        "expected_answer": "Health",
+        "answer": "I don't have the provided, don have the provided, don have the, don have the provided, don have the provided, don have the provided, don have the provided, that's that. don have the provided, don have the provided, that's that, don have the, don have the provided, that's that, don have the provided, that's that, don have the provided, that's that, don have the, that's that, that's that, that's tha",
+        "failure_mode": "incorrect_answer"
+      },
+      {
+        "id": "EVAL-007",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Music program about?",
+        "expected_answer": "Bob Cole Conservatory",
+        "answer": "I don't have the provided Music (MUS) data to that provided in the provided, thatI don't have a (1990s) to (1991) for thatI don, don't have a (1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, , to, that,, that, that, that, that, that, that, that, that, that, that, that, that, that, that, that, that, that, that, t",
+        "failure_mode": "incorrect_answer"
+      },
+      {
+        "id": "EVAL-009",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Public Administration program about?",
+        "expected_answer": "Public Administration",
+        "answer": "I don't have the provided, don have the provided, don have, don have to answer that.",
+        "failure_mode": "incorrect_answer"
+      }
+    ]
+  },
+  "limitations": [
+    "Fine-tuned on 121 tiny SFT examples; the selected iter-40 adapter is the lowest-validation-loss checkpoint but the model still under-fits QA.",
+    "Retrieval is disabled by design — answers rely solely on parametric (fine-tuned) knowledge, so citation/retrieval metrics are not applicable.",
+    "Answer scoring is deterministic substring/set matching, not an LLM judge.",
+    "MLX greedy decoding is deterministic for a fixed version/hardware but not guaranteed bit-identical across MLX versions."
+  ]
+}

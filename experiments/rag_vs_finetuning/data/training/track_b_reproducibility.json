@@ -1,0 +1,24 @@
+{
+  "exact_command": "mlx_lm.lora -c experiments/rag_vs_finetuning/training/mlx/train_config.yaml --data <repo>/experiments/rag_vs_finetuning/data/training/mlx --adapter-path <repo>/experiments/rag_vs_finetuning/artifacts/adapters/track_b_v1",
+  "software": {
+    "mlx": "0.29.3",
+    "mlx_lm": "0.29.1",
+    "mlx_metal": "0.29.3",
+    "python": "3.9.6 (CommandLineTools)"
+  },
+  "hardware": {
+    "chip": "Apple M4",
+    "unified_memory_gb": 17.2,
+    "metal_available": true
+  },
+  "random_seed": 42,
+  "config_file": "experiments/rag_vs_finetuning/training/mlx/train_config.yaml",
+  "config_checksum": "sha256:db521b96683858758aa41b177c232f7f2172068b523853fa1565859a14d38804",
+  "dataset": {
+    "source_ft_checksum": "sha256:ee143059d6463b1596e17f0d9a9b254cfe17baafa2f35c2cb625b97ec234dfe8",
+    "mlx_train_checksum": "sha256:289e293de74d962053962a3019f51d760a46852aca00f80413925bd53531175f",
+    "mlx_valid_checksum": "sha256:fa479707a40c3f9c842e8c4ea57f8061f3c206092c16226567f9c6d655de06e3"
+  },
+  "checkpoint_selection": "minimum validation loss (iter 40 of 200)",
+  "base_model": "mlx-community/Qwen2.5-7B-Instruct-4bit (4-bit, frozen)"
+}
