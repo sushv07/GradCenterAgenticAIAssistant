@@ -255,16 +255,14 @@ def build_vector_store(documents: list) -> Chroma:
 
     print(f"[store] Embedding {len(documents)} chunks → {CHROMA_DIR}  (this may take ~30–60s)")
 
-    store = Chroma.from_documents(
-        documents=documents,
-        embedding=embeddings,
-        persist_directory=str(CHROMA_DIR),
-        collection_name=COLLECTION_NAME,
-        # cosine distance: similarity scores are in [0, 1] (1 = identical).
-        # Without this, ChromaDB defaults to L2 distance, producing scores
-        # outside [0, 1] that can't be reliably thresholded.
-        collection_metadata={"hnsw:space": "cosine"},
-    )
+    # Delegate embed + index to the shared Knowledge Ingestion Pipeline's Chroma
+    # adapter (rag/pipeline_adapters/chroma_indexer.py). It issues the same
+    # Chroma.from_documents(..., collection_metadata={"hnsw:space": "cosine"})
+    # call this method used to make directly, reusing the process embeddings
+    # singleton — so the on-disk store the retriever reads is unchanged. Store
+    # lifecycle (clearing, timestamp, caching) stays here.
+    from rag.pipeline_adapters.wiring import production_indexer
+    store = production_indexer(embeddings=embeddings).build_from_langchain_documents(documents)
 
     _write_timestamp()
     _STORE = store

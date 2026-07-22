@@ -45,48 +45,22 @@ chunk_id design:
 
 from __future__ import annotations
 
-import hashlib
-import json
 import time
 
 from langchain_core.documents import Document
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from config.settings import CHUNK_SIZE, CHUNK_OVERLAP
+from ingestion.pipeline.loaders.pages import page_to_document
+from rag.pipeline_adapters.wiring import production_chunker
 from obs.ingestion_events import emit_ingestion_page_chunked
 
 # ---------------------------------------------------------------------------
 # Chunking parameters
 # ---------------------------------------------------------------------------
-# CHUNK_SIZE / CHUNK_OVERLAP now live in config/settings.py (Phase 5A).
-# chunk_size: target character count per chunk (not tokens — simpler, predictable)
-# chunk_overlap: characters shared between adjacent chunks to preserve context
-# at boundaries.  ~15% of CHUNK_SIZE is a good default for prose content.
-
-# Separator hierarchy: the splitter tries each in order, falling back to the next.
-# Order: paragraph → newline → sentence end → clause → word → character (last resort)
-_SEPARATORS = ["\n\n", "\n", ". ", "? ", "! ", "; ", ", ", " ", ""]
-
-
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _make_chunk_id(url: str, chunk_index: int) -> str:
-    """
-    Build a stable, unique chunk identifier from the source URL and position.
-
-    Format: "{url_md5[:8]}_{chunk_index:04d}"
-    Example: "a3f9c12b_0003"
-
-    Using an MD5 hash of the URL keeps IDs:
-      - Short (8 hex chars instead of the full URL string)
-      - Filesystem-safe (no slashes, question marks, etc.)
-      - Deterministic (same URL always produces the same hash prefix)
-
-    For 4 URLs, the probability of the first 8 hex chars colliding is negligible.
-    """
-    url_hash = hashlib.md5(url.encode("utf-8")).hexdigest()[:8]
-    return f"{url_hash}_{chunk_index:04d}"
+# CHUNK_SIZE / CHUNK_OVERLAP now live in config/settings.py (Phase 5A) and are
+# re-exported here for backward compatibility. The actual splitting is delegated
+# to the shared Knowledge Ingestion Pipeline (ingestion/pipeline/) via the
+# production chunker adapter (rag/pipeline_adapters/), which reads the same
+# settings — so chunk boundaries, ids, and metadata are byte-identical to before.
 
 
 # ---------------------------------------------------------------------------
@@ -124,65 +98,30 @@ def chunk_documents(pages: list[dict]) -> list[Document]:
         docs   = chunk_documents(pages)  # ~120–200 Document objects
         store  = build_vector_store(docs)
     """
-    splitter = RecursiveCharacterTextSplitter(
-        chunk_size=CHUNK_SIZE,
-        chunk_overlap=CHUNK_OVERLAP,
-        separators=_SEPARATORS,
-        length_function=len,      # character-based length (predictable, no tokenizer needed)
-        is_separator_regex=False,
-    )
+    # Delegate the actual splitting to the shared pipeline's production chunker.
+    # It reproduces the historical splitter config, chunk ids, and metadata
+    # exactly (see rag/pipeline_adapters/recursive_chunker.py), so the returned
+    # LangChain Documents are byte-identical to the previous implementation.
+    chunker = production_chunker()
 
     all_docs: list[Document] = []
 
     for page in pages:
         url               = page.get("url", "")
-        title             = page.get("title", "")
         page_type         = page.get("page_type", "unknown")
-        # Extended metadata — "" / 6 when absent (backward-compatible)
-        program_name        = page.get("program_name", "")
-        content_category    = page.get("content_category", "")
-        discovered_from     = page.get("discovered_from", "")
-        parent_program_url  = page.get("parent_program_url", "")
-        workflow_priority   = page.get("workflow_priority", 6)
+        program_name      = page.get("program_name", "")
         text              = page.get("text", "").strip()
-        # Serialise extracted hyperlinks as a JSON string so they survive
-        # ChromaDB's flat-metadata constraint (no lists/dicts allowed).
-        # Same value on every chunk of this page; consumers parse with json.loads().
-        links_json = json.dumps(page.get("links", []), ensure_ascii=False)
 
         if not text:
             print(f"[chunking] Skipping empty page: {url}")
             continue
 
-        # Split the full page text into overlapping chunks
+        # page dict → KnowledgeDocument → deterministic Chunks → LangChain Documents.
         _t_chunk = time.perf_counter()
-        raw_chunks = splitter.split_text(text)
-
-        page_docs: list[Document] = []
-        for i, chunk_text in enumerate(raw_chunks):
-            chunk_text = chunk_text.strip()
-            if not chunk_text:
-                continue
-
-            # All metadata values must be primitive types for ChromaDB compatibility.
-            # No lists, dicts, or nested structures allowed.
-            doc = Document(
-                page_content=chunk_text,
-                metadata={
-                    "title":              title,
-                    "url":                url,
-                    "page_type":          page_type,
-                    "program_name":       program_name,
-                    "content_category":   content_category,
-                    "discovered_from":    discovered_from,
-                    "parent_program_url": parent_program_url,
-                    "workflow_priority":  workflow_priority,
-                    "chunk_id":           _make_chunk_id(url, i),
-                    "chunk_index":        i,
-                    "links_json":         links_json,
-                },
-            )
-            page_docs.append(doc)
+        chunks = chunker.chunk(page_to_document(page))
+        page_docs: list[Document] = [
+            Document(page_content=c.text, metadata=dict(c.metadata)) for c in chunks
+        ]
 
         _chunk_elapsed = round((time.perf_counter() - _t_chunk) * 1000, 1)
         emit_ingestion_page_chunked(
