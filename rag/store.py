@@ -443,6 +443,15 @@ def get_or_build_store(
 
         documents = chunk_documents(pages)
 
+        # Phase 5 — unify master's knowledge into the SAME production build.
+        # Config-gated (MASTERS_INGESTION_ENABLED, default off) and fail-safe:
+        # returns [] when disabled or if acquisition errors, so the base build is
+        # never broken. Master's docs are chunked with the same production chunker
+        # and indexed by the same build_vector_store call — one unified collection,
+        # no separate command, no duplicate index path.
+        from rag.masters_ingest import masters_build_documents
+        documents = list(documents) + masters_build_documents()
+
         if not documents:
             print("[store] No chunks produced — cannot build vector store")
             return None
