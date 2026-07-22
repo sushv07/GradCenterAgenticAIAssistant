@@ -1,3 +1,13 @@
+> **⚠️ Superseded — legacy document.**
+> This file documents an earlier (pre-refactor) architecture of the CSULB
+> Graduate Center AI Assistant, including a flat root-level file layout
+> (`guidance_agent.py`, `answer_agent.py`, `query_handler.py`, `tracker.py`,
+> etc.) that no longer exists in the codebase. It is retained for historical
+> reference only and is **not maintained**.
+>
+> For the current, actively-maintained architecture documentation, see
+> **[`../../ARCHITECTURE_ANALYSIS.md`](../../ARCHITECTURE_ANALYSIS.md)**.
+
 ---
 
 # CSULB Graduate Center Agentic AI Assistant — Complete Architecture Documentation
