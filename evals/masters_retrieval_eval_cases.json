@@ -1,0 +1,281 @@
+{
+  "_schema_version": "1",
+  "_scope": "Phase 6 — master's retrieval baseline. Golden questions grounded in content verified present in the evaluation store (pilot master's programs + static base sources). Expected answers are traceable to indexed chunks; none are fabricated. Styles: direct, paraphrase, multi_hop, ambiguous, negative. Some cases intentionally target known-thin pages (Linguistics/Political Science seeds, advisor info) so acquisition gaps surface as classified failures rather than staying invisible.",
+  "_store": "unified eval store: 5 pilot master's programs (depth-1 crawl) + static base sources (faq/deadlines/eligibility/application_process/doctoral program pages)",
+  "cases": [
+    {
+      "case_id": "MRE-001",
+      "category": "admission_requirements",
+      "style": "direct",
+      "query": "What do I need to submit to apply to the MPA program?",
+      "expected_program": "Public Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration/admissions-to-our-program"
+      ]
+    },
+    {
+      "case_id": "MRE-002",
+      "category": "admission_requirements",
+      "style": "paraphrase",
+      "query": "how many separate applications do I have to file for the public administration master's degree",
+      "expected_program": "Public Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration/admissions-to-our-program"
+      ]
+    },
+    {
+      "case_id": "MRE-003",
+      "category": "gpa",
+      "style": "direct",
+      "query": "What is the minimum undergraduate GPA required for admission to the MPA program?",
+      "expected_program": "Public Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration/admissions-to-our-program"
+      ]
+    },
+    {
+      "case_id": "MRE-004",
+      "category": "gpa",
+      "style": "direct",
+      "query": "What is the average GPA of admitted Day-Time MBA students?",
+      "expected_program": "Business Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/cob-graduate-programs/mba-programs"
+      ]
+    },
+    {
+      "case_id": "MRE-005",
+      "category": "deadlines",
+      "style": "direct",
+      "query": "When does the Fall 2027 application cycle open for graduate business programs?",
+      "expected_program": "Business Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/cob-graduate-programs/application-deadlines"
+      ]
+    },
+    {
+      "case_id": "MRE-006",
+      "category": "deadlines",
+      "style": "paraphrase",
+      "query": "MBA application deadline CSULB",
+      "expected_program": "Business Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/cob-graduate-programs/application-deadlines",
+        "https://www.csulb.edu/cob-graduate-programs/mba-programs"
+      ]
+    },
+    {
+      "case_id": "MRE-007",
+      "category": "application_process",
+      "style": "direct",
+      "query": "Who is eligible for the FAST TRACK application to the graduate business programs?",
+      "expected_program": "Business Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/cob-graduate-programs/fast-track-application-process"
+      ]
+    },
+    {
+      "case_id": "MRE-008",
+      "category": "application_process",
+      "style": "direct",
+      "query": "Where do I send my official transcripts for the graduate business programs?",
+      "expected_program": "Business Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/cob-graduate-programs/admissions-information"
+      ]
+    },
+    {
+      "case_id": "MRE-009",
+      "category": "international",
+      "style": "direct",
+      "query": "What are the application requirements for international applicants to graduate business programs?",
+      "expected_program": "Business Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/cob-graduate-programs/international-applicants-to-graduate-business-programs"
+      ]
+    },
+    {
+      "case_id": "MRE-010",
+      "category": "international",
+      "style": "paraphrase",
+      "query": "I'm an international student, how early should I apply to the MBA and when is the I-20 issued?",
+      "expected_program": "Business Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/cob-graduate-programs/international-applicants-to-graduate-business-programs"
+      ]
+    },
+    {
+      "case_id": "MRE-011",
+      "category": "tuition",
+      "style": "direct",
+      "query": "How much does the Day-Time MBA program cost?",
+      "expected_program": "Business Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/cob-graduate-programs/mba-programs"
+      ]
+    },
+    {
+      "case_id": "MRE-012",
+      "category": "tuition",
+      "style": "multi_hop",
+      "query": "Where can international graduate students find information about tuition, fees, and scholarships?",
+      "expected_page_type": "faq",
+      "expected_urls": [
+        "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs"
+      ]
+    },
+    {
+      "case_id": "MRE-013",
+      "category": "curriculum",
+      "style": "direct",
+      "query": "How many months does the Day-Time MBA curriculum take to complete?",
+      "expected_program": "Business Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/cob-graduate-programs/mba-programs"
+      ]
+    },
+    {
+      "case_id": "MRE-014",
+      "category": "curriculum",
+      "style": "direct",
+      "query": "How many units are required for the Master of Arts in Art with a concentration in Art History?",
+      "expected_program": "Museum Studies",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/school-of-art/graduate-studies"
+      ]
+    },
+    {
+      "case_id": "MRE-015",
+      "category": "concentration",
+      "style": "paraphrase",
+      "query": "what specialty areas do art history faculty train graduate students in at CSULB",
+      "expected_program": "Museum Studies",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/school-of-art/graduate-studies"
+      ]
+    },
+    {
+      "case_id": "MRE-016",
+      "category": "admission_requirements",
+      "style": "direct",
+      "query": "Is the GMAT or GRE required for the Evening MBA?",
+      "expected_program": "Business Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/cob-graduate-programs/mba-programs/evening-mba",
+        "https://www.csulb.edu/cob-graduate-programs/admissions-faqs"
+      ]
+    },
+    {
+      "case_id": "MRE-017",
+      "category": "multi_hop",
+      "style": "multi_hop",
+      "query": "Which MBA format at CSULB has the lowest total program cost?",
+      "expected_program": "Business Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/cob-graduate-programs/mba-programs"
+      ]
+    },
+    {
+      "case_id": "MRE-018",
+      "category": "faq_shared",
+      "style": "direct",
+      "query": "Does CSULB offer application fee waivers for graduate program applicants?",
+      "expected_page_type": "faq",
+      "expected_urls": [
+        "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs"
+      ]
+    },
+    {
+      "case_id": "MRE-019",
+      "category": "faq_shared",
+      "style": "ambiguous",
+      "query": "how do I get started with applying to CSULB",
+      "expected_urls": [
+        "https://www.csulb.edu/admissions",
+        "https://www.csulb.edu/graduate-center/frequently-asked-questions-faqs",
+        "https://www.csulb.edu/admissions/doctoral-programs-application-process"
+      ],
+      "notes": "Ambiguous by design; any general application entry point counts as relevant."
+    },
+    {
+      "case_id": "MRE-020",
+      "category": "advisor",
+      "style": "direct",
+      "query": "Who is the graduate advisor for the Linguistics MA program?",
+      "expected_program": "Linguistics",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://cla.csulb.edu/departments/linguistics/ma-program/"
+      ],
+      "notes": "Gap-probe: advisor names live in the directory cards, which are not indexed; the Linguistics seed page extraction captured mostly CLA news boilerplate."
+    },
+    {
+      "case_id": "MRE-021",
+      "category": "department",
+      "style": "direct",
+      "query": "Tell me about the Political Science master's degree program at CSULB",
+      "expected_program": "Political Science",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "http://cla.csulb.edu/departments/polisci/master-of-arts/"
+      ],
+      "notes": "Gap-probe: PoliSci seed extraction captured mostly CLA news boilerplate (2 chunks)."
+    },
+    {
+      "case_id": "MRE-022",
+      "category": "doctoral_guard",
+      "style": "direct",
+      "query": "How do I apply to the DPT physical therapy program?",
+      "expected_program": "Physical Therapy (DPT)",
+      "expected_page_type": "program_application",
+      "expected_urls": [
+        "https://www.csulb.edu/college-of-health-human-services/physical-therapy/applying-to-the-dpt-program"
+      ],
+      "notes": "Guard: master's ingestion must not degrade existing doctoral retrieval."
+    },
+    {
+      "case_id": "MRE-023",
+      "category": "department",
+      "style": "paraphrase",
+      "query": "public policy and administration department master's program overview",
+      "expected_program": "Public Administration",
+      "expected_page_type": "masters_program",
+      "expected_urls": [
+        "https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration",
+        "https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration/admissions-to-our-program"
+      ]
+    },
+    {
+      "case_id": "MRE-024",
+      "category": "negative",
+      "style": "negative",
+      "query": "where can I buy a student parking permit on campus",
+      "expect_empty": true,
+      "notes": "Out-of-scope query; nothing relevant is indexed. Pass iff retrieval returns nothing above the production threshold."
+    },
+    {
+      "case_id": "MRE-025",
+      "category": "negative",
+      "style": "negative",
+      "query": "freshman dormitory housing options for undergraduates",
+      "expect_empty": true,
+      "notes": "Out-of-scope query targeting undergraduate housing; not part of the graduate knowledge base."
+    }
+  ]
+}
