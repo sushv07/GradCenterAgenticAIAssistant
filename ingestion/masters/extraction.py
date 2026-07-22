@@ -123,6 +123,46 @@ def _section_list(main, heading_keywords: tuple[str, ...]) -> list[str]:
     return []
 
 
+def _page_title(soup: BeautifulSoup, fallback: str = "") -> str:
+    """Primary page title from <title> (drops the trailing ' | CSULB' suffix)."""
+    tag = soup.find("title")
+    if tag:
+        raw = tag.get_text(strip=True)
+        if " | " in raw:
+            raw = raw.split(" | ")[0].strip()
+        if raw and len(raw) > 3:
+            return raw
+    return fallback
+
+
+def extract_main_content_text(
+    html: bytes | str, *, fallback_title: str = "",
+) -> tuple[str, str]:
+    """Full-text extractor for retrieval: returns (title, cleaned_main_text).
+
+    Reuses the SAME calibrated main-content isolation as extract_program_page
+    (nav/header/footer/script/aside removed) so there is one extraction path.
+    Lines are whitespace-normalized, boilerplate/widget lines dropped, and
+    consecutive duplicate lines collapsed. Reading order is preserved with
+    newline separators (the production chunker splits on blank line / newline).
+    Never fabricates content — an empty main region yields an empty string.
+    """
+    raw = html if isinstance(html, bytes) else html.encode("utf-8")
+    soup = BeautifulSoup(raw, "html.parser")
+    title = _page_title(soup, fallback_title)
+    main = _main_content(soup)
+
+    lines: list[str] = []
+    for line in main.get_text("\n", strip=True).split("\n"):
+        s = _clean(line)
+        if not s or _looks_boilerplate(s):
+            continue
+        if lines and lines[-1] == s:      # drop consecutive duplicate lines
+            continue
+        lines.append(s)
+    return title, "\n".join(lines)
+
+
 def extract_program_page(html: bytes | str, *, source_id: str) -> ExtractedFacts:
     raw = html if isinstance(html, bytes) else html.encode("utf-8")
     soup = BeautifulSoup(raw, "html.parser")
