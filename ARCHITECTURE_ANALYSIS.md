@@ -5292,3 +5292,237 @@ Imports only stdlib + Pydantic + experiment-internal code (no torch/Chroma/
 production). **This frozen dataset is the sole training dataset for Track B.**
 Deferred: LoRA/QLoRA fine-tuning, adapter generation, Track B inference, and
 comparison. **Next: P8.1 — LoRA fine-tuning.**
+
+# Phase P8.0.5 — MLX Training Environment Validation
+
+The execution environment changed to Apple Silicon (M4, 16 GB unified memory),
+so before any official training P8.0.5 validated the on-device stack: MLX / MLX-LM
+LoRA over a 4-bit quantized base is the QLoRA-equivalent path on Metal
+(`bitsandbytes` is irrelevant on Apple Silicon). The validation confirmed the base
+model loads, a LoRA adapter trains and saves, and inference runs within the memory
+budget — with **no official training, no benchmark, and no dataset changes**. It
+also surfaced the interpreter split that shapes the rest of the experiment: MLX
+runs under CommandLineTools/Xcode Python 3.9 (`mlx_lm`), while the retrieval and
+evaluation code runs under miniconda Python 3.13 (`chromadb`, `sentence-transformers`);
+no single interpreter has both stacks.
+
+# Phase P8.1 — Official LoRA Fine-Tuning (Track B Training)
+
+P8.1 performed the **single official Track B training run**: a LoRA adapter over
+the frozen `mlx-community/Qwen2.5-7B-Instruct-4bit` base, trained on the frozen
+121/13 split via MLX-LM. Configuration (frozen in `training/mlx/train_config.yaml`):
+LoRA rank 16, scale 20, dropout 0.05, 16 transformer layers, learning rate 1e-4,
+batch size 2, 200 iterations, gradient checkpointing, `--mask-prompt`, seed 42.
+Only the adapter trains; the base stays frozen — **23.069M trainable parameters
+(0.303%)**. Wall-clock **771 s**, peak memory ~6.1 GB.
+
+The decisive methodological step was **checkpoint selection by validation loss,
+not by final step**. Validation loss reached its minimum at **iteration 40
+(1.018)** and then diverged to 5.338 by iteration 200 — classic small-dataset
+overfitting at this learning rate. The **iter-40 checkpoint** was selected as the
+official adapter (`artifacts/adapters/track_b_selected/`, checksum
+`sha256:a2a09086…`). Functional (not benchmark) validation confirmed the adapter
+loads and generates; a training report and reproducibility manifest (exact command,
+versions, hardware, seed) were produced. Retrieval and Track A were untouched.
+
+# Phase P8.2 — Track B Official Evaluation
+
+P8.2 ran the fine-tuned model (base + selected adapter) over the same frozen
+84-case benchmark through the **same track-agnostic evaluation pipeline** used for
+Track A, with **retrieval completely disabled** (`retrieved_chunk_ids` and
+`citation_chunk_ids` empty for all cases). Deterministic greedy decoding, seed 42.
+The official Track B metrics: answer accuracy **0.0678**, hallucination rate
+**1.00** (fabricated on 100% of source-missing cases), abstention accuracy **0.00**,
+unsupported-claim rate **0.9467**. Error analysis recorded degenerate generation
+(repetition, corrupted refusals, invented tokens). The frozen artifacts were
+verified unchanged.
+
+# Phase P9 — Comparative Analysis (Track A vs Track B)
+
+P9 compared Tracks A and B analytically, re-scoring both through the unmodified
+pipeline (each reproduced its frozen report exactly). Pure RAG beat fine-tuned-only
+on every axis: **0.4576 vs 0.0678** answer accuracy, **0.16 vs 1.00** hallucination,
+**0.84 vs 0.00** abstention accuracy — Track A winning all categories. Root cause:
+retrieval grounding supplies authoritative text and evidence-aware abstention,
+while a 121-example LoRA injects no reliable knowledge and degrades fluency. The
+report's forward recommendation directly seeded Track C: **keep RAG as the
+knowledge source and abstention mechanism; use fine-tuning only to shape faithful
+formatting on top of retrieved context.**
+
+# Phase P10 — Track C: Hybrid (RAG + LoRA) Implementation
+
+P10 implemented the hybrid **without modifying any prior track**: the frozen
+Track A retrieval (embedding → Chroma top-k) feeds a grounded prompt
+(`rag_ft_prompt_v1`: system + retrieved context + question) consumed by the base +
+official Track B adapter. Knowledge comes from retrieval (authoritative); the
+adapter contributes behaviour only. Because of the interpreter split, `retrieve.py`
+(3.13) hands retrieved context to `infer.py` (3.9) via a JSON bundle; citations are
+drawn from retrieved evidence, and empty retrieval abstains without calling the
+model. Functional validation passed all checks (retrieval executes, adapter loads,
+context injected, citations generated, insufficient-evidence handled, no runtime
+errors). No benchmark or metrics were run in this engineering-only phase. New code
+is isolated under `experiments/rag_vs_finetuning/track_c/`.
+
+# Phase P11 — Track C Official Evaluation
+
+P11 evaluated Track C on the frozen 84-case benchmark through the same pipeline.
+Retrieval was precomputed into a bundle (frozen Track A stack, top_k=4,
+threshold=0.0) and generation ran base + adapter under greedy decoding. Official
+metrics: answer accuracy **0.0169**, hallucination **1.00**, abstention accuracy
+**0.00**, but citation recall **0.5593** and retrieval recall@k **0.5593** —
+**identical retrieval to Track A**. This is the study's cleanest controlled result:
+handed the same evidence as Track A (0.5593 recall in both), Track C scored 0.0169
+versus Track A's 0.4576. Only the generator differed, isolating the context-free,
+overfit adapter as the binding constraint. A three-way comparison
+(`comparative_analysis_abc.*`) was produced; all frozen artifacts verified unchanged.
+
+# Phase P12 — Final Conclusions
+
+P12 synthesized the completed experiment into research and engineering reports
+(`experiments/rag_vs_finetuning/reports/`: `final_conclusions.md/.json`,
+`executive_summary.md`, `lessons_learned.md`, `future_work.md`) — documentation
+only, no training/inference/evaluation, all frozen artifacts unchanged. Its
+conclusions are consolidated in the retrospective below.
+
+# Experiment Retrospective — RAG vs Fine-Tuning vs Hybrid
+
+*This section reflects the final, executed state of the RAG-vs-Fine-Tuning study
+(phases P5–P12) rather than the original proposal. All figures are drawn from the
+committed official artifacts under `experiments/rag_vs_finetuning/data/evaluation/`
+and `.../reports/`; none are estimated.*
+
+## Evolution of the Architecture
+
+The project began (see §"UPDATED TARGET ARCHITECTURE" and the P5 corpus section)
+as a proposal for three retrieval/adaptation tracks plus an optional freshness
+experiment, framed around a single production assistant. It evolved into a
+**rigorously frozen, three-track comparative study** built as an isolated
+experiment (`experiments/rag_vs_finetuning/`) that never touches the production
+path:
+
+- **Track A — Pure RAG** (P7/P7.2): retrieval-grounded generation, the baseline.
+- **Track B — LoRA Fine-Tuning** (P8.x): parametric adaptation, no retrieval.
+- **Track C — Hybrid** (P10/P11): Track A retrieval feeding the Track B adapter.
+
+The freshness experiment envisioned in the original proposal was **not executed**;
+it remains future work. The key architectural evolution was the shift from "build
+one assistant" to "hold everything constant and change exactly one variable per
+track", enforced by frozen corpora, a frozen benchmark, one shared evaluation
+pipeline, and SHA-256 checksums at every boundary.
+
+## Why Each Architecture Was Built
+
+- **Track A (Pure RAG)** was built to establish whether retrieval grounding alone,
+  over a maintained corpus, produces correct and safely-abstaining answers — the
+  reference point every other track is measured against.
+- **Track B (LoRA Fine-Tuning)** was built to test the common claim that a small
+  supervised set can be fine-tuned *into* the model as a substitute for retrieval,
+  isolating parametric knowledge by disabling retrieval entirely.
+- **Track C (Hybrid)** was built because P9 showed retrieval dominated fine-tuning;
+  the hypothesis was that combining authoritative retrieved context with a
+  behaviour-shaping adapter could capture the strengths of both. Reusing the
+  *official* Track B adapter (unchanged) made Track C a controlled test of that
+  specific adapter in a grounded pipeline.
+
+## Experimental Methodology
+
+- **Frozen knowledge corpus** — canonical records for 12 master's programs,
+  source-guarded and checksummed (P5).
+- **Chunking & embeddings** — deterministic section-level chunking (41 chunks),
+  `all-MiniLM-L6-v2` (normalized), in an isolated Chroma collection
+  `masters_track_a_v1` (P6).
+- **Retrieval** — cosine similarity, top_k = 4, threshold = 0.0 (shared by Tracks
+  A and C).
+- **LoRA fine-tuning** — MLX-LM on `Qwen2.5-7B-Instruct-4bit`; rank 16, LR 1e-4,
+  200 iters; **best checkpoint selected by validation loss (iter 40, val 1.018)**;
+  23.069M trainable params (0.303%).
+- **Fine-tuning dataset** — 134 frozen examples (train 121 / val 13, seed 42),
+  built from the corpus only with **0 benchmark-question overlap**.
+- **Benchmark** — 84 frozen cases across 8 categories, including explicit
+  should-abstain (`source_missing`, `unknown`) cases.
+- **Evaluation** — one deterministic, track-agnostic pipeline (substring/set
+  scoring, no LLM judge); every track's recompute reproduces its frozen report
+  exactly.
+- **Controlled comparison** — corpus, benchmark, scoring, and base-model family
+  held constant so each track changes exactly one variable.
+
+## High-Level Implementation Summary
+
+| Track | Module | Path (isolated experiment) | Knowledge source | Generator |
+| --- | --- | --- | --- | --- |
+| A | Pure RAG | `track_a/` (retriever, prompt, pipeline) | Chroma retrieval | base LLM (Ollama `qwen2.5:7b-instruct`) |
+| B | Fine-Tuned | `track_b/` (infer, evaluate) | adapter weights (none retrieved) | base 4-bit + LoRA (MLX) |
+| C | Hybrid | `track_c/` (retrieve, prompt_builder, infer) | Chroma retrieval (authoritative) | base 4-bit + LoRA (MLX) |
+
+Cross-cutting: `evaluation/` holds the frozen scoring pipeline; `analysis/` holds
+the two-way (`compare.py`) and three-way (`compare_abc.py`) comparisons;
+`training/` holds the dataset builder and MLX config. A JSON hand-off bridges the
+3.13 retrieval interpreter and the 3.9 MLX interpreter. No production code imports
+the experiment.
+
+## Official Benchmark Results
+
+Headline metrics on the frozen 84-case benchmark (identical pipeline for all tracks):
+
+| Metric | Track A (RAG) | Track B (FT) | Track C (Hybrid) |
+| --- | --- | --- | --- |
+| Answer accuracy | **0.4576** | 0.0678 | 0.0169 |
+| Hallucination rate | **0.16** | 1.00 | 1.00 |
+| Abstention accuracy | **0.84** | 0.00 | 0.00 |
+| Refusal rate | 0.5714 | 0.1071 | 0.0000 |
+| Unsupported-claim rate | **0.25** | 0.9467 | 0.9881 |
+| Citation precision | 0.1525 | 0.00 | 0.161 |
+| Citation recall | 0.5254 | 0.00 | 0.5593 |
+| Retrieval recall@k | 0.5593 | n/a | 0.5593 |
+
+Answer accuracy by category (Track A wins all 8):
+
+| Category (n) | A | B | C |
+| --- | --- | --- | --- |
+| admissions (5) | 1.00 | 0.00 | 0.00 |
+| application (12) | 0.33 | 0.08 | 0.00 |
+| contact (12) | 0.42 | 0.00 | 0.00 |
+| multi_field (8) | 0.375 | 0.00 | 0.125 |
+| overview (12) | 0.667 | 0.25 | 0.00 |
+| retrieval_challenge (10) | 0.20 | 0.00 | 0.00 |
+| source_missing (13) | 0.692 | 0.00 | 0.00 |
+| unknown (12) | 1.00 | 0.00 | 0.00 |
+
+Average end-to-end latency (not directly comparable — Ollama for A, Apple MLX 4-bit
+for B/C): A ≈ 3410 ms, B ≈ 25576 ms, C ≈ 4902 ms.
+
+## Engineering Observations
+
+- **Same evidence, opposite outcomes.** Tracks A and C were handed identical
+  retrieved context (retrieval recall@k = 0.5593 in both) yet scored 0.4576 vs
+  0.0169 — the generator, not the evidence, decided the result.
+- **The hybrid scored below even fine-tuning-only** on accuracy (0.0169 < 0.0678):
+  a weak downstream component was not rescued by a strong upstream one.
+- **Failure modes differ by design.** Track A's dominant failures were
+  over-abstention and imperfect citations (`abstention_error` 31, `retrieval_failure`
+  29, `incorrect_citation` 59) — it refused rather than fabricate. Tracks B and C
+  fabricated instead (hallucination 1.00; Track C `incorrect_answer` 58).
+- **Overfitting was visible and had to be engineered around** — validation loss
+  minimized at iter 40 then diverged; selecting the final checkpoint would have been
+  strictly worse.
+- **Reproducibility held across six evaluation/analysis phases** — every metric
+  recomputed exactly to its frozen report, and integrity checks confirmed no frozen
+  artifact changed.
+
+#### Final Production Recommendation
+
+Within the scope of this study, the recommended production architecture is Track A — Pure RAG. It delivered the highest answer accuracy (0.4576), the safest failure characteristics (hallucination rate 0.16 and abstention accuracy 0.84), verifiable citations, and a knowledge base that can be updated by re-indexing the corpus without retraining.
+
+Based on the results of this study, Fine-tuning-only (Track B) and the evaluated hybrid implementation (Track C) are not recommended as the production architecture for this application. Both exhibited high hallucination rates on missing-evidence cases and underperformed the Pure RAG baseline by a substantial margin.
+
+Fine-tuning should be revisited only as a behavior layer trained on retrieval-augmented examples (retrieved context → grounded answer/refusal), using a larger training dataset, a lower learning rate, and validation-based early stopping. A retrieval-aware hybrid (“Track C-v2”) should be evaluated before being considered for the production generation path. Retrieval should remain the authoritative source of factual knowledge. See experiments/rag_vs_finetuning/reports/future_work.md for the proposed follow-up experiments.
+
+⸻
+
+Key Architectural Lessons Learned
+
+* Within this study, retrieval grounding proved to be the highest-leverage architectural decision for factual, updatable question answering, outperforming weight-based adaptation across all evaluated architectures.
+* For this dataset and training configuration, fine-tuning functioned more effectively as a behavior and formatting layer than as a knowledge store. A small, context-free LoRA adapter did not introduce new factual knowledge and instead degraded grounded generation.
+* A hybrid architecture is only as effective as its generation component. In this implementation, adding an adapter trained without retrieved context degraded grounded generation despite identical retrieval quality, demonstrating that combining independently trained components does not automatically improve system performance.
+* Measure abstention and hallucination alongside answer accuracy. The difference between “refuses when evidence is insufficient” (Track A) and “fabricates confidently” (Tracks B and C) proved to be one of the most important engineering findings of the study and would not have been apparent from answer accuracy alone.
+* Controlled experimentation, frozen benchmarks, and reproducibility checks made the results trustworthy and repeatable, even when they contradicted initial expectations. This engineering discipline provided confidence that the observed outcomes reflected architectural behavior rather than experimental drift.

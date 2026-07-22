@@ -1,0 +1,85 @@
+{
+  "project": "RAG vs Fine-Tuning vs Hybrid — CSULB Graduate Center assistant",
+  "phase": "P12_final_conclusions",
+  "scope": "documentation synthesis only; no training, inference, evaluation, or implementation",
+  "frozen_inputs": {
+    "benchmark_checksum": "sha256:e6f4145c91f189b4117…",
+    "benchmark_cases": 84,
+    "track_a_report_checksum": "sha256:1f47e4324a3b5f55",
+    "track_b_report_checksum": "sha256:6381fdc2d3977408",
+    "track_c_report_checksum": "sha256:5ff0a1447dc056b3",
+    "comparative_ab_checksum": "sha256:f911ed5d985aa379",
+    "comparative_abc_checksum": "sha256:19f25e690e36182d",
+    "adapter_checksum": "sha256:a2a0908612b0e9c6…"
+  },
+  "project_overview": {
+    "problem_statement": "Build a factual assistant for the CSULB Graduate Center master's programs and determine, under controlled conditions, whether retrieval (RAG), small-data LoRA fine-tuning, or their hybrid best answers program questions grounded in official content.",
+    "motivation": "RAG and fine-tuning are commonly proposed as alternatives for domain adaptation; teams need evidence on which to invest in when institutional knowledge is factual and updatable and the supervised set is small.",
+    "research_questions": [
+      "Does Pure RAG perform well on grounded factual QA?",
+      "Can small-data LoRA fine-tuning replace retrieval as the knowledge source?",
+      "Does a Hybrid (RAG + fine-tuned adapter) improve over Pure RAG?",
+      "What role does retrieval grounding play relative to model weights?",
+      "When is fine-tuning the appropriate tool?"
+    ],
+    "goals": [
+      "One frozen knowledge corpus, one frozen benchmark, one evaluation pipeline shared by all tracks.",
+      "Three controlled conditions: A=Pure RAG, B=Fine-Tuned-only, C=Hybrid.",
+      "Reproducible, checksum-guarded artifacts at every phase."
+    ],
+    "experimental_design": "Between-tracks comparison holding corpus, benchmark, scoring, and 7B base model family constant. Track A grounds a base model on retrieved chunks; Track B fine-tunes a LoRA adapter with no retrieval; Track C reuses Track A retrieval + the Track B adapter. Deterministic greedy decoding; substring/set scoring (no LLM judge)."
+  },
+  "methodology": {
+    "knowledge_corpus": "Frozen projection of 12 master's programs into canonical program records; source-guarded.",
+    "chunking": "Deterministic section-level chunking -> 41 chunks (chunks.jsonl).",
+    "embedding_model": "all-MiniLM-L6-v2 (normalized, CPU).",
+    "retrieval": "Chroma persistent collection masters_track_a_v1, cosine, top_k=4, threshold=0.0.",
+    "fine_tuning": "MLX-LM LoRA on mlx-community/Qwen2.5-7B-Instruct-4bit; rank 16, scale 20, dropout 0.05, 16 layers, LR 1e-4, 200 iters; best checkpoint by validation loss = iter 40 (val 1.018); 23.069M trainable params (0.303%).",
+    "ft_dataset": "121 train / 13 validation SFT examples (seed-42 split), built from the frozen corpus only (no benchmark leakage).",
+    "benchmark": "84 frozen cases across 8 categories (admissions, application, contact, multi_field, overview, retrieval_challenge, source_missing, unknown); answerable + source-missing.",
+    "evaluation_pipeline": "Track-agnostic ResponseRecord scoring: answer accuracy, hallucination/abstention, citation & retrieval precision/recall, derived refusal/unsupported/completeness, latency; deterministic, unchanged across A/B/C.",
+    "controlled_comparisons": "Same benchmark checksum and scoring for all tracks; each track's recompute reproduces its frozen report exactly."
+  },
+  "metrics": {
+    "answer_accuracy":        {"track_a": 0.4576, "track_b": 0.0678, "track_c": 0.0169},
+    "completeness":           {"track_a": 0.4576, "track_b": 0.0678, "track_c": 0.0169},
+    "hallucination_rate":     {"track_a": 0.16,   "track_b": 1.0,    "track_c": 1.0},
+    "abstention_accuracy":    {"track_a": 0.84,   "track_b": 0.0,    "track_c": 0.0},
+    "refusal_rate":           {"track_a": 0.5714, "track_b": 0.1071, "track_c": 0.0},
+    "unsupported_claim_rate": {"track_a": 0.25,   "track_b": 0.9467, "track_c": 0.9881},
+    "citation_precision":     {"track_a": 0.1525, "track_b": 0.0,    "track_c": 0.161},
+    "citation_recall":        {"track_a": 0.5254, "track_b": 0.0,    "track_c": 0.5593},
+    "retrieval_recall_at_k":  {"track_a": 0.5593, "track_b": null,   "track_c": 0.5593}
+  },
+  "track_findings": {
+    "track_a": {
+      "purpose": "Pure RAG baseline.",
+      "architecture": "question -> embed -> Chroma top-k -> grounded prompt -> base LLM -> answer + citations; refuses when no evidence.",
+      "strengths": ["Highest accuracy (0.4576), wins all 8 categories", "Safe failure: abstains not fabricates (hallucination 0.16, abstention 0.84)", "Fluent grounded answers with citable chunks", "Knowledge swappable without retraining"],
+      "weaknesses": ["Over-abstains when retrieval misses (refusal 0.5714; 31 answerable abstentions)", "Imperfect citation precision (59 incorrect-citation cases)", "Accuracy bounded by retrieval recall (retrieval_challenge 0.20)"],
+      "key_finding": "Retrieval grounding yields correct, safely-abstaining answers; retrieval recall (0.5593) is the ceiling."
+    },
+    "track_b": {
+      "purpose": "Fine-tuned-only (LoRA, no retrieval).",
+      "architecture": "question -> base + Track B LoRA -> answer (parametric knowledge only).",
+      "strengths": ["No retrieval infra at inference", "Attempts more answerable questions (50/59)"],
+      "weaknesses": ["Very low accuracy (0.0678); unsupported-claim 0.9467", "Fabricates on 100% of source-missing cases (abstention 0.0)", "Degenerate generation: repetition, corrupted refusals, invented tokens"],
+      "key_finding": "121-example LoRA injected no reliable knowledge and degraded fluency (val loss diverged after iter 40); fine-tuning did not replace retrieval."
+    },
+    "track_c": {
+      "purpose": "Hybrid: Track A retrieval + Track B adapter.",
+      "architecture": "question -> frozen Track A retrieval -> grounded prompt -> base + Track B LoRA -> answer + citations; empty-retrieval abstains.",
+      "strengths": ["Grounding + citations restored vs Track B (citation_recall 0->0.5593)", "Same retrieval recall as Track A (0.5593)"],
+      "weaknesses": ["Lowest accuracy (0.0169) — below even Track B", "Hallucination 1.0, never abstains (refusal 0.0), unsupported 0.9881", "Adapter does not copy grounded facts into the answer"],
+      "key_finding": "With IDENTICAL retrieval to Track A (retrieval_recall 0.5593 for both), Track C scored 0.0169 vs 0.4576 — the context-free/overfit adapter is the binding constraint; bolting it onto RAG did not help and hurt."
+    }
+  },
+  "research_answers": {
+    "pure_rag_performed_well": "Relatively yes within scope: best of the three (0.4576 accuracy, 0.16 hallucination, 0.84 abstention accuracy); absolute accuracy still bounded by retrieval recall.",
+    "small_data_lora_replaced_retrieval": "No. Track B 0.0678 vs Track A 0.4576; it fabricated on all source-missing cases and degenerated.",
+    "hybrid_improved_over_rag": "No. Track C 0.0169 < Track A 0.4576, and even < Track B 0.0678 on accuracy; the reused adapter capped quality.",
+    "role_of_retrieval_grounding": "Dominant. Identical retrieval (0.5593 recall) under A and C produced 0.4576 vs 0.0169 accuracy — the generator, not the evidence, decided the outcome.",
+    "when_finetuning_appropriate": "As a behaviour/format layer trained ON the retrieval-augmented setting, not as a knowledge store; a weak, context-free adapter provides no hybrid benefit."
+  },
+  "central_conclusion": "Within the scope of this study, retrieval grounding is the dominant factor for factual, updatable QA. Small-data LoRA neither replaced retrieval nor improved a RAG pipeline; a context-free overfit adapter degraded generation even when supplied with correct evidence. Fine-tuning is valuable only as a behaviour layer trained for the grounded setting."
+}

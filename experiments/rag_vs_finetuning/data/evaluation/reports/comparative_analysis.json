@@ -1,0 +1,331 @@
+{
+  "phase": "P9_comparative_analysis",
+  "analysis_only": true,
+  "dataset_version": "eval-v1",
+  "dataset_checksum": "sha256:e6f4145c91f189b411733616aab0c12d11ad89fa02080a58429332e7559344cb",
+  "consistency_checks": {
+    "same_benchmark_checksum": true,
+    "track_a_reproduces_frozen": true,
+    "track_b_reproduces_frozen": true,
+    "case_count": {
+      "track_a": 84,
+      "track_b": 84
+    }
+  },
+  "tracks": {
+    "track_a": {
+      "name": "Pure RAG",
+      "model": "qwen2.5:7b-instruct (Ollama)",
+      "retrieval": "Chroma masters_track_a_v1 (top-k, cosine)",
+      "adapter": null
+    },
+    "track_b": {
+      "name": "Fine-Tuned Only",
+      "model": "Qwen2.5-7B-Instruct-4bit (MLX) + Track B LoRA",
+      "retrieval": "DISABLED",
+      "adapter": "sha256:a2a0908612b0e9c6b960f1470af19fa304415b892db8059d7c25ea2b8e390345"
+    }
+  },
+  "overall_comparison": {
+    "answer_accuracy": {
+      "track_a": 0.4576,
+      "track_b": 0.0678,
+      "delta_b_minus_a": {
+        "absolute": -0.3898,
+        "percent": -85.2
+      },
+      "preferable": "track_a"
+    },
+    "completeness": {
+      "track_a": 0.4576,
+      "track_b": 0.0678,
+      "delta_b_minus_a": {
+        "absolute": -0.3898,
+        "percent": -85.2
+      },
+      "preferable": "track_a"
+    },
+    "hallucination_rate": {
+      "track_a": 0.16,
+      "track_b": 1.0,
+      "delta_b_minus_a": {
+        "absolute": 0.84,
+        "percent": 525.0
+      },
+      "preferable": "track_a"
+    },
+    "unsupported_claim_rate": {
+      "track_a": 0.25,
+      "track_b": 0.9467,
+      "delta_b_minus_a": {
+        "absolute": 0.6967,
+        "percent": 278.7
+      },
+      "preferable": "track_a"
+    },
+    "refusal_rate": {
+      "track_a": 0.5714,
+      "track_b": 0.1071,
+      "delta_b_minus_a": {
+        "absolute": -0.4643,
+        "percent": -81.3
+      },
+      "preferable": "context"
+    },
+    "abstention_accuracy": {
+      "track_a": 0.84,
+      "track_b": 0.0,
+      "delta_b_minus_a": {
+        "absolute": -0.84,
+        "percent": -100.0
+      },
+      "preferable": "track_a"
+    }
+  },
+  "operational_comparison": {
+    "avg_latency_ms": {
+      "track_a": 3410.016,
+      "track_b": 25576.417,
+      "delta_b_minus_a": {
+        "absolute": 22166.401,
+        "percent": 650.0
+      }
+    },
+    "p50_latency_ms": {
+      "track_a": 2560.733,
+      "track_b": 13464.711,
+      "delta_b_minus_a": {
+        "absolute": 10903.978,
+        "percent": 425.8
+      }
+    },
+    "p95_latency_ms": {
+      "track_a": 6219.075,
+      "track_b": 20921.833,
+      "delta_b_minus_a": {
+        "absolute": 14702.758,
+        "percent": 236.4
+      }
+    },
+    "_caveat": "Latencies are NOT a like-for-like runtime comparison: Track A generation runs on Ollama (qwen2.5:7b-instruct) and Track B on Apple MLX (Qwen2.5-7B-Instruct-4bit). Track B also includes MLX first-call/tail stalls under 16 GB memory pressure. Read latency as indicative only."
+  },
+  "category_comparison": {
+    "admissions": {
+      "n": 5,
+      "track_a": 1.0,
+      "track_b": 0.0,
+      "winner": "track_a"
+    },
+    "application": {
+      "n": 12,
+      "track_a": 0.3333,
+      "track_b": 0.0833,
+      "winner": "track_a"
+    },
+    "contact": {
+      "n": 12,
+      "track_a": 0.4167,
+      "track_b": 0.0,
+      "winner": "track_a"
+    },
+    "multi_field": {
+      "n": 8,
+      "track_a": 0.375,
+      "track_b": 0.0,
+      "winner": "track_a"
+    },
+    "overview": {
+      "n": 12,
+      "track_a": 0.6667,
+      "track_b": 0.25,
+      "winner": "track_a"
+    },
+    "retrieval_challenge": {
+      "n": 10,
+      "track_a": 0.2,
+      "track_b": 0.0,
+      "winner": "track_a"
+    },
+    "source_missing": {
+      "n": 13,
+      "track_a": 0.6923,
+      "track_b": 0.0,
+      "winner": "track_a"
+    },
+    "unknown": {
+      "n": 12,
+      "track_a": 1.0,
+      "track_b": 0.0,
+      "winner": "track_a"
+    }
+  },
+  "failure_comparison": {
+    "track_a": {
+      "abstention_error": 31,
+      "hallucination": 4,
+      "incorrect_answer": 5,
+      "incorrect_citation": 59,
+      "missing_citation": 31,
+      "retrieval_failure": 29
+    },
+    "track_b": {
+      "hallucination": 25,
+      "incorrect_answer": 46,
+      "over_refusal": 9
+    },
+    "track_b_modes": [
+      "Degenerate repetition — answers loop the same fragment (e.g. 'don have the provided, don have the provided …') up to the 256-token cap.",
+      "Refusal collapse — the model echoes a corrupted paraphrase of its trained refusal ('I don't have the provided <program> data to answer that') even for answerable questions, without stating the actual fact.",
+      "Fabricated tokens — invented emails/date codes (e.g. 'ced-2011-01-01') and spurious identifiers appear in place of grounded content.",
+      "Over-refusal on answerable cases (9) and failure to cleanly abstain on source_missing cases (hallucination_rate 1.0) — the trained refusal behaviour did not generalise."
+    ],
+    "representative": {
+      "track_a_incorrect": [
+        "EVAL-010",
+        "EVAL-029",
+        "EVAL-031"
+      ],
+      "track_a_abstention_error": [
+        "EVAL-002",
+        "EVAL-003",
+        "EVAL-008"
+      ],
+      "track_b_failures": [
+        {
+          "id": "EVAL-001",
+          "mode": "incorrect_answer",
+          "answer": "I don't have the provided information in the provided, that is,I don have the provided,I don have a 1, don have a 1 in the provided, don have a , don have a 1 i"
+        },
+        {
+          "id": "EVAL-002",
+          "mode": "incorrect_answer",
+          "answer": "I don't have the provided Art (2011-12) to answer that."
+        },
+        {
+          "id": "EVAL-004",
+          "mode": "incorrect_answer",
+          "answer": "I don't have the provided Early Center data to answer that."
+        },
+        {
+          "id": "EVAL-005",
+          "mode": "incorrect_answer",
+          "answer": "I don't have the provided, don have the provided, don have the, don have the provided, don have the provided, don have the provided, don have the provided, that"
+        }
+      ]
+    }
+  },
+  "root_cause_analysis": [
+    {
+      "finding": "Track A is ~6.7x more accurate on answerable questions (0.458 vs 0.068).",
+      "root_cause": "Retrieval grounding. Track A conditions generation on the frozen corpus chunks, so when retrieval surfaces the right chunk the model copies published wording. Track B must recall facts from a 121-example LoRA and has no text to ground on.",
+      "evidence": "answer_accuracy 0.4576 vs 0.0678; Track A wins every category."
+    },
+    {
+      "finding": "Track B fabricates on 100% of source-missing cases; Track A only 16%.",
+      "root_cause": "The trained refusal did not generalise and, absent retrieved context, Track B has no signal that evidence is missing. Track A sees empty/low-similarity retrieval and abstains.",
+      "evidence": "hallucination_rate 1.0 (B) vs 0.16 (A); abstention_accuracy 0.0 vs 0.84."
+    },
+    {
+      "finding": "Track B output is degenerate (repetition, corrupted refusals, fabricated tokens); unsupported-claim rate 0.947.",
+      "root_cause": "Overfitting/instability from P8.1: at LR 1e-4 on 121 examples the validation loss minimised at iter 40 then diverged. LoRA on a tiny SFT set degraded fluency rather than adding knowledge.",
+      "evidence": "unsupported_claim_rate 0.9467; P8.1 val-loss curve 1.018@40 -> 5.338@200; representative answers loop 'don have the provided…'."
+    },
+    {
+      "finding": "Track A's main weakness is over-abstention, not fabrication.",
+      "root_cause": "Retrieval recall is the ceiling: when the right chunk is not in top-k, Track A abstains (safe failure) rather than answer.",
+      "evidence": "refusal_rate 0.5714 with abstention_error=31 and retrieval_failure=29; hallucination only 0.16."
+    }
+  ],
+  "strengths_weaknesses": {
+    "track_a": {
+      "strengths": [
+        "High factual accuracy when retrieval hits (0.458 answerable, wins every category).",
+        "Safe failure mode: abstains instead of fabricating (abstention_accuracy 0.84, hallucination 0.16).",
+        "Fluent, grounded answers with citable chunks; no catastrophic degeneration.",
+        "Knowledge is swappable — update the corpus/index without retraining."
+      ],
+      "weaknesses": [
+        "Over-abstains when retrieval misses (refusal_rate 0.571; 31 answerable abstentions).",
+        "Citation precision is imperfect (incorrect_citation=59: extra/irrelevant chunks retrieved).",
+        "Accuracy bounded by retrieval recall (retrieval_challenge only 0.20)."
+      ],
+      "best_use_cases": [
+        "Factual Q&A over a maintained knowledge base where correctness and abstention matter more than coverage.",
+        "Domains with frequently changing source content."
+      ],
+      "limitations": [
+        "Depends on embedding quality, chunking, and top-k threshold.",
+        "No parametric domain adaptation; style is the base model's."
+      ]
+    },
+    "track_b": {
+      "strengths": [
+        "Answers more answerable questions without abstaining (50/59 attempted vs 32/59).",
+        "No retrieval infrastructure needed at inference (self-contained weights).",
+        "Occasionally surfaces the right token (overview 0.25) — some signal was learned."
+      ],
+      "weaknesses": [
+        "Very low accuracy (0.068) and completeness; near-total unsupported claims (0.947).",
+        "Fabricates on all source-missing cases (hallucination 1.0; abstention 0.0).",
+        "Degenerate generation: repetition, corrupted refusals, invented emails/dates."
+      ],
+      "best_use_cases": [
+        "On the current 121-example dataset: none for production factual Q&A.",
+        "Potentially style/format adaptation if paired with grounding (see hybrid)."
+      ],
+      "limitations": [
+        "Tiny SFT set + aggressive LR overfit; selected checkpoint still under-fits QA.",
+        "No grounding signal, so cannot know when to abstain."
+      ]
+    }
+  },
+  "hybrid_design_insights": {
+    "inherit_from_track_a": [
+      "Retrieval grounding as the primary knowledge source — it drives the 6.7x accuracy advantage and enables evidence-aware abstention.",
+      "The abstain-when-evidence-is-missing behaviour (Track A hallucination 0.16 vs Track B 1.0).",
+      "Citations tied to retrieved chunks for verifiability."
+    ],
+    "inherit_from_track_b": [
+      "Only lightweight, format/behaviour-oriented fine-tuning — NOT knowledge injection. Any adapter must be trained to consume retrieved context, not to memorise facts.",
+      "If used at all, fine-tune for refusal formatting and answer style on top of retrieved evidence."
+    ],
+    "weaknesses_track_c_should_solve": [
+      "Track A over-abstention on answerable questions (recover the 31 answerable abstentions via better recall / higher-k / query expansion).",
+      "Track A imperfect citation precision (incorrect_citation=59).",
+      "Track B degeneration and fabrication — eliminated by grounding generation on retrieved context and training the adapter WITH context in the prompt.",
+      "Never repeat P8.1's overfitting: more data, lower LR, and validation-based early stopping if any fine-tuning is done."
+    ],
+    "recommended_track_c_shape": "RAG-first pipeline (Track A retrieval + prompt) with an OPTIONAL small LoRA trained on (retrieved-context -> grounded-answer/refusal) pairs — retrieval supplies facts, the adapter only shapes faithful formatting and abstention. Fine-tuning must never be the knowledge store."
+  },
+  "threats_to_validity": [
+    "Small supervised dataset (121 train / 13 val) — Track B is data-starved; results may not reflect fine-tuning with a larger, cleaner SFT set.",
+    "Single institution (CSULB Graduate Center) and a single base-model family (Qwen2.5-7B).",
+    "Different inference runtimes per track (Ollama for A, Apple MLX 4-bit for B) — latency is not directly comparable and quantization differs.",
+    "Deterministic substring/set scoring, not an LLM judge — can both under- and over-credit answers (e.g. Track B 'successes' are substring coincidences).",
+    "Benchmark is 84 cases over 12 programs; category cells are small (n=5–13).",
+    "Single official run per track (greedy); no seed/variance sweep.",
+    "Track B hyperparameters were fixed by P8.1, not tuned — a different LR/size could change Track B's absolute numbers (though not the grounding conclusion)."
+  ],
+  "conclusions": {
+    "primary_findings": [
+      "Pure RAG (Track A) decisively outperforms fine-tuned-only (Track B) on this benchmark: 0.458 vs 0.068 answer accuracy, winning all 8 categories.",
+      "The decisive factor is retrieval grounding, not model size — both use a 7B Qwen2.5 base.",
+      "Fine-tuning on 121 examples injected almost no reliable knowledge and degraded generation quality."
+    ],
+    "surprising_findings": [
+      "Track B did not merely under-perform — it catastrophically degenerated (repetition, fabricated tokens), showing tiny-dataset LoRA can harm a strong instruct model rather than gently under-fit.",
+      "Track B abstained LESS (0.107) yet was far less accurate — it answered confidently and wrongly, the opposite of the safe RAG failure mode."
+    ],
+    "practical_implications": [
+      "For factual assistants over a maintained corpus, invest in retrieval quality before fine-tuning.",
+      "Use fine-tuning for behaviour/format on top of retrieval, not as a knowledge store.",
+      "Evidence-aware abstention is a first-class safety property that RAG provides and fine-tuning-only did not."
+    ],
+    "lessons_learned": [
+      "Match learning rate and dataset size to avoid overfitting (P8.1 val loss diverged after iter 40).",
+      "Always evaluate abstention/hallucination, not just accuracy — the tracks differ most there.",
+      "Keep a frozen benchmark + one scoring pipeline so cross-condition comparison is exact (both tracks reproduced their frozen reports)."
+    ]
+  },
+  "executive_summary": "On an identical 84-case frozen benchmark scored by one unchanged pipeline, Pure RAG (Track A) reached 0.4576 answer accuracy versus 0.0678 for Fine-Tuned-Only (Track B), and hallucinated on 16% of source-missing cases versus 100% for Track B. Track A wins every category. The gap is driven by retrieval grounding and evidence-aware abstention, while Track B — a LoRA over 121 examples with no retrieval — overfit and degenerated. Recommendation for Track C: keep RAG as the knowledge source and abstention mechanism; use fine-tuning (if any) only to shape faithful answer/refusal formatting on top of retrieved context, never to store facts."
+}

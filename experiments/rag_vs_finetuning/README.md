@@ -1,9 +1,216 @@
 # RAG vs. Fine-Tuning Experiment
 
-Isolated experiment area. It reads frozen canonical program records **read-only**
-and produces retrieval-neutral projection artifacts. It imports **no** production
-RAG, routing, orchestration, LangChain, Chroma, embeddings, or model-serving code,
-and production code never imports this package.
+A self-contained, frozen engineering study comparing three architectures for a
+factual assistant over the CSULB Graduate Center master's programs:
+
+- **Track A — Pure RAG** (retrieval-grounded generation)
+- **Track B — LoRA Fine-Tuning** (parametric adaptation, no retrieval)
+- **Track C — Hybrid** (Track A retrieval feeding the Track B adapter)
+
+Isolated by design: it reads frozen canonical program records **read-only** and
+imports **no** production RAG, routing, orchestration, LangChain, Chroma,
+embeddings, or model-serving code; production code never imports this package.
+
+**Key Takeaway**
+
+This controlled study compared three architectures—Pure RAG, LoRA Fine-Tuning, and a Hybrid approach—using the same frozen corpus, benchmark, and evaluation pipeline. Within the scope of this study, Pure RAG consistently produced the highest factual accuracy, safest failure behavior, and strongest production characteristics, while the hybrid implementation demonstrated that retrieval quality alone is insufficient without a retrieval-aware generator.
+
+> **Start here for results, not code:** the executed study spans phases P5–P12.
+> This README is the navigation guide and build log. The narrative conclusions,
+> per-track metrics, and comparisons live in dedicated reports — linked below
+> under [Official results](#official-results) and [Document index](#document-index).
+
+## Objective
+
+Determine, under controlled conditions, whether **retrieval (RAG)**, **small-data
+LoRA fine-tuning**, or their **hybrid** best answers grounded factual questions
+about the programs, when institutional knowledge is factual/updatable and the
+supervised dataset is small. Every track is held to one frozen corpus, one frozen
+84-case benchmark, and one shared evaluation pipeline so each track changes exactly
+one variable.
+
+## Research questions
+
+1. Does Pure RAG perform well on grounded factual QA?
+2. Can small-data LoRA fine-tuning replace retrieval as the knowledge source?
+3. Does a Hybrid (RAG + fine-tuned adapter) improve over Pure RAG?
+4. What role does retrieval grounding play relative to model weights?
+5. When is fine-tuning the appropriate tool?
+
+Answers, with evidence, are in [`reports/final_conclusions.md`](reports/final_conclusions.md)
+(§4) and the three-way comparison
+[`data/evaluation/reports/comparative_analysis_abc.md`](data/evaluation/reports/comparative_analysis_abc.md).
+
+## Repository organization
+
+Pipeline order (each stage's committed output feeds the next; the Chroma DB and
+model weights are git-ignored and rebuildable):
+
+```
+freeze/ ─▶ projection/ ─▶ chunking/ ─▶ embeddings/ ─▶ index/   (P5–P6: corpus → vector index)
+                                                     │
+                       ┌─────────────────────────────┼───────────────────────────┐
+                       ▼                             ▼                            ▼
+                  track_a/  (Pure RAG)          training/ + track_b/          track_c/
+                       │                         (SFT data + LoRA + FT eval)   (Hybrid)
+                       └───────────────▶ evaluation/ (frozen benchmark + scoring) ◀┘
+                                                     │
+                                                 analysis/  (A-vs-B, A-vs-B-vs-C)
+```
+
+| Package | Role |
+| --- | --- |
+| `freeze/`, `projection/` | Immutable 12-program corpus + `CanonicalProgram → RetrievalDocument` (P5) |
+| `chunking/`, `embeddings/`, `index/` | Deterministic chunks (41) → `all-MiniLM-L6-v2` → isolated Chroma `masters_track_a_v1` (P6) |
+| `track_a/` | Pure RAG pipeline: retrieve → grounded prompt → base LLM → cited answer (P7) |
+| `training/` | Frozen SFT dataset builder + MLX LoRA config (`training/mlx/`) (P8.0/P8.1) |
+| `track_b/` | Fine-tuned inference (no retrieval) + evaluator (P8.2) |
+| `track_c/` | Hybrid: frozen retrieval + Track B adapter — see [`track_c/README.md`](track_c/README.md) (P10/P11) |
+| `evaluation/` | Frozen 84-case benchmark, deterministic scoring (no LLM judge), shared by A/B/C (P7.1) |
+| `analysis/` | Two-way (`compare.py`) and three-way (`compare_abc.py`) comparisons (P9/P11) |
+| `configs/` | `experiment.yaml` + validated loader (`config.py`) |
+| `data/` | Committed artifacts (corpus, chunks, manifests, dataset, benchmark, responses, reports) |
+| `reports/` | Final synthesis (conclusions, exec summary, lessons, future work) — P12 |
+| `artifacts/` | Git-ignored generated Chroma store, adapters, logs |
+
+Unit tests live in the repo root: `tests/test_experiment_*.py` (freeze, projection,
+chunking, embeddings, index, track_a, evaluation, training, isolation).
+
+## Tracks at a glance
+
+| Track | Knowledge source | Generator | Retrieval | Detailed doc |
+| --- | --- | --- | --- | --- |
+| **A** Pure RAG | Chroma retrieval | `qwen2.5:7b-instruct` (Ollama) | top_k=4, thr=0.0 | build log below (P7) |
+| **B** Fine-Tuned | adapter weights | `Qwen2.5-7B-Instruct-4bit` + LoRA (MLX) | disabled | [`track_b_training_report.md`](data/training/track_b_training_report.md) |
+| **C** Hybrid | Chroma retrieval (authoritative) | base 4-bit + LoRA (MLX) | top_k=4, thr=0.0 | [`track_c/README.md`](track_c/README.md) |
+
+## Dataset
+
+The frozen supervised fine-tuning dataset (Track B/C training only) is built from
+the frozen corpus — never from Track A output, evaluation, or benchmark questions
+(leakage-guarded). **134 examples** (90 answerable + 44 refusals), train 121 / val
+13 (seed 42), checksum `sha256:ee143059…`. Committed under `data/training/`
+(`ft_dataset.jsonl`, `ft_train.jsonl`, `ft_val.jsonl`, `ft_records.jsonl`,
+`ft_manifest.json`; MLX chat-format derivative in `data/training/mlx/`). Full
+construction rules: [build log §Phase P8.0](#phase-p80--frozen-fine-tuning-dataset).
+
+## Benchmark
+
+The evaluation benchmark is separate and frozen: `data/evaluation/eval_dataset.json`
+— **84 cases**, `frozen: true`, checksum-guarded. 8 categories (overview 12,
+application 12, contact 12, admissions 5, multi_field 8, retrieval_challenge 10,
+unknown 12, source_missing 13); 59 answerable, 25 non-answerable. Ground truth is
+derived only from frozen corpus chunks; should-abstain cases (`unknown`,
+`source_missing`) carry no expected answer. Details:
+[build log §Phase P7.1](#phase-p71--frozen-evaluation-benchmark).
+
+## Evaluation methodology
+
+One deterministic, track-agnostic pipeline (`evaluation/runner.py` +
+`evaluation/metrics.py`), **no LLM judge**, consuming a shared `ResponseRecord`
+schema so A/B/C are scored identically. Each track is executed on the 84 frozen
+cases, persisted to `data/evaluation/results/track_{a,b,c}_responses.jsonl`, then
+scored into `data/evaluation/reports/track_{a,b,c}_evaluation` (Track A:
+`track_a_baseline`). Every track's recompute reproduces its committed report
+exactly. Scoring uses deterministic substring/set matching — a documented proxy,
+not an LLM judge.
+
+## Reproducibility
+
+- **Configs:** `configs/experiment.yaml` (chunking, embedding, vector store,
+  `track_a` retrieval params); MLX training config frozen at
+  `training/mlx/train_config.yaml`.
+- **Seeds:** dataset split seed 42; training seed 42; decoding greedy (temperature 0).
+- **Checkpoint selection:** the official Track B adapter is the **lowest-validation-loss**
+  checkpoint (iter 40, val 1.018), not the final step — see
+  [`data/training/track_b_reproducibility.json`](data/training/track_b_reproducibility.json)
+  for the exact MLX command, versions, and hardware.
+- **Checksums:** corpus/chunks/index/benchmark/dataset/adapter are SHA-256 guarded;
+  `freeze.verify_frozen_corpus()` re-verifies the corpus; the selected adapter is
+  `sha256:a2a09086…`; benchmark `sha256:e6f4145c…`; SFT dataset `sha256:ee143059…`.
+- **Interpreter split (important):** retrieval needs `chromadb`/`sentence-transformers`
+  (miniconda Python 3.13); MLX generation needs `mlx_lm` (CommandLineTools/Xcode
+  Python 3.9). No single interpreter has both — Track C bridges them via a JSON
+  hand-off (see [`track_c/README.md`](track_c/README.md)).
+- **Rebuild order:** run stages in pipeline order above; committed source artifacts
+  are sufficient to regenerate the git-ignored Chroma DB and re-run evaluation.
+
+## Metrics
+
+Answer accuracy, completeness, hallucination rate, abstention accuracy, refusal
+rate, unsupported-claim rate, citation precision/recall, retrieval recall@k /
+precision@k, latency, and failure-mode counts. Definitions are implemented in
+`evaluation/metrics.py` (+ derived metrics in `track_b/evaluate.py`).
+
+## Official results
+
+Headline metrics on the frozen 84-case benchmark (identical pipeline for all
+tracks). **All figures are from the committed reports; none are estimated.**
+
+| Metric | Track A (RAG) | Track B (FT) | Track C (Hybrid) |
+| --- | --- | --- | --- |
+| Answer accuracy | **0.4576** | 0.0678 | 0.0169 |
+| Hallucination rate | **0.16** | 1.00 | 1.00 |
+| Abstention accuracy | **0.84** | 0.00 | 0.00 |
+| Refusal rate | 0.5714 | 0.1071 | 0.0000 |
+| Unsupported-claim rate | **0.25** | 0.9467 | 0.9881 |
+| Citation recall | 0.5254 | 0.00 | 0.5593 |
+| Retrieval recall@k | 0.5593 | n/a | 0.5593 |
+
+Track A achieved the strongest performance across all eight evaluation categories. Notably, Tracks A and C received **identical
+retrieval** (retrieval recall@k 0.5593 for both) yet scored 0.4576 vs 0.0169 —
+isolating the context-free, overfit adapter as the binding constraint.
+
+Per-track and comparative detail:
+[`track_a_baseline.md`](data/evaluation/reports/track_a_baseline.md) ·
+[`track_b_evaluation.md`](data/evaluation/reports/track_b_evaluation.md) ·
+[`track_c_evaluation.md`](data/evaluation/reports/track_c_evaluation.md) ·
+[`comparative_analysis.md`](data/evaluation/reports/comparative_analysis.md) (A vs B) ·
+[`comparative_analysis_abc.md`](data/evaluation/reports/comparative_analysis_abc.md) (A vs B vs C).
+
+## Engineering conclusions
+
+Within the scope of this study, retrieval grounding is the dominant factor for
+factual, updatable QA; small-data LoRA neither replaced retrieval nor improved a
+RAG pipeline, and a context-free overfit adapter degraded generation even when
+supplied correct evidence. Full write-ups:
+[`reports/final_conclusions.md`](reports/final_conclusions.md),
+[`reports/executive_summary.md`](reports/executive_summary.md),
+[`reports/lessons_learned.md`](reports/lessons_learned.md).
+
+## Future work
+
+Retrieval-aware fine-tuning, larger/cleaner SFT data, rerankers/query expansion,
+cross-family validation, larger benchmarks, and LLM-judge evaluation:
+[`reports/future_work.md`](reports/future_work.md).
+
+## Document index
+
+- **Synthesis (P12):** [`reports/final_conclusions.md`](reports/final_conclusions.md) ·
+  [`reports/executive_summary.md`](reports/executive_summary.md) ·
+  [`reports/lessons_learned.md`](reports/lessons_learned.md) ·
+  [`reports/future_work.md`](reports/future_work.md) ·
+  [`reports/final_conclusions.json`](reports/final_conclusions.json)
+- **Per-track evaluation:** [`track_a_baseline.md`](data/evaluation/reports/track_a_baseline.md) ·
+  [`track_b_evaluation.md`](data/evaluation/reports/track_b_evaluation.md) ·
+  [`track_c_evaluation.md`](data/evaluation/reports/track_c_evaluation.md)
+- **Comparisons:** [`comparative_analysis.md`](data/evaluation/reports/comparative_analysis.md) ·
+  [`comparative_analysis_abc.md`](data/evaluation/reports/comparative_analysis_abc.md)
+- **Training:** [`track_b_training_report.md`](data/training/track_b_training_report.md) ·
+  [`track_b_reproducibility.json`](data/training/track_b_reproducibility.json)
+- **Track C design/validation:** [`track_c/README.md`](track_c/README.md) ·
+  [`track_c/FUNCTIONAL_VALIDATION.md`](track_c/FUNCTIONAL_VALIDATION.md)
+- **Repo-wide architecture context:** [`../../ARCHITECTURE_ANALYSIS.md`](../../ARCHITECTURE_ANALYSIS.md)
+  (see "Experiment Retrospective — RAG vs Fine-Tuning vs Hybrid").
+
+---
+
+# Build log (phase-by-phase, P5–P12)
+
+*The sections below are the chronological engineering log. P5–P8.0 document the
+frozen corpus → vector index → Track A baseline → SFT dataset build; P8.1–P12
+summarize training, per-track evaluation, comparison, and synthesis, cross-linking
+the reports above rather than repeating their numbers.*
 
 ## Phase P5 scope (this commit)
 
@@ -267,3 +474,61 @@ python -m experiments.rag_vs_finetuning.training.cli dataset-stats
 
 **This frozen dataset is the sole training dataset for Track B.** Deferred (P8.1+):
 LoRA/QLoRA fine-tuning, adapter generation, Track B inference, and any comparison.
+
+## Phase P8.0.5 — MLX training environment validation
+
+Validated the Apple Silicon (M4, 16 GB) MLX / MLX-LM LoRA stack before any official
+training — model loads, adapter trains/saves, inference runs in-budget — with no
+official training, benchmark, or dataset changes. Surfaced the **interpreter split**
+(3.13 retrieval vs 3.9 MLX) that shapes Tracks B and C.
+
+## Phase P8.1 — Official LoRA fine-tuning (Track B training)
+
+Single official training run: a LoRA adapter over frozen
+`mlx-community/Qwen2.5-7B-Instruct-4bit` on the frozen 121/13 split via MLX-LM.
+Config frozen at [`training/mlx/train_config.yaml`](training/mlx/train_config.yaml)
+(rank 16, scale 20, dropout 0.05, 16 layers, LR 1e-4, 200 iters, seed 42; 23.069M
+trainable params, 0.303%). Validation loss minimized at **iter 40** then diverged
+(overfitting); the **iter-40 checkpoint** was selected as the official adapter
+(`artifacts/adapters/track_b_selected/`, `sha256:a2a09086…`). Full report + manifest:
+[`data/training/track_b_training_report.md`](data/training/track_b_training_report.md),
+[`track_b_reproducibility.json`](data/training/track_b_reproducibility.json).
+
+## Phase P8.2 — Track B official evaluation
+
+Ran base + selected adapter over the 84-case benchmark through the shared pipeline
+with **retrieval disabled** (empty retrieved/citation ids). Code: `track_b/infer.py`
+(generation), `track_b/evaluate.py` (scoring). Official metrics and error analysis:
+[`data/evaluation/reports/track_b_evaluation.md`](data/evaluation/reports/track_b_evaluation.md).
+
+## Phase P9 — Comparative analysis (Track A vs Track B)
+
+`analysis/compare.py` re-scored both tracks through the unmodified pipeline (each
+reproduced its frozen report) and produced
+[`comparative_analysis.md`](data/evaluation/reports/comparative_analysis.md),
+whose forward recommendation seeded Track C.
+
+## Phase P10 — Track C: Hybrid (RAG + LoRA) implementation
+
+Frozen Track A retrieval feeding a grounded prompt consumed by base + Track B
+adapter; retrieval is authoritative, the adapter shapes behaviour only. Modules:
+`track_c/retrieve.py` (3.13), `track_c/prompt_builder.py`, `track_c/infer.py` (3.9),
+`track_c/cli.py`. Engineering-only (no benchmark/metrics); functional validation
+passed. Design + validation:
+[`track_c/README.md`](track_c/README.md),
+[`track_c/FUNCTIONAL_VALIDATION.md`](track_c/FUNCTIONAL_VALIDATION.md).
+
+## Phase P11 — Track C official evaluation
+
+Precomputed retrieval bundle
+(`data/evaluation/results/track_c_retrieval_bundle.jsonl`) + `track_c/evaluate.py`
+scoring. Track C received **identical retrieval to Track A** yet scored far lower —
+isolating the adapter as the constraint. Report:
+[`track_c_evaluation.md`](data/evaluation/reports/track_c_evaluation.md); three-way
+comparison: [`comparative_analysis_abc.md`](data/evaluation/reports/comparative_analysis_abc.md).
+
+## Phase P12 — Final conclusions
+
+Documentation-only synthesis under [`reports/`](reports/): conclusions, executive
+summary, lessons learned, future work (see [Document index](#document-index)). No
+training/inference/evaluation; all frozen artifacts unchanged.

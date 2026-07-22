@@ -1,0 +1,215 @@
+{
+  "phase": "P11_three_way_comparison",
+  "analysis_only": true,
+  "dataset_version": "eval-v1",
+  "dataset_checksum": "sha256:e6f4145c91f189b411733616aab0c12d11ad89fa02080a58429332e7559344cb",
+  "consistency_checks": {
+    "same_benchmark": true,
+    "reproduce_frozen": {
+      "track_a": true,
+      "track_b": true,
+      "track_c": true
+    }
+  },
+  "overall_comparison": {
+    "answer_accuracy": {
+      "track_a": 0.4576,
+      "track_b": 0.0678,
+      "track_c": 0.0169,
+      "winner": "track_a"
+    },
+    "completeness": {
+      "track_a": 0.4576,
+      "track_b": 0.0678,
+      "track_c": 0.0169,
+      "winner": "track_a"
+    },
+    "hallucination_rate": {
+      "track_a": 0.16,
+      "track_b": 1.0,
+      "track_c": 1.0,
+      "winner": "track_a"
+    },
+    "unsupported_claim_rate": {
+      "track_a": 0.25,
+      "track_b": 0.9467,
+      "track_c": 0.9881,
+      "winner": "track_a"
+    },
+    "refusal_rate": {
+      "track_a": 0.5714,
+      "track_b": 0.1071,
+      "track_c": 0.0,
+      "winner": "context"
+    },
+    "abstention_accuracy": {
+      "track_a": 0.84,
+      "track_b": 0.0,
+      "track_c": 0.0,
+      "winner": "track_a"
+    },
+    "citation_precision": {
+      "track_a": 0.1525,
+      "track_b": 0.0,
+      "track_c": 0.161,
+      "winner": "track_c"
+    },
+    "citation_recall": {
+      "track_a": 0.5254,
+      "track_b": 0.0,
+      "track_c": 0.5593,
+      "winner": "track_c"
+    },
+    "retrieval_recall_at_k": {
+      "track_a": 0.5593,
+      "track_b": 0.0,
+      "track_c": 0.5593,
+      "winner": "tie"
+    }
+  },
+  "category_comparison": {
+    "admissions": {
+      "n": 5,
+      "track_a": 1.0,
+      "track_b": 0.0,
+      "track_c": 0.0,
+      "winner": "track_a"
+    },
+    "application": {
+      "n": 12,
+      "track_a": 0.3333,
+      "track_b": 0.0833,
+      "track_c": 0.0,
+      "winner": "track_a"
+    },
+    "contact": {
+      "n": 12,
+      "track_a": 0.4167,
+      "track_b": 0.0,
+      "track_c": 0.0,
+      "winner": "track_a"
+    },
+    "multi_field": {
+      "n": 8,
+      "track_a": 0.375,
+      "track_b": 0.0,
+      "track_c": 0.125,
+      "winner": "track_a"
+    },
+    "overview": {
+      "n": 12,
+      "track_a": 0.6667,
+      "track_b": 0.25,
+      "track_c": 0.0,
+      "winner": "track_a"
+    },
+    "retrieval_challenge": {
+      "n": 10,
+      "track_a": 0.2,
+      "track_b": 0.0,
+      "track_c": 0.0,
+      "winner": "track_a"
+    },
+    "source_missing": {
+      "n": 13,
+      "track_a": 0.6923,
+      "track_b": 0.0,
+      "track_c": 0.0,
+      "winner": "track_a"
+    },
+    "unknown": {
+      "n": 12,
+      "track_a": 1.0,
+      "track_b": 0.0,
+      "track_c": 0.0,
+      "winner": "track_a"
+    }
+  },
+  "operational_avg_latency_ms": {
+    "track_a": 3410.0,
+    "track_b": 25576.4,
+    "track_c": 4901.9
+  },
+  "failure_comparison": {
+    "track_a": {
+      "abstention_error": 31,
+      "hallucination": 4,
+      "incorrect_answer": 5,
+      "incorrect_citation": 59,
+      "missing_citation": 31,
+      "retrieval_failure": 29
+    },
+    "track_b": {
+      "hallucination": 25,
+      "incorrect_answer": 46,
+      "over_refusal": 9
+    },
+    "track_c": {
+      "hallucination": 25,
+      "incorrect_answer": 58
+    }
+  },
+  "discussion": {
+    "track_c_vs_track_b": "Adding retrieval to the same adapter changed answer accuracy 0.0678 (B) -> 0.0169 (C) and hallucination 1.0 -> 1.0. Grounding is lower for accuracy vs fine-tuning-only.",
+    "track_c_vs_track_a": "Against Pure RAG, Track C answer accuracy is 0.0169 vs 0.4576 (A) — lower; hallucination 1.0 vs 0.16. Track C uses the SAME retrieval as A, so any gap is attributable to the adapter's generation.",
+    "did_retrieval_compensate": "Retrieval only partly compensated for the weak adapter: Track C recovers grounded evidence and citations that Track B lacked, but the reused context-free/overfit adapter still degrades the final generation.",
+    "hybrid_as_expected": "The architecture behaved as designed (retrieval feeds context, adapter generates, empty-retrieval abstains), but the reused Track B adapter — trained WITHOUT context and overfit — is the binding constraint, so the hybrid did not reach Track A quality."
+  },
+  "error_analysis": {
+    "track_c_failure_counts": {
+      "hallucination": 25,
+      "incorrect_answer": 58
+    },
+    "track_c_failure_modes": [
+      "Degenerate / low-information answers — the adapter emits short corrupted refusals ('I don't have that.') even when correct context is present.",
+      "Grounding under-use — retrieved context is in the prompt and cited, but the adapter does not copy the grounded fact into the answer.",
+      "Retrieval ceiling — some answerable questions retrieve the wrong program's chunk (shared Track A recall limit).",
+      "Citations are populated from retrieved evidence, so citation errors track retrieval precision rather than fabrication."
+    ],
+    "representative_failures": [
+      {
+        "id": "EVAL-001",
+        "mode": "incorrect_answer",
+        "answer": "I don't have a provided, for that, don: have a to answer that."
+      },
+      {
+        "id": "EVAL-002",
+        "mode": "incorrect_answer",
+        "answer": "I don't have a (1990s) to answer that."
+      },
+      {
+        "id": "EVAL-003",
+        "mode": "incorrect_answer",
+        "answer": "I don't have a provided, for that, and for the provided, that, don, have a look in the provided, that, to answer that."
+      },
+      {
+        "id": "EVAL-004",
+        "mode": "incorrect_answer",
+        "answer": "I don't have a (1991) to answer that."
+      }
+    ]
+  },
+  "research_conclusions": {
+    "when_rag_over_finetuning": [
+      "On this benchmark RAG beat fine-tuning-only decisively (0.4576 vs 0.0678 accuracy; hallucination 0.16 vs 1.0).",
+      "Prefer RAG when institutional knowledge is factual, updatable, and larger than what a small SFT set can encode, and when safe abstention on missing evidence matters — RAG grounds answers and refuses instead of fabricating.",
+      "Prefer fine-tuning only for fixed behaviour/format/style, not for storing facts; a 121-example LoRA injected no reliable knowledge and degraded generation."
+    ],
+    "when_hybrid_adds_value": [
+      "Hybrid did not beat fine-tuning-only (0.0169 vs 0.0678).",
+      "Hybrid did NOT surpass Pure RAG (0.0169 vs 0.4576): reusing the weak, context-free Track B adapter as the generator capped quality.",
+      "Hybrid RAG+fine-tuning adds value only when the adapter is trained ON the retrieval-augmented format (context -> grounded answer/refusal). Bolting an adapter tuned without context onto a RAG pipeline does not help and can hurt.",
+      "Evidence-based recommendation: for a future Track C iteration, retrain a small adapter with retrieved context in the prompt and proper regularisation (more data, lower LR, early stopping); keep retrieval as the knowledge source."
+    ],
+    "central_answer": "Retrieval grounding is the dominant factor for factual, updatable QA. Fine-tuning helps only as a behaviour layer on top of retrieval, and only when trained for that setting; a weak adapter provides no hybrid benefit over pure RAG."
+  },
+  "threats_to_validity": [
+    "Small SFT dataset (121/13) — Track B/C adapter is data-starved.",
+    "Single institution and single base-model family (Qwen2.5-7B).",
+    "Tracks A vs B/C use different runtimes (Ollama vs Apple MLX 4-bit); latency not directly comparable.",
+    "Deterministic substring/set scoring, not an LLM judge.",
+    "84-case benchmark; small per-category cells (n=5–13).",
+    "Single greedy run per track; no variance sweep.",
+    "Track C reuses the P8.1 adapter unchanged (mandated); it was not trained with context."
+  ]
+}
