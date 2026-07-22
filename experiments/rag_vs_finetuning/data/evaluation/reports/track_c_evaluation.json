@@ -1,0 +1,231 @@
+{
+  "track": "track_c_hybrid",
+  "condition": "hybrid — retrieval grounding + Track B LoRA adapter",
+  "dataset_version": "eval-v1",
+  "dataset_checksum": "sha256:e6f4145c91f189b411733616aab0c12d11ad89fa02080a58429332e7559344cb",
+  "case_count": 84,
+  "responded_count": 84,
+  "config": {
+    "base_model": "mlx-community/Qwen2.5-7B-Instruct-4bit",
+    "adapter_checksum": "sha256:a2a0908612b0e9c6b960f1470af19fa304415b892db8059d7c25ea2b8e390345",
+    "prompt_version": "rag_ft_prompt_v1",
+    "retrieval_version": "retrieval-0.1",
+    "embedding_model": "all-MiniLM-L6-v2",
+    "vector_store": "chroma / masters_track_a_v1 (cosine, top_k=4, thr=0.0)",
+    "decoding": "greedy(temp=0)",
+    "max_tokens": 256,
+    "seed": 42,
+    "model_invocations": "84/84 (rest refused on empty retrieval)"
+  },
+  "evaluation_timestamp": "2026-07-20T18:53:29.378821+00:00",
+  "primary_metrics": {
+    "answer_accuracy": 0.0169,
+    "completeness": 0.0169,
+    "hallucination_rate": 1.0,
+    "unsupported_claim_rate": 0.9881,
+    "refusal_rate": 0.0,
+    "abstention_accuracy": 0.0
+  },
+  "groundedness_and_citations": {
+    "citation_precision": 0.161,
+    "citation_recall": 0.5593,
+    "retrieval_recall_at_k": 0.5593,
+    "retrieval_precision_at_k": 0.161
+  },
+  "operational_metrics": {
+    "avg_latency_ms": 4901.895,
+    "p50_latency_ms": 3472.627,
+    "p95_latency_ms": 16397.427,
+    "avg_generation_latency_ms": 4893.748,
+    "avg_retrieval_latency_ms": 8.147,
+    "max_latency_ms": 18097.347
+  },
+  "overall_metrics": {
+    "answer_accuracy": 0.0169,
+    "abstention_accuracy": 0.0,
+    "hallucination_rate": 1.0,
+    "citation_precision": 0.161,
+    "citation_recall": 0.5593,
+    "retrieval_recall_at_k": 0.5593,
+    "retrieval_precision_at_k": 0.161,
+    "avg_retrieval_latency_ms": 8.147,
+    "avg_generation_latency_ms": 4893.7476,
+    "avg_end_to_end_latency_ms": 4901.8946,
+    "avg_answer_chars": 134.3095,
+    "refusal_rate": 0.0,
+    "unsupported_claim_rate": 0.9881,
+    "completeness": 0.0169,
+    "answerable_attempted": 59,
+    "answerable_total": 59,
+    "substantive_answers": 84,
+    "refusals": 0
+  },
+  "metrics_by_category": {
+    "admissions": {
+      "count": 5,
+      "responded": 5,
+      "accuracy": 0.0
+    },
+    "application": {
+      "count": 12,
+      "responded": 12,
+      "accuracy": 0.0
+    },
+    "contact": {
+      "count": 12,
+      "responded": 12,
+      "accuracy": 0.0
+    },
+    "multi_field": {
+      "count": 8,
+      "responded": 8,
+      "accuracy": 0.125
+    },
+    "overview": {
+      "count": 12,
+      "responded": 12,
+      "accuracy": 0.0
+    },
+    "retrieval_challenge": {
+      "count": 10,
+      "responded": 10,
+      "accuracy": 0.0
+    },
+    "source_missing": {
+      "count": 13,
+      "responded": 13,
+      "accuracy": 0.0
+    },
+    "unknown": {
+      "count": 12,
+      "responded": 12,
+      "accuracy": 0.0
+    }
+  },
+  "category_extremes": {
+    "strongest": [
+      "multi_field"
+    ],
+    "strongest_accuracy": 0.125,
+    "weakest": [
+      "admissions",
+      "application",
+      "contact",
+      "overview",
+      "retrieval_challenge",
+      "source_missing",
+      "unknown"
+    ],
+    "weakest_accuracy": 0.0
+  },
+  "failure_analysis": {
+    "counts": {
+      "hallucination": 25,
+      "incorrect_answer": 58
+    },
+    "examples": {
+      "hallucination": [
+        "EVAL-060",
+        "EVAL-061",
+        "EVAL-062",
+        "EVAL-063",
+        "EVAL-064"
+      ],
+      "incorrect_answer": [
+        "EVAL-001",
+        "EVAL-002",
+        "EVAL-003",
+        "EVAL-004",
+        "EVAL-005"
+      ]
+    },
+    "by_category": {
+      "incorrect_answer": {
+        "overview": 12,
+        "application": 12,
+        "contact": 12,
+        "admissions": 5,
+        "multi_field": 7,
+        "retrieval_challenge": 10
+      },
+      "hallucination": {
+        "unknown": 12,
+        "source_missing": 13
+      }
+    }
+  },
+  "representatives": {
+    "successes": [
+      {
+        "id": "EVAL-049",
+        "category": "multi_field",
+        "answerable": true,
+        "question": "What degree does International Affairs offer and who is the graduate advisor/office?",
+        "expected_answer": "Dr. Caitlin Fouratt",
+        "answer": "I don't have the provided information in the provided, that, that, to answer that."
+      }
+    ],
+    "failures": [
+      {
+        "id": "EVAL-001",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Accountancy program about?",
+        "expected_answer": "CPA",
+        "answer": "I don't have a provided, for that, don: have a to answer that.",
+        "failure_mode": "incorrect_answer"
+      },
+      {
+        "id": "EVAL-002",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Art program about?",
+        "expected_answer": "Studio Art",
+        "answer": "I don't have a (1990s) to answer that.",
+        "failure_mode": "incorrect_answer"
+      },
+      {
+        "id": "EVAL-003",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Athletic Training program about?",
+        "expected_answer": "Athletic Training",
+        "answer": "I don't have a provided, for that, and for the provided, that, don, have a look in the provided, that, to answer that.",
+        "failure_mode": "incorrect_answer"
+      },
+      {
+        "id": "EVAL-004",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Early Childhood Education program about?",
+        "expected_answer": "Early Childhood",
+        "answer": "I don't have a (1991) to answer that.",
+        "failure_mode": "incorrect_answer"
+      },
+      {
+        "id": "EVAL-005",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the Health Care Management program about?",
+        "expected_answer": "Health",
+        "answer": "I don't have a provided, for that, don: have a to answer that.",
+        "failure_mode": "incorrect_answer"
+      },
+      {
+        "id": "EVAL-006",
+        "category": "overview",
+        "answerable": true,
+        "question": "What is the International Affairs program about?",
+        "expected_answer": "International Affairs",
+        "answer": "I don't have a provided (2011) to 2014. The Department of International Studies (DID: 111111111) offers a Master of Arts in International Studies (MA). The department offers a Master of Arts in International Studies (MA). The department offers a Master of Arts in International Studies (MA). The department offers a Master of Arts in International Studies (MA). The department offers a Master of Arts",
+        "failure_mode": "incorrect_answer"
+      }
+    ]
+  },
+  "limitations": [
+    "Reuses the P8.1 Track B adapter, which was fine-tuned WITHOUT retrieved context and overfit on 121 examples; grounded context is supplied but the adapter still tends to degenerate.",
+    "Retrieval is the frozen Track A stack (top_k=4, threshold=0.0), so answer quality is bounded by its recall (same retrieval as Track A).",
+    "Deterministic substring/set scoring, not an LLM judge.",
+    "MLX greedy decoding is deterministic for a fixed version/hardware."
+  ]
+}
