@@ -1,0 +1,178 @@
+"""
+rag/masters_discovery.py
+Master's nested page discovery — orchestration over the existing crawler.
+
+Reuses rag.discovery UNCHANGED for the actual crawl of each program
+(`discover_program_pages`: bounded depth, same-domain, per-program dedup,
+overview-only discard, workflow-priority classification via `classify_page` /
+`score_link_relevance`). This module only ADDS the master's-specific layer:
+
+  1. drive the crawl from a Phase-1 DiscoveryManifest (seed = official_program_url),
+  2. CROSS-PROGRAM deduplication — a department page shared by several programs
+     (e.g. the 4 Linguistics tracks) is crawled once and associated with every
+     program that points at it,
+  3. a discovery summary (per-program + aggregate) for review.
+
+It lives in rag/ (not ingestion/) because the reused crawler is under rag/ and
+`ingestion/` is guarded to stay infra-free — so ingestion cannot import it. The
+orchestrator is pure composition: no new crawl algorithm, no fetching of its own
+(a `fetch_fn` is threaded straight through for deterministic, fixture-based tests).
+
+Scope: discovery + classification ONLY. No content extraction, normalization,
+CanonicalProgram, or KnowledgeDocument work happens here.
+"""
+from __future__ import annotations
+
+from collections import Counter
+from dataclasses import dataclass, field
+from typing import Any, Callable, Optional, Sequence
+
+from ingestion.masters.manifest import DiscoveredProgram
+from rag.discovery import discover_program_pages
+
+# The master's directory the seeds were discovered from (provenance only).
+MASTERS_INDEX_URL = (
+    "https://www.csulb.edu/graduate-studies-csulb/article/"
+    "programs-advisors-and-deadlines-masters"
+)
+
+
+def _program_label(p: DiscoveredProgram) -> str:
+    return f"{p.normalized_program_name} ({p.degree_label})" if p.degree_label \
+        else p.normalized_program_name
+
+
+@dataclass
+class DiscoveredPage:
+    """One unique page (by URL) and every program associated with it."""
+
+    url: str
+    title: str
+    content_category: str        # from rag.discovery.classify_page
+    workflow_priority: int
+    parent_program_url: str      # "" for a program seed page
+    discovered_from: str
+    depth: int                   # 0 = seed, 1 = nested
+    program_family: str = "masters"
+    programs: list[str] = field(default_factory=list)  # all associated programs
+
+
+@dataclass
+class ProgramCrawlSummary:
+    program_name: str
+    degree_label: Optional[str]
+    seed_url: str
+    reused_shared_seed: bool             # seed already crawled by another program
+    pages_accepted: int                  # pages returned by the reused crawler
+    max_depth_reached: int
+    classifications: dict[str, int] = field(default_factory=dict)
+
+
+@dataclass
+class MastersDiscoveryResult:
+    pages: list[DiscoveredPage]          # globally unique by URL
+    programs: list[ProgramCrawlSummary]
+    skipped_no_seed: list[str] = field(default_factory=list)
+
+    def aggregate(self) -> dict[str, Any]:
+        shared = [p for p in self.pages if len(p.programs) > 1]
+        cats = Counter(p.content_category for p in self.pages)
+        n_prog = len(self.programs) or 1
+        return {
+            "pilot_programs": len(self.programs),
+            "total_unique_pages": len(self.pages),
+            "avg_pages_per_program": round(sum(s.pages_accepted for s in self.programs) / n_prog, 2),
+            "shared_pages": len(shared),
+            "seed_pages": sum(1 for p in self.pages if p.depth == 0),
+            "nested_pages": sum(1 for p in self.pages if p.depth == 1),
+            "skipped_no_seed": len(self.skipped_no_seed),
+            "by_category": dict(sorted(cats.items())),
+        }
+
+
+def discover_masters_program_pages(
+    programs: Sequence[DiscoveredProgram],
+    *,
+    depth: int = 1,
+    index_url: str = MASTERS_INDEX_URL,
+    fetch_fn: Optional[Callable[[str], Optional[str]]] = None,
+) -> MastersDiscoveryResult:
+    """Crawl + classify nested pages for the given programs, deduped across programs."""
+    pages_by_url: dict[str, DiscoveredPage] = {}
+    seed_cache: dict[str, list[dict]] = {}     # seed_url -> discover_program_pages output
+    summaries: list[ProgramCrawlSummary] = []
+    skipped: list[str] = []
+
+    for prog in programs:
+        seed = prog.official_program_url
+        label = _program_label(prog)
+        if not seed:
+            skipped.append(label)
+            continue
+
+        reused = seed in seed_cache
+        raw_pages = seed_cache[seed] if reused else discover_program_pages(
+            program_name=label, seed_url=seed, index_url=index_url,
+            depth=depth, fetch_fn=fetch_fn,
+        )
+        if not reused:
+            seed_cache[seed] = raw_pages
+
+        classifications: Counter = Counter()
+        max_depth = 0
+        for rp in raw_pages:
+            url = rp["url"]
+            d = 0 if not rp.get("parent_program_url") else 1
+            max_depth = max(max_depth, d)
+            classifications[rp["content_category"]] += 1
+
+            existing = pages_by_url.get(url)
+            if existing is None:
+                pages_by_url[url] = DiscoveredPage(
+                    url=url, title=rp.get("title", ""),
+                    content_category=rp["content_category"],
+                    workflow_priority=rp["workflow_priority"],
+                    parent_program_url=rp.get("parent_program_url", ""),
+                    discovered_from=rp.get("discovered_from", ""),
+                    depth=d, programs=[label],
+                )
+            elif label not in existing.programs:
+                existing.programs.append(label)   # cross-program association, no re-crawl
+
+        summaries.append(ProgramCrawlSummary(
+            program_name=prog.normalized_program_name, degree_label=prog.degree_label,
+            seed_url=seed, reused_shared_seed=reused, pages_accepted=len(raw_pages),
+            max_depth_reached=max_depth, classifications=dict(classifications),
+        ))
+
+    return MastersDiscoveryResult(
+        pages=list(pages_by_url.values()), programs=summaries, skipped_no_seed=skipped)
+
+
+def render_markdown(result: MastersDiscoveryResult) -> str:
+    agg = result.aggregate()
+    L = ["# Master's Nested Page Discovery — Pilot Report", "",
+         "## Crawl statistics", "",
+         f"- pilot programs: {agg['pilot_programs']}",
+         f"- total unique pages: {agg['total_unique_pages']} "
+         f"(seed {agg['seed_pages']} · nested {agg['nested_pages']})",
+         f"- avg pages per program: {agg['avg_pages_per_program']}",
+         f"- shared pages (>1 program): {agg['shared_pages']}",
+         f"- programs skipped (no seed): {agg['skipped_no_seed']}", "",
+         "## Pages by classification", ""]
+    for cat, n in agg["by_category"].items():
+        L.append(f"- {cat}: {n}")
+    L += ["", "## Per-program", ""]
+    for s in result.programs:
+        L.append(f"### {s.program_name} ({s.degree_label})")
+        L.append(f"- seed: {s.seed_url}")
+        L.append(f"- reused shared seed: {s.reused_shared_seed}")
+        L.append(f"- pages accepted: {s.pages_accepted} · max depth: {s.max_depth_reached}")
+        L.append(f"- classifications: {s.classifications}")
+        L.append("")
+    shared = [p for p in result.pages if len(p.programs) > 1]
+    if shared:
+        L += ["## Shared pages (crawled once, multiple programs)", ""]
+        for p in shared:
+            L.append(f"- `{p.url}` [{p.content_category}] → {p.programs}")
+    return "\n".join(L) + "\n"
