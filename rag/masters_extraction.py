@@ -43,6 +43,14 @@ def fetch_page_final(url: str) -> tuple[Optional[str], str]:
         try:
             resp = requests.get(url, timeout=_FETCH_TIMEOUT, headers=_HEADERS)
             if resp.status_code == 200 and resp.text:
+                # Phase 9A: the downstream extractor parses HTML only. A
+                # non-HTML Content-Type (e.g. application/pdf reached via an
+                # extensionless URL or redirect) is unextractable — treat as
+                # unfetchable rather than index a byte stream as text. An
+                # absent header is assumed HTML (never observed on csulb.edu).
+                ctype = (resp.headers.get("Content-Type") or "").lower()
+                if ctype and "html" not in ctype:
+                    return None, str(resp.url)
                 return resp.text, str(resp.url)
         except requests.RequestException:
             pass

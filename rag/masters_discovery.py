@@ -23,10 +23,11 @@ CanonicalProgram, or KnowledgeDocument work happens here.
 """
 from __future__ import annotations
 
+import re
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional, Sequence
-from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+from urllib.parse import parse_qsl, unquote, urlencode, urlparse, urlunparse
 
 from ingestion.masters.manifest import DiscoveredProgram
 from rag.discovery import discover_program_pages
@@ -59,6 +60,34 @@ def _nested_host_allowed(seed_url: str, url: str) -> bool:
     seed_host = (urlparse(seed_url).netloc or "").lower()
     host = (urlparse(url).netloc or "").lower()
     return host == seed_host or host == "www.csulb.edu"
+
+# Phase 9A — corpus hygiene guards (deterministic, URL-based, no fetching).
+
+# Binary/office formats the extractor cannot parse (it is an HTML extractor;
+# feeding it a PDF byte stream produced 512 garbled chunks in the Phase 8
+# audit). Extend only alongside a dedicated extraction pipeline.
+_UNSUPPORTED_EXTENSIONS = (".pdf", ".doc", ".docx", ".ppt", ".pptx")
+
+# A URL whose FINAL path segment is exactly a term-year slug (e.g. `fall-2021`)
+# is a term-scoped announcement/archive page, not an evergreen program page.
+# Phase 8 evidence: `…/college-of-health-human-services/fall-2021` (67 chunks
+# of stale COVID-era content, top hit for a negative eval case). The rule is
+# static and narrow: segments that merely CONTAIN a term-year (e.g.
+# `fall-2026-deadlines`) are untouched, so legitimate deadline pages survive.
+_OBSOLETE_TERM_SLUG = re.compile(r"^(fall|spring|summer|winter)-(19|20)\d{2}$")
+
+
+def is_supported_resource(url: str) -> bool:
+    """False for URLs whose (decoded) path ends in a non-HTML document type."""
+    path = unquote(urlparse(url or "").path or "").lower().rstrip("/")
+    return not path.endswith(_UNSUPPORTED_EXTENSIONS)
+
+
+def is_obsolete_term_page(url: str) -> bool:
+    """True when the last path segment is exactly a term-year archive slug."""
+    segments = [s for s in unquote(urlparse(url or "").path or "").split("/") if s]
+    return bool(segments) and bool(_OBSOLETE_TERM_SLUG.match(segments[-1].lower()))
+
 
 # The master's directory the seeds were discovered from (provenance only).
 MASTERS_INDEX_URL = (
@@ -103,6 +132,9 @@ class MastersDiscoveryResult:
     pages: list[DiscoveredPage]          # globally unique by URL
     programs: list[ProgramCrawlSummary]
     skipped_no_seed: list[str] = field(default_factory=list)
+    # Phase 9A: nested pages dropped by hygiene guards — {url: reason}, unique
+    # by canonical URL, so the audit can report every exclusion with its cause.
+    skipped_pages: dict[str, str] = field(default_factory=dict)
 
     def aggregate(self) -> dict[str, Any]:
         shared = [p for p in self.pages if len(p.programs) > 1]
@@ -116,6 +148,7 @@ class MastersDiscoveryResult:
             "seed_pages": sum(1 for p in self.pages if p.depth == 0),
             "nested_pages": sum(1 for p in self.pages if p.depth == 1),
             "skipped_no_seed": len(self.skipped_no_seed),
+            "skipped_pages": dict(Counter(self.skipped_pages.values())),
             "by_category": dict(sorted(cats.items())),
         }
 
@@ -132,6 +165,7 @@ def discover_masters_program_pages(
     seed_cache: dict[str, list[dict]] = {}     # seed_url -> discover_program_pages output
     summaries: list[ProgramCrawlSummary] = []
     skipped: list[str] = []
+    skipped_pages: dict[str, str] = {}
 
     for prog in programs:
         seed = prog.official_program_url
@@ -153,10 +187,19 @@ def discover_masters_program_pages(
         for rp in raw_pages:
             url = canonical_url(rp["url"])
             d = 0 if not rp.get("parent_program_url") else 1
-            # Nav-bleed guard: nested pages must stay on the seed's host or
-            # www.csulb.edu (seed pages are always kept).
-            if d == 1 and not _nested_host_allowed(seed, url):
-                continue
+            # Guards apply to NESTED pages only — seed pages are always kept
+            # (seeds come from the official directory).
+            if d == 1:
+                # Nav-bleed guard: stay on the seed's host or www.csulb.edu.
+                if not _nested_host_allowed(seed, url):
+                    continue
+                # Phase 9A hygiene: no binary documents, no term archives.
+                if not is_supported_resource(url):
+                    skipped_pages[url] = "unsupported_resource_type"
+                    continue
+                if is_obsolete_term_page(url):
+                    skipped_pages[url] = "obsolete_term_archive"
+                    continue
             max_depth = max(max_depth, d)
             classifications[rp["content_category"]] += 1
 
@@ -180,7 +223,8 @@ def discover_masters_program_pages(
         ))
 
     return MastersDiscoveryResult(
-        pages=list(pages_by_url.values()), programs=summaries, skipped_no_seed=skipped)
+        pages=list(pages_by_url.values()), programs=summaries,
+        skipped_no_seed=skipped, skipped_pages=skipped_pages)
 
 
 def render_markdown(result: MastersDiscoveryResult) -> str:
