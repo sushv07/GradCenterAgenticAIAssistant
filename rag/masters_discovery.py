@@ -26,9 +26,39 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass, field
 from typing import Any, Callable, Optional, Sequence
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from ingestion.masters.manifest import DiscoveredProgram
 from rag.discovery import discover_program_pages
+
+
+def canonical_url(url: str) -> str:
+    """Deterministic canonical form: drop the fragment and utm_* tracking params.
+
+    Phase 7 evidence: the same shared international page was crawled as
+    `…/international/?utm_source=…&utm_campaign=JumboMenu`, defeating URL-level
+    deduplication. Non-tracking query params are preserved.
+    """
+    p = urlparse(url or "")
+    query = [(k, v) for k, v in parse_qsl(p.query, keep_blank_values=True)
+             if not k.lower().startswith("utm_")]
+    return urlunparse((p.scheme, p.netloc, p.path, p.params,
+                       urlencode(query), ""))
+
+
+def _nested_host_allowed(seed_url: str, url: str) -> bool:
+    """Nav-bleed guard: a nested page must be on the seed's host or www.csulb.edu.
+
+    Phase 6/7 evidence: department nav menus leak links to other subdomains'
+    marketing pages (cpace.csulb.edu / www.ccpe.csulb.edu degree ads — 208 chunks
+    of noise attributed to Linguistics/Political Science). Keeping the seed's own
+    host preserves all legitimate department subpages; keeping www.csulb.edu
+    preserves shared central resources (admissions, graduate center). Host-level
+    policy — no individual program is hardcoded.
+    """
+    seed_host = (urlparse(seed_url).netloc or "").lower()
+    host = (urlparse(url).netloc or "").lower()
+    return host == seed_host or host == "www.csulb.edu"
 
 # The master's directory the seeds were discovered from (provenance only).
 MASTERS_INDEX_URL = (
@@ -121,8 +151,12 @@ def discover_masters_program_pages(
         classifications: Counter = Counter()
         max_depth = 0
         for rp in raw_pages:
-            url = rp["url"]
+            url = canonical_url(rp["url"])
             d = 0 if not rp.get("parent_program_url") else 1
+            # Nav-bleed guard: nested pages must stay on the seed's host or
+            # www.csulb.edu (seed pages are always kept).
+            if d == 1 and not _nested_host_allowed(seed, url):
+                continue
             max_depth = max(max_depth, d)
             classifications[rp["content_category"]] += 1
 

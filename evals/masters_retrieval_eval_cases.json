@@ -67,8 +67,10 @@
       "expected_page_type": "masters_program",
       "expected_urls": [
         "https://www.csulb.edu/cob-graduate-programs/application-deadlines",
-        "https://www.csulb.edu/cob-graduate-programs/mba-programs"
-      ]
+        "https://www.csulb.edu/cob-graduate-programs/mba-programs",
+        "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters"
+      ],
+      "notes": "Ground-truth updated in Phase 7: the program's directory card (indexed from the Graduate Studies directory) contains the MBA application deadlines and is a correct source for this query."
     },
     {
       "case_id": "MRE-007",
@@ -221,9 +223,10 @@
       "expected_program": "Linguistics",
       "expected_page_type": "masters_program",
       "expected_urls": [
-        "https://cla.csulb.edu/departments/linguistics/ma-program/"
+        "https://cla.csulb.edu/departments/linguistics/ma-program/",
+        "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters"
       ],
-      "notes": "Gap-probe: advisor names live in the directory cards, which are not indexed; the Linguistics seed page extraction captured mostly CLA news boilerplate."
+      "notes": "Ground-truth updated in Phase 7: advisor facts are published on the Graduate Studies directory cards, indexed as directory-card documents (source_url = directory URL + per-program fragment). The stale CLA department URL remains listed for completeness."
     },
     {
       "case_id": "MRE-021",

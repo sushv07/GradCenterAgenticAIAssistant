@@ -135,22 +135,39 @@ def _page_title(soup: BeautifulSoup, fallback: str = "") -> str:
     return fallback
 
 
+# Drupal dynamic-content widget containers (calibrated against the live CSULB
+# college landing pages, Phase 7): news sliders / article-teaser feeds render
+# inside these standard Drupal Views wrappers. They are site chrome, never
+# program body copy, and on landing pages they dominate <main> (e.g. the CLA
+# homepage's "Beach alumni…" carousel). Class-level and site-template-level —
+# no individual program is hardcoded.
+_WIDGET_SELECTORS = (
+    ".views-element-container", ".slick-carousel-wrapper",
+    ".node--type-article", ".block-views",
+)
+
+
 def extract_main_content_text(
     html: bytes | str, *, fallback_title: str = "",
 ) -> tuple[str, str]:
     """Full-text extractor for retrieval: returns (title, cleaned_main_text).
 
     Reuses the SAME calibrated main-content isolation as extract_program_page
-    (nav/header/footer/script/aside removed) so there is one extraction path.
-    Lines are whitespace-normalized, boilerplate/widget lines dropped, and
-    consecutive duplicate lines collapsed. Reading order is preserved with
-    newline separators (the production chunker splits on blank line / newline).
-    Never fabricates content — an empty main region yields an empty string.
+    (nav/header/footer/script/aside removed) so there is one extraction path,
+    then additionally strips Drupal news/teaser widget containers
+    (_WIDGET_SELECTORS). Lines are whitespace-normalized, boilerplate/widget
+    lines dropped, and consecutive duplicate lines collapsed. Reading order is
+    preserved with newline separators (the production chunker splits on blank
+    line / newline). Never fabricates content — an empty main region yields an
+    empty string.
     """
     raw = html if isinstance(html, bytes) else html.encode("utf-8")
     soup = BeautifulSoup(raw, "html.parser")
     title = _page_title(soup, fallback_title)
     main = _main_content(soup)
+    for sel in _WIDGET_SELECTORS:
+        for widget in main.select(sel):
+            widget.decompose()
 
     lines: list[str] = []
     for line in main.get_text("\n", strip=True).split("\n"):

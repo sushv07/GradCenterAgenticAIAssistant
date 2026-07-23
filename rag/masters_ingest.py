@@ -95,7 +95,7 @@ def acquire_masters_documents(
     """
     from ingestion.masters.discovery import discover_from_html
     from rag.masters_discovery import MASTERS_INDEX_URL, discover_masters_program_pages
-    from rag.masters_extraction import build_masters_documents
+    from rag.masters_extraction import build_masters_documents, directory_card_documents
 
     if fetch_fn is None:
         from rag.ingestion import fetch_page
@@ -108,6 +108,9 @@ def acquire_masters_documents(
     result = discover_masters_program_pages(
         manifest.programs, depth=depth or MASTERS_INGESTION_DEPTH, fetch_fn=fetch_fn)
     docs, _summary = build_masters_documents(result.pages, manifest.programs, fetch_fn=fetch_fn)
+    # Phase 7: directory-card facts (advisor / deadlines) — previously only in
+    # the un-indexed DiscoveryManifest; the advisor eval category scored 0%.
+    docs = docs + directory_card_documents(manifest.programs, MASTERS_INDEX_URL)
     return docs
 
 

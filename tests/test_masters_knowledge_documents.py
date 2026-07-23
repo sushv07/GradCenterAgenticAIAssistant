@@ -118,10 +118,15 @@ class TestExtractionAndConversion(unittest.TestCase):
         self.assertEqual(docs, [])
         self.assertEqual(summary.rejections[0][1], "fetch_failed")
 
-    def test_duplicate_document_ids_detected(self):
+    def test_duplicate_pages_deduplicated(self):
+        # Phase 7: pages resolving to the same canonical final URL are converted
+        # once; the duplicate is rejected as redirect_duplicate (previously both
+        # were converted and flagged via duplicate_document_ids).
         p = _page(f"{B}/ling/admissions")
-        _, summary = build_masters_documents([p, p], PROGRAMS, fetch_fn=_fetch)
-        self.assertEqual(summary.duplicate_document_ids, 1)
+        docs, summary = build_masters_documents([p, p], PROGRAMS, fetch_fn=_fetch)
+        self.assertEqual(len(docs), 1)
+        self.assertEqual(summary.documents_rejected, 1)
+        self.assertTrue(summary.rejections[0][1].startswith("redirect_duplicate"))
 
     def test_summary_shape(self):
         pages = [_page(f"{B}/ling/admissions"), _page(f"{B}/empty")]
