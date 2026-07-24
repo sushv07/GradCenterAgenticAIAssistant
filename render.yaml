@@ -41,6 +41,15 @@ services:
         value: "qwen2.5:7b-instruct"
       - key: LLM_SYNTHESIS_TIMEOUT_S
         value: "30"
+      # Include the full master's catalog in the production vector store.
+      # Off by default in code (rag/masters_ingest.py) so tests and the base
+      # build are unchanged; turned ON here so the deployed csulb_grad_center
+      # collection contains master's program content (Political Science,
+      # Economics, TESOL, Creative Writing, …). Adds a one-time ~8–9 min live
+      # crawl to the store rebuild — see the production-readiness follow-up
+      # note about first-request build time and the 24 h TTL.
+      - key: MASTERS_INGESTION_ENABLED
+        value: "true"
     disk:
       # Persistent disk for the Chroma vector store.
       # Without this disk, the store is rebuilt from live CSULB pages on
