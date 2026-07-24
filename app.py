@@ -1479,16 +1479,6 @@ def _render_topic_panel(response: dict) -> None:
             # ── Primary deadline card ──────────────────────────────────────
             _render_deadline_card(deadline_card)
 
-            # Show other closely-scored programs as mini hint if any exist
-            other_cards = [c for c in deadline_cards if c is not deadline_card]
-            if other_cards:
-                with st.expander(
-                    f"📋 See deadlines for {len(other_cards)} other program(s)",
-                    expanded=False,
-                ):
-                    for card in other_cards:
-                        _render_deadline_card(card)
-
         elif needs_clarify:
             # ── Disambiguation ─────────────────────────────────────────────
             _render_deadline_disambiguation(deadline_cards, clarify_hint)
