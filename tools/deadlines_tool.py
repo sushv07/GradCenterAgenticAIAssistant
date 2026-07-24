@@ -304,10 +304,10 @@ def get_deadlines(
             )
 
     # ── Filter raw results (suppress unrelated chunks when dominant match) ────
-    # When a confident card exists AND it leads the 2nd card by _DOMINANT_GAP,
-    # the raw results list is filtered to only the matching chunk + any intro
-    # chunks (non-program text).  This keeps the "Sources / Evidence" section
-    # tidy without discarding evidence entirely.
+    # When a confident card exists AND it leads the second card by
+    # _DOMINANT_GAP, filter the returned results to the matching chunk
+    # plus introductory chunks, keeping retrieval output focused while
+    # preserving the underlying evidence.
     if deadline_card and len(deadline_cards) > 1:
         gap = deadline_card["score"] - deadline_cards[1]["score"]
         if gap >= _DOMINANT_GAP:

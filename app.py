@@ -1408,7 +1408,7 @@ def _render_application_steps(workflow_steps: list[dict], program_name: str = ""
     """
     Render program-specific application steps in the same format as
     _render_guidance_panel(): Goal line, bullets, warning note, related links,
-    source link, and collapsed Sources / Evidence.
+    and source link.
     """
     if not workflow_steps:
         st.info("No specific steps found. Please visit the official CSULB page.")
@@ -1422,7 +1422,6 @@ def _render_application_steps(workflow_steps: list[dict], program_name: str = ""
         points     = ws.get("summary_points", [])
         source_url = ws.get("source_url", "")
         rel_links  = ws.get("related_links", [])
-        raw_ev     = ws.get("raw_evidence", "")
 
         with st.expander(f"Step {step_num} — {title}", expanded=(step_num == 1)):
             # ── Goal (matches _render_guidance_panel style) ───────────────────
@@ -1454,16 +1453,6 @@ def _render_application_steps(workflow_steps: list[dict], program_name: str = ""
             # ── Official source ───────────────────────────────────────────────
             if source_url:
                 st.markdown(f"[🔗 Resource]({source_url})")
-
-            # ── Collapsed evidence ────────────────────────────────────────────
-            if raw_ev:
-                with st.expander("📄 Sources / Evidence", expanded=False):
-                    st.markdown(
-                        f"<div style='font-size:0.82em;color:#555;white-space:pre-wrap'>"
-                        f"{raw_ev[:1500]}"
-                        f"</div>",
-                        unsafe_allow_html=True,
-                    )
 
 
 def _render_topic_panel(response: dict) -> None:
@@ -1505,28 +1494,8 @@ def _render_topic_panel(response: dict) -> None:
             _render_deadline_disambiguation(deadline_cards, clarify_hint)
 
         else:
-            # No cards parsed — fall through to raw results below
+            # No cards parsed — the structured deadline card is unavailable.
             pass
-
-        # Sources / Evidence (always collapsed for deadline route)
-        if results:
-            with st.expander("📂 Sources / Evidence", expanded=False):
-                for i, r in enumerate(results[:6], 1):
-                    score_pct = int(r["score"] * 100)
-                    title     = r.get("title") or "CSULB"
-                    st.markdown(
-                        f"**[{i}] {title}** &nbsp; `{score_pct}% match`",
-                        unsafe_allow_html=True,
-                    )
-                    st.markdown(
-                        f'<pre style="font-size:.80rem;white-space:pre-wrap;'
-                        f'background:#f8f9fa;padding:8px;border-radius:4px;'
-                        f'margin:4px 0 10px;">{r["text"]}</pre>',
-                        unsafe_allow_html=True,
-                    )
-                    url = r.get("url", "")
-                    if url:
-                        st.caption(f"[🔗 {url}]({url})")
 
         if disclaimer:
             st.info(disclaimer)
