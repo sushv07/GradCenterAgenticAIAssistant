@@ -388,8 +388,8 @@ Once deployed, open the Streamlit Cloud URL and confirm:
 | Page loads | CSULB gold header + welcome screen |
 | Sidebar backend status | 🟢 Backend: ok |
 | Submit a question | Answer renders with summary box + sources |
-| Follow-up buttons | Clicking a follow-up submits as a new query |
-| Sidebar "Clear history" | Clears chat and resets follow-ups |
+| Continue the conversation | Ask a new question in the chat input |
+| Sidebar "Clear history" | Clears the conversation and session state |
 
 #### 5. Startup behaviour when backend is unavailable
 

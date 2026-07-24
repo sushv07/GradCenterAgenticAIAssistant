@@ -616,12 +616,6 @@ def format_for_display(response: dict) -> str:
     if src.get("url"):
         lines.append(f"\nSource: {src['url']}")
 
-    next_actions = response.get("next_actions", [])
-    if next_actions:
-        lines.append("\n💡 What you can say next:")
-        for n in next_actions:
-            lines.append(f"  → {n}")
-
     lines.append(sep)
     return "\n".join(lines)
 

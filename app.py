@@ -780,9 +780,6 @@ button[kind="header"] {
     margin-bottom: 13px;
 }
 
-/* Suggestion chips */
-.chip-label { font-size: 0.80rem; font-weight: 600; color: var(--navy); margin-bottom: 8px; }
-
 
 /* ══════════════════════════════════════════════════════════════════════
    DISCOVERY / PROGRAM RECOMMENDATION CARDS
@@ -1994,7 +1991,7 @@ def _render_discovery_panel(response: dict) -> None:
 # Orchestrator response renderer
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _render_response(response: dict, msg_idx: int = 0) -> None:
+def _render_response(response: dict) -> None:
     route   = response.get("route", "")
     summary = response.get("summary", "")
     action  = response.get("primary_action", "")
@@ -2026,17 +2023,6 @@ def _render_response(response: dict, msg_idx: int = 0) -> None:
 
     if source:
         st.caption(f"Source: [{source}]({source})")
-
-    next_actions = response.get("next_actions") or []
-    if next_actions:
-        st.divider()
-        st.markdown('<div class="chip-label">💡 What you can ask next</div>', unsafe_allow_html=True)
-        cols = st.columns(min(len(next_actions), 3))
-        sid  = st.session_state["session_id"]
-        for i, suggestion in enumerate(next_actions[:3]):
-            with cols[i]:
-                if st.button(suggestion, key=f"{sid}_msg{msg_idx}_sug_{i}", use_container_width=True):
-                    _submit_query(suggestion)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2383,11 +2369,11 @@ def main() -> None:
     if not st.session_state["messages"]:
         _render_sample_questions()
 
-    for i, msg in enumerate(st.session_state["messages"]):
+    for msg in st.session_state["messages"]:
         with st.chat_message(msg["role"],
                              avatar="👤" if msg["role"] == "user" else "🎓"):
             if msg["role"] == "assistant" and "response" in msg:
-                _render_response(msg["response"], msg_idx=i)
+                _render_response(msg["response"])
             else:
                 st.markdown(msg["content"])
 
