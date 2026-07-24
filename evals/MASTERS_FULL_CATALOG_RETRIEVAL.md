@@ -85,6 +85,24 @@ After the Phase 9A filters (non-HTML resources, term-year archives — see
 first-relevant rank unchanged). MRE-024's top hit reverted from the stale
 `fall-2021` page (0.79) to the FAQ (0.67), matching Phase 7 behavior.
 
+## Phase 9B addendum — CLA acquisition repair
+
+After remapping 14 decommissioned CLA seeds to verified live replacements
+(18 programs; see `rag/MASTERS_CLA_REPAIR_REPORT.md`), the store grew
+2888 → 3355 chunks (+467) and every CLA program gained dedicated content
+(e.g. Political Science 11 → 176 page chunks). Overall metrics are unchanged
+(R@1 73.91 % · R@3 82.61 % · R@5 91.30 % · MRR 0.7949 · 21/25) because no
+golden query targets the repaired programs **except MRE-021**:
+
+- **MRE-021 (Political Science)** flipped from `acquisition_gap` (expected URL
+  had 0 chunks) to retrieving the live PoliSci MA page at **rank 1, score
+  0.81** — a genuine repair. It still records "fail" only because its golden
+  `expected_urls` lists the now-dead `cla.csulb.edu` URL. Per the "do not
+  modify evaluation" constraint, the golden set was NOT changed this phase.
+  Recommended separate follow-up: update MRE-021's `expected_urls` to
+  `https://www.csulb.edu/college-of-liberal-arts/political-science/master-of-arts`,
+  which would yield R@1 78.26 %, R@3 86.96 %, 22/25.
+
 ## Notes
 
 - The golden dataset was authored against the pilot store; it remains valid

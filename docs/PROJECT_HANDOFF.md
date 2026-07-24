@@ -284,9 +284,60 @@ The recent work, in commit order:
    a config-gated source in `get_or_build_store`, one unified collection.
 8. **Master's Phase 6 — retrieval evaluation framework** (`920dff1`) — 25-case golden
    dataset, rank metrics, evidence-based failure classification, baseline report.
-9. **Master's Phase 7 — corpus quality (UNCOMMITTED on the active branch)** — widget
-   stripping, redirect-aware canonical URLs, nav-bleed guard, directory-card
-   indexing. Raised Recall@5 to 91.30% with no retrieval changes.
+9. **Master's Phase 7 — corpus quality** (`86f350f`) — widget stripping,
+   redirect-aware canonical URLs, nav-bleed guard, directory-card indexing.
+   Raised Recall@5 to 91.30% with no retrieval changes.
+10. **Master's Phase 8 — full-catalog expansion** (`9f98c6b`) — scaled acquisition
+    from the 5-program pilot to all 67 discoverable programs with **no** pipeline
+    change. Added a thin, instrumented orchestration layer
+    (`rag/masters_catalog*.py`: build / metrics / report / CLI) that builds an
+    isolated full-catalog store and audits it. Live build: 3467 chunks, 67/67
+    program coverage. Recall@5 held at 91.30% at 8× corpus size; the only cost was
+    rank-1 dilution from same-topic pages across programs. Surfaced three
+    corpus-quality anomalies (a PDF indexed as text, a stale `fall-2021` page, the
+    CLA redirect class).
+11. **Master's Phase 9A — corpus hygiene** (`9f98c6b`) — two deterministic,
+    URL-based acquisition filters in the master's layer: unsupported resource
+    types (`.pdf/.doc/.docx/.ppt/.pptx`) and term-year archive slugs
+    (`…/fall-2021`), plus a non-HTML `Content-Type` guard. Removed 579 noise
+    chunks (−16.7%) with **identical** retrieval metrics — the removed content
+    never contributed a relevant hit.
+12. **Master's Phase 9B — CLA acquisition repair** (this commit) — see below.
+
+### Phase 9B — CLA Acquisition Repair
+
+**Root cause.** The legacy `cla.csulb.edu` departmental CMS was decommissioned;
+the Graduate Studies directory still links its dead paths, so 18 programs
+(14 unique seeds) 302-redirect to the generic College of Liberal Arts homepage
+and had no dedicated content. A live probe confirmed a verified replacement page
+exists on the migrated site (`www.csulb.edu/college-of-liberal-arts/<dept>/…`)
+for **every** affected program; the 4 other CLA-hosted programs (Asian Studies,
+Teaching Chinese, Philosophy, Music) still resolve and were left untouched.
+
+**Architecture.** A generic, data-driven **seed-override** mechanism:
+`config/masters/seed_overrides.json` holds 14 verified `stale → replacement`
+entries (with reason + verification date), and
+`rag.masters_discovery.apply_seed_overrides()` remaps matching seeds
+(scheme/slash-insensitive) **before nested discovery and card building**, so
+crawl seeds and each directory card's citation both point at the live page.
+Unaffected programs pass through as the same object; a missing/invalid config is
+a no-op (identical to pre-9B). Added reusable **dead-seed detection**
+(`dead_seed_candidates`) that flags the cross-host "redirect magnet" signature in
+the build audit, so future directory rot is self-detecting rather than requiring
+another manual investigation. `ingestion/`, retriever, chunking, embeddings, and
+the evaluation framework are untouched.
+
+**Validation.** Dedicated program coverage **49/67 → 67/67**; master's chunks
+**2675 → 3142 (+467 / +17.5%)**; redirect magnets eliminated (dead-seed report:
+none); retrieval metrics unchanged; no regressions. Full suite: **1059 passed,
+9 documented pre-existing failures**.
+
+**Note on MRE-021.** The Political Science case now retrieves the correct
+migrated program page at rank 1 (score 0.81) — a genuine repair of the former
+acquisition gap. It still records "fail" only because the golden dataset's
+`expected_urls` references the obsolete `cla.csulb.edu` URL. Updating that
+benchmark expectation is deliberately deferred to a **separate future change**
+(the evaluation set is out of scope for acquisition phases).
 
 ---
 

@@ -1,0 +1,78 @@
+{
+  "_schema_version": "1",
+  "_scope": "Phase 9B — verified seed replacements for Graduate Studies directory links that point at the decommissioned cla.csulb.edu CMS (every departmental path 302-redirects to the college homepage). Each replacement was fetched live, confirmed 200 with no redirect, and confirmed to contain dedicated program content via the production extractor. Programs whose directory seeds still resolve (Asian Studies / Teaching Chinese, Philosophy, Music) are deliberately absent — absence means 'directory seed is correct'.",
+  "_verified": "2026-07-22",
+  "_evidence": "rag/MASTERS_CLA_REPAIR_REPORT.md",
+  "overrides": [
+    {
+      "stale": "https://cla.csulb.edu/departments/anthropology/graduate-programs/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/anthropology/graduate-program-overview",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "https://cla.csulb.edu/departments/communicationstudies/master-of-arts/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/communication-studies/master-of-arts",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "https://cla.csulb.edu/departments/english/ma/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/english/master-of-arts",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "https://cla.csulb.edu/departments/english/mfa/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/english/master-of-fine-arts-mfa",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "http://cla.csulb.edu/departments/economics/graduate-programs/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/economics/graduate-program",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "https://cla.csulb.edu/departments/rgrll/french-and-francophone-studies-home/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/romance-german-russian-languages-and-literatures/french-and-francophone",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "https://cla.csulb.edu/departments/rgrll/german/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/romance-german-russian-languages-and-literatures/german",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "https://cla.csulb.edu/departments/rgrll/spanish/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/romance-german-russian-languages-and-literatures/spanish",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "https://cla.csulb.edu/departments/geography/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/geography/graduate-programs",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "https://cla.csulb.edu/departments/history/graduate-studies/graduate-application/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/department-of-history/master-of-arts",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "https://cla.csulb.edu/departments/psychology/graduate-programs/master-of-science-option-in-industrial-organizational-psychology/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/psychology/graduate-programs",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "https://cla.csulb.edu/departments/linguistics/ma-program/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/linguistics-department/graduate-studies-linguistics-and-tesol-at-csulb",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "http://cla.csulb.edu/departments/polisci/master-of-arts/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/political-science/master-of-arts",
+      "reason": "cla_cms_decommissioned"
+    },
+    {
+      "stale": "https://cla.csulb.edu/departments/relstud/master-of-arts-in-religious-studies/",
+      "replacement": "https://www.csulb.edu/college-of-liberal-arts/religious-studies/master-of-arts-religious-studies",
+      "reason": "cla_cms_decommissioned"
+    }
+  ]
+}

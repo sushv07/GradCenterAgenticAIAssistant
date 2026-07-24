@@ -23,9 +23,11 @@ CanonicalProgram, or KnowledgeDocument work happens here.
 """
 from __future__ import annotations
 
+import json
 import re
 from collections import Counter
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Callable, Optional, Sequence
 from urllib.parse import parse_qsl, unquote, urlencode, urlparse, urlunparse
 
@@ -87,6 +89,68 @@ def is_obsolete_term_page(url: str) -> bool:
     """True when the last path segment is exactly a term-year archive slug."""
     segments = [s for s in unquote(urlparse(url or "").path or "").split("/") if s]
     return bool(segments) and bool(_OBSOLETE_TERM_SLUG.match(segments[-1].lower()))
+
+
+# ---------------------------------------------------------------------------
+# Phase 9B — verified seed overrides (generic mechanism, data-driven config)
+# ---------------------------------------------------------------------------
+# The Graduate Studies directory can rot: the CLA CMS decommission left 14
+# directory links 302-redirecting to a college homepage (18 programs with no
+# program content). The MECHANISM here is generic — any stale directory seed
+# can be remapped by adding a verified entry to the committed config, no code
+# change — while the DATA lives in config/masters/seed_overrides.json with
+# per-entry verification evidence. Fail-safe: a missing/invalid config means
+# no overrides (behavior identical to pre-Phase-9B).
+
+SEED_OVERRIDES_PATH = (Path(__file__).resolve().parent.parent
+                       / "config" / "masters" / "seed_overrides.json")
+
+
+def _seed_key(url: str) -> str:
+    """Normalized comparison key: canonical, scheme-insensitive, no slash."""
+    p = urlparse(canonical_url(url or ""))
+    return f"{(p.netloc or '').lower()}{p.path.rstrip('/')}" + \
+        (f"?{p.query}" if p.query else "")
+
+
+def load_seed_overrides(path: Optional[Path] = None) -> dict[str, str]:
+    """Load {normalized stale seed key -> replacement URL}. {} on any problem."""
+    try:
+        data = json.loads(Path(path or SEED_OVERRIDES_PATH).read_text("utf-8"))
+        out: dict[str, str] = {}
+        for entry in data.get("overrides", []):
+            stale, repl = entry.get("stale", ""), entry.get("replacement", "")
+            if stale and repl and _seed_key(stale) != _seed_key(repl):
+                out[_seed_key(stale)] = repl
+        return out
+    except (OSError, ValueError):
+        return {}
+
+
+def apply_seed_overrides(
+    programs: Sequence[DiscoveredProgram],
+    overrides: Optional[dict[str, str]] = None,
+) -> tuple[list[DiscoveredProgram], dict[str, str]]:
+    """Remap stale official_program_urls to their verified replacements.
+
+    Returns (new program list, {program label: replacement url} applied).
+    Programs without a matching override are passed through unchanged
+    (same object — no copy), so unaffected programs are bit-identical.
+    """
+    if overrides is None:
+        overrides = load_seed_overrides()
+    if not overrides:
+        return list(programs), {}
+    out: list[DiscoveredProgram] = []
+    applied: dict[str, str] = {}
+    for p in programs:
+        repl = overrides.get(_seed_key(p.official_program_url or ""))
+        if repl:
+            out.append(p.model_copy(update={"official_program_url": repl}))
+            applied[_program_label(p)] = repl
+        else:
+            out.append(p)
+    return out, applied
 
 
 # The master's directory the seeds were discovered from (provenance only).

@@ -94,7 +94,9 @@ def acquire_masters_documents(
     in production the live master's directory is fetched.
     """
     from ingestion.masters.discovery import discover_from_html
-    from rag.masters_discovery import MASTERS_INDEX_URL, discover_masters_program_pages
+    from rag.masters_discovery import (
+        MASTERS_INDEX_URL, apply_seed_overrides, discover_masters_program_pages,
+    )
     from rag.masters_extraction import build_masters_documents, directory_card_documents
 
     if fetch_fn is None:
@@ -105,12 +107,18 @@ def acquire_masters_documents(
     if not html:
         return []
     manifest = discover_from_html(html, source_url=MASTERS_INDEX_URL)
+    # Phase 9B: remap directory seeds with verified replacements (the CLA CMS
+    # decommission left 14 seeds redirecting to a college homepage). Applied
+    # before nested discovery AND card building, so crawl seeds and each
+    # card's "Official program page" line both cite the live page. Fail-safe:
+    # no config -> no changes.
+    programs, _applied = apply_seed_overrides(manifest.programs)
     result = discover_masters_program_pages(
-        manifest.programs, depth=depth or MASTERS_INGESTION_DEPTH, fetch_fn=fetch_fn)
-    docs, _summary = build_masters_documents(result.pages, manifest.programs, fetch_fn=fetch_fn)
+        programs, depth=depth or MASTERS_INGESTION_DEPTH, fetch_fn=fetch_fn)
+    docs, _summary = build_masters_documents(result.pages, programs, fetch_fn=fetch_fn)
     # Phase 7: directory-card facts (advisor / deadlines) — previously only in
     # the un-indexed DiscoveryManifest; the advisor eval category scored 0%.
-    docs = docs + directory_card_documents(manifest.programs, MASTERS_INDEX_URL)
+    docs = docs + directory_card_documents(programs, MASTERS_INDEX_URL)
     return docs
 
 

@@ -28,6 +28,8 @@ class CatalogBuildStats:
     seed_hosts: dict[str, int] = field(default_factory=dict)
     programs_with_warnings: int = 0
     index_content_hash: str = ""
+    # Phase 9B: {program label: replacement url} remapped via seed_overrides.json
+    seed_overrides_applied: dict[str, str] = field(default_factory=dict)
 
     # nested page discovery
     unique_pages: int = 0
@@ -49,6 +51,9 @@ class CatalogBuildStats:
     duplicate_document_ids: int = 0
     redirects_followed: int = 0
     redirect_map: dict[str, str] = field(default_factory=dict)
+    # Phase 9B: {final_url: [requested…]} — cross-host redirect magnets (see
+    # dead_seed_candidates); reporting only, never auto-excluded
+    dead_seeds: dict[str, list[str]] = field(default_factory=dict)
     rejections_by_reason: dict[str, int] = field(default_factory=dict)
     missing_metadata: dict[str, int] = field(default_factory=dict)
     directory_card_documents: int = 0
@@ -120,6 +125,28 @@ def recording_fetch_final(
             stats.redirect_map[url] = final
         return html, final
     return _fetch
+
+
+def dead_seed_candidates(redirect_map: dict[str, str]) -> dict[str, list[str]]:
+    """Detect the 'homepage magnet' signature in a requested→final URL map.
+
+    A final URL that (a) is reached from >= 2 distinct requested URLs and
+    (b) sits on a different host than those requests is almost certainly a
+    college/landing page swallowing dead department links (Phase 9B evidence:
+    14 decommissioned CLA seeds all collapsed onto the CLA homepage). Returns
+    {final_url: sorted requested urls} for review — detection and reporting
+    only, never an automatic exclusion.
+    """
+    from urllib.parse import urlparse
+
+    by_final: dict[str, list[str]] = {}
+    for requested, final in redirect_map.items():
+        req_host = (urlparse(requested).netloc or "").lower()
+        fin_host = (urlparse(final).netloc or "").lower()
+        if req_host and fin_host and req_host != fin_host:
+            by_final.setdefault(final, []).append(requested)
+    return {final: sorted(reqs)
+            for final, reqs in by_final.items() if len(reqs) >= 2}
 
 
 def rejection_reason_class(reason: str) -> str:

@@ -24,7 +24,8 @@ def render_report(stats: CatalogBuildStats, *, top_n: int = 10) -> str:
          f"- unique seed URLs: {stats.unique_seed_urls}",
          f"- seed hosts: {dict(sorted(stats.seed_hosts.items()))}",
          f"- programs with discovery warnings: {stats.programs_with_warnings}",
-         f"- index content hash: `{stats.index_content_hash}`", "",
+         f"- index content hash: `{stats.index_content_hash}`",
+         f"- seed overrides applied (Phase 9B): {len(stats.seed_overrides_applied)}", "",
          "## Nested page discovery", "",
          f"- unique pages: {stats.unique_pages} "
          f"(seed {stats.seed_pages} · nested {stats.nested_pages})",
@@ -49,7 +50,14 @@ def render_report(stats: CatalogBuildStats, *, top_n: int = 10) -> str:
           f"- empty pages: {stats.empty_pages}",
           f"- duplicate document IDs: {stats.duplicate_document_ids}",
           f"- redirects followed (final != requested): {stats.redirects_followed}", "",
-          "### Rejections by reason", ""]
+          "### Dead-seed candidates (cross-host redirect magnets)", ""]
+    if stats.dead_seeds:
+        for final, reqs in sorted(stats.dead_seeds.items()):
+            L.append(f"- `{final}` ← {len(reqs)} stale URLs:")
+            L += [f"  - `{r}`" for r in reqs]
+    else:
+        L.append("(none)")
+    L += ["", "### Rejections by reason", ""]
     for reason, n in sorted(stats.rejections_by_reason.items()):
         L.append(f"- {reason}: {n}")
     if not stats.rejections_by_reason:

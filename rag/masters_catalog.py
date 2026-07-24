@@ -37,8 +37,9 @@ from typing import Any, Callable, Optional
 from urllib.parse import urlparse
 
 from rag.masters_catalog_metrics import (
-    CatalogBuildStats, StageTimer, counting_fetch, program_chunk_counts,
-    recording_fetch_final, rejection_reason_class, split_associated_programs,
+    CatalogBuildStats, StageTimer, counting_fetch, dead_seed_candidates,
+    program_chunk_counts, recording_fetch_final, rejection_reason_class,
+    split_associated_programs,
 )
 
 # Sanity floor for the live directory: the committed live snapshot fixture
@@ -82,7 +83,7 @@ def build_full_catalog(
     from config.settings import CHROMA_DIR
     from ingestion.masters.discovery import discover_from_html
     from rag.masters_discovery import (
-        MASTERS_INDEX_URL, discover_masters_program_pages,
+        MASTERS_INDEX_URL, apply_seed_overrides, discover_masters_program_pages,
     )
     from rag.masters_extraction import (
         build_masters_documents, directory_card_documents, fetch_page_final,
@@ -122,8 +123,13 @@ def build_full_catalog(
             raise RuntimeError("master's directory index could not be fetched")
         manifest = discover_from_html(html, source_url=MASTERS_INDEX_URL)
 
+    # Phase 9B: same seed remapping as the production acquire path (verified
+    # replacements for rotten directory links; no-op when config is absent).
+    programs, applied = apply_seed_overrides(manifest.programs)
+    stats.seed_overrides_applied = applied
+
     stats.programs_discovered = len(manifest.programs)
-    seeds = {p.official_program_url for p in manifest.programs if p.official_program_url}
+    seeds = {p.official_program_url for p in programs if p.official_program_url}
     stats.unique_seed_urls = len(seeds)
     stats.seed_hosts = dict(Counter((urlparse(u).netloc or "").lower() for u in seeds))
     stats.programs_with_warnings = sum(1 for p in manifest.programs if p.warnings)
@@ -137,7 +143,7 @@ def build_full_catalog(
     # -- stage 2: nested page discovery (full catalog, no program list) -----
     with timer.stage("nested_discovery"):
         result = discover_masters_program_pages(
-            manifest.programs, depth=config.depth, fetch_fn=fetch)
+            programs, depth=config.depth, fetch_fn=fetch)
 
     agg = result.aggregate()
     stats.unique_pages = agg["total_unique_pages"]
@@ -151,8 +157,8 @@ def build_full_catalog(
     # -- stage 3: extraction → validated KnowledgeDocuments ------------------
     with timer.stage("extraction_conversion"):
         docs, conv = build_masters_documents(
-            result.pages, manifest.programs, fetch_final_fn=fetch_final)
-        cards = directory_card_documents(manifest.programs, MASTERS_INDEX_URL)
+            result.pages, programs, fetch_final_fn=fetch_final)
+        cards = directory_card_documents(programs, MASTERS_INDEX_URL)
 
     stats.pages_processed = conv.total_pages
     stats.documents_accepted = len(docs)
@@ -163,6 +169,9 @@ def build_full_catalog(
     stats.directory_card_documents = len(cards)
     stats.rejections_by_reason = dict(Counter(
         rejection_reason_class(r) for _, r in conv.rejections))
+    # Phase 9B: cross-host redirect magnets (rotten-seed signature) — reported
+    # for review so future directory rot is self-detecting, never auto-dropped.
+    stats.dead_seeds = dead_seed_candidates(stats.redirect_map)
 
     if not docs:
         raise RuntimeError("full-catalog acquisition produced 0 accepted documents")
@@ -177,7 +186,7 @@ def build_full_catalog(
     # split_associated_programs.
     labels = [f"{p.normalized_program_name} ({p.degree_label})"
               if p.degree_label else p.normalized_program_name
-              for p in manifest.programs]
+              for p in programs]
     label_set = set(labels)
     covered: set[str] = set()
     for d in docs:
