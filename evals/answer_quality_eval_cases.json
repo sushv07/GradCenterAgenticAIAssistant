@@ -1,0 +1,153 @@
+{
+  "_schema_version": "1",
+  "_scope": "Phase 10 answer-quality golden set. Representative CSULB Grad Center questions across admissions, eligibility, deadlines, program-specific, advisor, unknown, and ambiguous categories. Each case carries the retrieved evidence plus two hand-authored answers: `baseline_answer` illustrates the v1 prompt's tendencies (verbose, over-committal, no clarification/abstention discipline) and `candidate_answer` illustrates the v2 prompt's targets (answer-first, grounded, conflict/ambiguity/missing-info aware). Answers are illustrative fixtures — deterministic property scoring, NOT live model output (no Ollama offline). Expectations under `expect` are checked against the candidate answer.",
+  "_note": "Fixtures are grounded only in each case's own `retrieved_evidence`; no fact appears in an answer that is not in that evidence, except where a case deliberately demonstrates a hallucination the metrics must catch.",
+  "cases": [
+    {
+      "case_id": "AQ-001",
+      "category": "admissions",
+      "query": "What do I need to submit to apply to the MPA program?",
+      "retrieved_evidence": {
+        "canonical_source_url": "https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration/admissions-to-our-program",
+        "requirements": "Applicants must submit: a completed Cal State Apply application, official transcripts, a statement of purpose, and two letters of recommendation. A minimum cumulative GPA of 3.0 is required.",
+        "source": "https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration/admissions-to-our-program"
+      },
+      "baseline_answer": "Thank you for your interest in the Master of Public Administration program at the CSULB Graduate Center. The College of Health and Human Services offers this program and there are several things you will want to be aware of as you prepare your application materials. To apply to the MPA program you must submit a completed Cal State Apply application, you must submit official transcripts, you must submit a statement of purpose, and you must submit two letters of recommendation. In addition, a minimum cumulative GPA of 3.0 is required for admission consideration. A minimum cumulative GPA of 3.0 is required. See https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration/admissions-to-our-program for more details.",
+      "candidate_answer": "To apply to the MPA program, submit:\n- A completed Cal State Apply application\n- Official transcripts\n- A statement of purpose\n- Two letters of recommendation\n\nA minimum cumulative GPA of 3.0 is required.\nSource: https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration/admissions-to-our-program",
+      "expect": {
+        "min_grounding": 0.8,
+        "citation_fidelity": true,
+        "max_chars": 500,
+        "max_repetition": 0.0
+      }
+    },
+    {
+      "case_id": "AQ-002",
+      "category": "eligibility",
+      "query": "Who is eligible for the Emergency Services Administration master's?",
+      "retrieved_evidence": {
+        "eligibility": "Eligible applicants hold a bachelor's degree from an accredited institution, have a minimum 2.5 GPA in the last 60 units, and have professional experience in an emergency-services field.",
+        "source": "https://www.csulb.edu/college-of-health-human-services/emergency-services-administration"
+      },
+      "baseline_answer": "Eligibility for admission is an important consideration and there are a number of criteria that the program looks at when reviewing applicants. Eligible applicants hold a bachelor's degree from an accredited institution. Applicants should note that professional experience is valued. The main requirement is a bachelor's degree. See https://www.csulb.edu/college-of-health-human-services/emergency-services-administration.",
+      "candidate_answer": "You are eligible for the Emergency Services Administration master's if you:\n- Hold a bachelor's degree from an accredited institution\n- Have a minimum 2.5 GPA in your last 60 units\n- Have professional experience in an emergency-services field\n\nSource: https://www.csulb.edu/college-of-health-human-services/emergency-services-administration",
+      "expect": {
+        "min_grounding": 0.8,
+        "citation_fidelity": true,
+        "max_chars": 450
+      }
+    },
+    {
+      "case_id": "AQ-003",
+      "category": "deadlines",
+      "query": "When is the Fall application deadline for the MBA?",
+      "retrieved_evidence": {
+        "deadline_fall": "Fall priority application deadline: March 1.",
+        "source": "https://www.csulb.edu/cob-graduate-programs/application-deadlines"
+      },
+      "baseline_answer": "Deadlines are a very important part of the graduate application process and you will want to make sure you keep track of them carefully as you prepare your materials for submission. The Fall priority application deadline is March 1. You should apply by this date. The Fall priority application deadline is March 1. More information can be found at https://www.csulb.edu/cob-graduate-programs/application-deadlines.",
+      "candidate_answer": "The Fall priority application deadline for the MBA is March 1.\nSource: https://www.csulb.edu/cob-graduate-programs/application-deadlines",
+      "expect": {
+        "min_grounding": 0.8,
+        "citation_fidelity": true,
+        "max_chars": 250,
+        "max_repetition": 0.0
+      }
+    },
+    {
+      "case_id": "AQ-004",
+      "category": "program_specific",
+      "query": "Tell me about the Political Science MA program.",
+      "retrieved_evidence": {
+        "canonical_source_url": "https://www.csulb.edu/college-of-liberal-arts/political-science/master-of-arts",
+        "overview": "A master's degree in political science provides a strong foundation for careers in government, political consulting, and doctoral study. The program offers concentrations in American politics, international relations, and political theory.",
+        "source": "https://www.csulb.edu/college-of-liberal-arts/political-science/master-of-arts"
+      },
+      "baseline_answer": "The Political Science MA is a wonderful program with a long history at the university and many distinguished faculty who are experts in their fields and who publish widely. A master's degree in political science provides a strong foundation for careers in government, political consulting, and doctoral study. The program is also a great way to meet people. It offers concentrations in American politics, international relations, and political theory. Tuition is approximately $7,000 per year. See https://www.csulb.edu/college-of-liberal-arts/political-science/master-of-arts.",
+      "candidate_answer": "The Political Science MA prepares you for careers in government, political consulting, and doctoral study. It offers three concentrations:\n- American politics\n- International relations\n- Political theory\n\nSource: https://www.csulb.edu/college-of-liberal-arts/political-science/master-of-arts",
+      "expect": {
+        "min_grounding": 0.8,
+        "citation_fidelity": true,
+        "max_chars": 400
+      }
+    },
+    {
+      "case_id": "AQ-005",
+      "category": "advisor",
+      "query": "Who is the graduate advisor for Linguistics and how do I reach them?",
+      "retrieved_evidence": {
+        "advisor_office": "Dr. Example Advisor",
+        "advisor_email": "ling-gradadvising@csulb.edu",
+        "phone": "562-985-0000",
+        "source": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters#linguistics-ma"
+      },
+      "baseline_answer": "Advising is a key part of your graduate journey and you should reach out early and often to make sure you stay on track with all of your requirements. The graduate advisor is Dr. Example Advisor. You can contact the advisor. The email is ling-gradadvising@csulb.edu and the phone number is 562-985-0000. The graduate advisor is Dr. Example Advisor.",
+      "candidate_answer": "The graduate advisor for Linguistics is Dr. Example Advisor.\nContact:\n- Email: ling-gradadvising@csulb.edu\n- Phone: 562-985-0000",
+      "expect": {
+        "min_grounding": 0.75,
+        "citation_fidelity": true,
+        "max_chars": 300,
+        "max_repetition": 0.0
+      }
+    },
+    {
+      "case_id": "AQ-006",
+      "category": "unknown",
+      "query": "What is the average starting salary of MPA graduates?",
+      "retrieved_evidence": {
+        "requirements": "Applicants must submit a completed Cal State Apply application, official transcripts, a statement of purpose, and two letters of recommendation.",
+        "source": "https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration/admissions-to-our-program"
+      },
+      "baseline_answer": "The average starting salary for MPA graduates is approximately $65,000 per year, though this can vary by sector and location. Public administration is a growing field with many opportunities. You can learn more at https://www.csulb.edu/college-of-health-human-services/public-policy-and-administration/admissions-to-our-program.",
+      "candidate_answer": "The Grad Center pages provided don't include starting-salary information for MPA graduates, so I can't confirm that figure. What they do cover is the program's application requirements. For career-outcome data, contact the department directly.",
+      "expect": {
+        "require_abstention": true,
+        "citation_fidelity": true,
+        "max_chars": 400
+      }
+    },
+    {
+      "case_id": "AQ-007",
+      "category": "ambiguous",
+      "query": "What's the deadline for the linguistics master's?",
+      "retrieved_evidence": {
+        "programs": [
+          {"name": "Linguistics (MA)", "deadline_fall": "April 1"},
+          {"name": "Linguistics - Language and Culture (MA)", "deadline_fall": "March 15"},
+          {"name": "TESOL (MA)", "deadline_fall": "February 15"}
+        ],
+        "source": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters"
+      },
+      "baseline_answer": "The deadline for the linguistics master's is April 1. Make sure to submit your application by then so you don't miss your chance to be considered for admission to this excellent program.",
+      "candidate_answer": "CSULB lists several linguistics-related master's programs with different deadlines. Which one do you mean — Linguistics (MA), Linguistics - Language and Culture (MA), or TESOL (MA)? Once you tell me, I can give you the exact Fall deadline.",
+      "expect": {
+        "require_clarification": true,
+        "citation_fidelity": true,
+        "max_chars": 400
+      }
+    },
+    {
+      "case_id": "AQ-008",
+      "category": "deadlines",
+      "query": "What is the application deadline for the MSW?",
+      "retrieved_evidence": {
+        "page_a": "Social Work (MSW) Fall application deadline: December 1.",
+        "page_b": "MSW applications are due by January 15 for Fall admission.",
+        "source_a": "https://www.csulb.edu/college-of-health-human-services/school-of-social-work",
+        "source_b": "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters#social-work-msw"
+      },
+      "baseline_answer": "The application deadline for the MSW is December 1. Applications are due by January 15 for Fall admission. Be sure to apply on time. See https://www.csulb.edu/college-of-health-human-services/school-of-social-work.",
+      "candidate_answer": "The retrieved pages give two different Fall MSW deadlines:\n- December 1 (School of Social Work page)\n- January 15 (Graduate Studies directory)\n\nBecause the sources disagree, confirm the current date with the School of Social Work before relying on either.\nSources:\n- https://www.csulb.edu/college-of-health-human-services/school-of-social-work\n- https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters#social-work-msw",
+      "expect": {
+        "citation_fidelity": true,
+        "must_contain": [
+          "December 1",
+          "January 15",
+          "https://www.csulb.edu/college-of-health-human-services/school-of-social-work",
+          "https://www.csulb.edu/graduate-studies-csulb/article/programs-advisors-and-deadlines-masters#social-work-msw"
+        ],
+        "max_chars": 550
+      }
+    }
+  ]
+}

@@ -80,8 +80,16 @@ _VALID_CONFIDENCE = frozenset({"high", "medium", "low"})
 # unchanged (verified byte-identical at extraction time). Loading is cached
 # (prompts/loader.py), so this module-level read costs nothing beyond the
 # first import.
+#
+# Phase 10: the active grounded-answer prompt is config-selectable via
+# GROUNDED_ANSWER_PROMPT (a registered prompt name). Default is the v1 prompt,
+# so deployed behavior and every existing test are unchanged until an operator
+# opts into the v2 candidate (grounded_answer_synthesis_v2) — matching the
+# LLM_SYNTHESIS_ENABLED / MASTERS_INGESTION_ENABLED toggle idiom. Only the
+# prompt text changes; the deterministic URL-fidelity guard below is untouched.
 
-_SYSTEM_PROMPT = load_prompt("grounded_answer_synthesis")
+_ACTIVE_PROMPT_NAME = os.getenv("GROUNDED_ANSWER_PROMPT", "grounded_answer_synthesis")
+_SYSTEM_PROMPT = load_prompt(_ACTIVE_PROMPT_NAME)
 
 
 # ---------------------------------------------------------------------------

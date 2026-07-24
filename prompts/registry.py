@@ -42,6 +42,21 @@ _REGISTRY: dict[str, PromptMetadata] = {
         intended_model="qwen2.5:7b-instruct",
         relative_path="grounded_answers/synthesis_v1.md",
     ),
+    # Phase 10 candidate: answer-the-question-first grounding with explicit
+    # conflict-surfacing, ambiguity→clarification, and a stricter abstention
+    # contract. Opt-in via GROUNDED_ANSWER_PROMPT (default stays v1), matching
+    # the repo's config-over-code, off-by-default toggle idiom.
+    "grounded_answer_synthesis_v2": PromptMetadata(
+        name="grounded_answer_synthesis_v2",
+        version="v2",
+        description=(
+            "Phase 10 candidate grounded-answer prompt: evidence-first, "
+            "concise-but-faithful, with conflict-surfacing, clarification on "
+            "ambiguity, and a strict missing-information abstention contract."
+        ),
+        intended_model="qwen2.5:7b-instruct",
+        relative_path="grounded_answers/synthesis_v2.md",
+    ),
 }
 
 

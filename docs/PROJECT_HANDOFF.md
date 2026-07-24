@@ -302,7 +302,8 @@ The recent work, in commit order:
     (`…/fall-2021`), plus a non-HTML `Content-Type` guard. Removed 579 noise
     chunks (−16.7%) with **identical** retrieval metrics — the removed content
     never contributed a relevant hit.
-12. **Master's Phase 9B — CLA acquisition repair** (this commit) — see below.
+12. **Master's Phase 9B — CLA acquisition repair** (`31d3398`) — see below.
+13. **Phase 10 — answer quality & retrieval intelligence** (this commit) — see below.
 
 ### Phase 9B — CLA Acquisition Repair
 
@@ -338,6 +339,50 @@ acquisition gap. It still records "fail" only because the golden dataset's
 `expected_urls` references the obsolete `cla.csulb.edu` URL. Updating that
 benchmark expectation is deliberately deferred to a **separate future change**
 (the evaluation set is out of scope for acquisition phases).
+
+### Phase 10 — Answer Quality & Retrieval Intelligence
+
+**Purpose.** The first phase to leave acquisition/retrieval entirely alone and
+improve the **answer-generation layer** — how retrieved content becomes a
+grounded, cited, appropriately-hedged answer.
+
+**Design review.** `docs/PHASE10_ANSWER_QUALITY_REVIEW.md` maps the full answer
+path (retrieve → deterministic `answer_agent` extraction → optional off-by-default
+LLM synthesis → `_humanize_answer` presentation) and records six findings:
+verbosity designed into the v1 prompt (F1), no conflict handling (F2), no
+clarification on ambiguity (F3), a hallucination guard that covers URLs only
+(F4), single-source citation that picks the first link not the most relevant
+(F5), and confidence that is not evidence-calibrated (F6).
+
+**Configurable prompt architecture.** A v2 candidate prompt
+(`prompts/grounded_answers/synthesis_v2.md`, registered as
+`grounded_answer_synthesis_v2`) targets F1–F4/F6: answer-first grounding,
+explicit conflict-surfacing, ambiguity→clarification, a strict
+missing-information abstention contract, and concision as a stated priority. The
+active prompt is config-selectable via `GROUNDED_ANSWER_PROMPT`, **defaulting to
+v1**, matching the `LLM_SYNTHESIS_ENABLED` / `MASTERS_INGESTION_ENABLED` idiom.
+The deterministic URL-fidelity guard in `llm_synthesizer._validate` is untouched.
+
+**Deterministic answer-quality evaluation.** A new, no-LLM-judge suite
+(`evals/metrics_answer_quality.py`, `evals/answer_quality_eval_cases.json`,
+`evals/run_answer_quality_evals.py`) scores answer text against its evidence —
+grounding rate, citation fidelity/attribution, hallucinated-URL count,
+verbosity, repetition, abstention, and clarification — over an 8-case golden set
+spanning admissions, eligibility, deadlines, program-specific, advisor, unknown,
+and ambiguous questions. Each case carries a v1-style `baseline_answer` and a
+v2-style `candidate_answer`; the report (`evals/ANSWER_QUALITY_REPORT.md`) shows
+candidate 8/8 vs baseline 0/8, mean grounding 0.51→0.67, mean length 405→270
+chars, repetition 0.061→0.0, zero fabricated URLs either side.
+
+**Validation.** Full suite: **1085 passed, 9 documented pre-existing failures**;
++26 new tests, no regressions. Retrieval pipeline and production behavior
+unchanged (v1 remains the default prompt; the whole synthesis path is still
+off by default).
+
+**Future work.** A live-model A/B (needs a running Ollama; the suite is
+fixture-based today, like `run_llm_evals`); multi-source citation selection
+(F5, deferred to avoid a broader `answer_agent`/response-schema change);
+evidence-calibrated confidence; and updating MRE-021's stale golden URL.
 
 ---
 
