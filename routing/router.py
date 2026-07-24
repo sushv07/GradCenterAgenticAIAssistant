@@ -149,8 +149,14 @@ class RouteDecision:
     route:      str     # "welcome"|"deadlines"|"eligibility"|"application"|
                         #  "advisor"|"next_steps"|"guidance"|"answer"
     reason:     str     # log reason code — mirrors emit("route.decision", reason=...)
-    query:      str
+    query:      str     # the ORIGINAL user query (used for display/logging)
     session_id: str
+
+    # Program-context continuity: the internal query the route/tools should use.
+    # Equals `query` unless a contextual reference was resolved to the active
+    # program at the orchestrator boundary (then it carries the active program's
+    # tool name appended). Never shown to the user. Defaults to `query`.
+    tool_query: str | None = None
 
     is_process_query:   bool = False
     has_advisor_signal: bool = False

@@ -1899,7 +1899,6 @@ def _render_discovery_panel(response: dict) -> None:
         conf       = match.get("confidence", confidence)
         email      = match.get("advisor_email", "")
         deadline   = match.get("deadline_fall", "")
-        basis      = match.get("score_basis") or []
         prog_name  = _PROGRAM_NAMES.get(prog_id, prog_id.replace("-", " ").title())
         conf_color = _CONF_COLORS.get(conf, "#6b7280")
 
@@ -1927,13 +1926,6 @@ def _render_discovery_panel(response: dict) -> None:
             f'</div>',
             unsafe_allow_html=True,
         )
-
-        # Score basis — collapsible
-        if basis:
-            readable = [_readable_basis(f) for f in basis]
-            with st.expander("Why this program matched", expanded=False):
-                for item in readable:
-                    st.markdown(f"- {item}")
 
     # ── Caveat note for partial matches ───────────────────────────────────
     if behavior == "partial_match_with_caveat":

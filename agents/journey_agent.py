@@ -923,6 +923,19 @@ def handle_discovery(
     # either way.
     if result.program_matches:
         attach_explanations(result.program_matches)
+
+    # Program-context continuity: a single confident recommendation becomes the
+    # session's active program so later contextual follow-ups ("its deadline",
+    # "how do I apply to it") resolve to it. Multiple/clarify outcomes do NOT
+    # set an active program — we never arbitrarily pick one.
+    if result.behavior == "recommend" and len(result.program_matches) == 1:
+        from state.program_context import make_active_program
+        _pid = result.program_matches[0].get("program_id", "")
+        _cname = {p["program_id"]: p for p in _load_taxonomy()}.get(_pid, {}).get(
+            "canonical_name", "")
+        updated["active_program"] = make_active_program(
+            _pid, _cname, source="recommendation")
+
     response = _build_response(query, session_id, result)
     save_context(session_id, updated)
     return response, updated

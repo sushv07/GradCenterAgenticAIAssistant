@@ -18,6 +18,8 @@ from __future__ import annotations
 import json
 import sys
 import time
+from dataclasses import replace
+from typing import Any, Optional
 
 from gradcenter_logging import emit
 
@@ -273,10 +275,41 @@ def _emit_tool_result(tool_name: str, result: dict, elapsed_ms: float) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Program-context continuity (shared by all program-aware routes)
+# ---------------------------------------------------------------------------
+
+def _resolve_and_augment(query: str, session_id: str) -> tuple[str, Optional[dict]]:
+    """Resolve the turn's program context; return (tool_query, active_program).
+
+    - Explicit program in the query becomes the session's active program and is
+      persisted (so later pronoun follow-ups resolve to it); tool_query is the
+      original query (the program is already in it).
+    - A contextual reference ("this program", "it", …) with an existing active
+      program yields an augmented tool_query (active program appended) for the
+      route/tool only.
+    - Otherwise tool_query is the original query (normal clarification behavior).
+
+    The user-facing query and displayed text are never modified — only the
+    returned tool_query (internal) may be augmented.
+    """
+    from agents.journey_agent import init_journey_state
+    from state.context_manager import get_context, save_context
+    from state.program_context import resolve_program_context
+
+    journey_state = get_context(session_id, init_journey_state).journey_state
+    res = resolve_program_context(query, journey_state)
+    if res["changed"] and res["active"]:
+        journey_state["active_program"] = res["active"]
+        save_context(session_id, journey_state)
+    return res["tool_query"], res["active"]
+
+
+# ---------------------------------------------------------------------------
 # Topic-tool response builder
 # ---------------------------------------------------------------------------
 
-def _build_topic_response(topic: str, query: str, session_id: str) -> TopicResponse:
+def _build_topic_response(topic: str, query: str, session_id: str,
+                          tool_query: Optional[str] = None) -> TopicResponse:
     """
     Call the appropriate Phase-2 tool and return a formatted orchestrator response.
 
@@ -292,10 +325,15 @@ def _build_topic_response(topic: str, query: str, session_id: str) -> TopicRespo
         Full orchestrator response dict, consistent with the schema returned by
         _format_response() so the UI can render it without special casing.
     """
+    # Program-context continuity: the route/tools use tool_query (may be the
+    # active program-augmented query, resolved at the orchestrator boundary);
+    # the response is built with the ORIGINAL query for display.
+    tool_query = tool_query or query
+
     if topic == "deadlines":
         from tools.deadlines_tool import get_deadlines
         _tt0 = time.perf_counter()
-        result = get_deadlines(query)
+        result = get_deadlines(tool_query)
         _emit_tool_result("deadlines_tool", result, round((time.perf_counter() - _tt0) * 1000, 1))
         heading     = "Deadlines"
         source_base = (
@@ -311,7 +349,7 @@ def _build_topic_response(topic: str, query: str, session_id: str) -> TopicRespo
     elif topic == "eligibility":
         from tools.eligibility_tool import get_eligibility
         _tt0 = time.perf_counter()
-        result = get_eligibility(query)
+        result = get_eligibility(tool_query)
         _emit_tool_result("eligibility_tool", result, round((time.perf_counter() - _tt0) * 1000, 1))
         heading     = "Eligibility Requirements"
         source_base = "https://www.csulb.edu/admissions/doctoral-programs-admission-eligibility"
@@ -324,7 +362,7 @@ def _build_topic_response(topic: str, query: str, session_id: str) -> TopicRespo
     else:  # "application"
         from tools.application_steps_tool import get_application_steps
         _tt0 = time.perf_counter()
-        result = get_application_steps(query)
+        result = get_application_steps(tool_query)
         _emit_tool_result("application_steps_tool", result, round((time.perf_counter() - _tt0) * 1000, 1))
         heading     = "Application Steps"
         source_base = "https://www.csulb.edu/admissions/doctoral-programs-application-process"
@@ -375,7 +413,13 @@ def _build_topic_response(topic: str, query: str, session_id: str) -> TopicRespo
 # ---------------------------------------------------------------------------
 
 def _build_advisor_response(decision: RouteDecision) -> dict:
-    """Build the advisor response from a pre-routed RouteDecision."""
+    """Build the advisor response from a pre-routed RouteDecision.
+
+    Program-context continuity is handled at the orchestrator boundary
+    (orchestrator.run augments the query before decide_route), so the router's
+    find_advisor() already ran against the active program for contextual
+    follow-ups — this builder needs no program-context logic of its own.
+    """
     advisor_result = decision.advisor_result or {}
 
     if decision.reason == "doctoral_no_match":
@@ -521,7 +565,9 @@ def _dispatch(decision: RouteDecision) -> OrchestratorResponse:
         )
 
     if decision.route in ("deadlines", "eligibility", "application"):
-        return _build_topic_response(decision.route, decision.query, decision.session_id)
+        return _build_topic_response(
+            decision.route, decision.query, decision.session_id,
+            decision.tool_query or decision.query)
 
     if decision.route == "advisor":
         return _build_advisor_response(decision)
@@ -533,9 +579,11 @@ def _dispatch(decision: RouteDecision) -> OrchestratorResponse:
         response, _ = handle_discovery(decision.query, decision.session_id)
         return response
 
-    # "guidance" | "answer"
+    # "guidance" | "answer" — the answer route is program-aware, so it consumes
+    # the resolved tool_query; display still uses the original query.
     route_enum = Route(decision.route)
-    raw        = _ROUTE_RUNNERS[route_enum](decision.query, decision.session_id)
+    raw        = _ROUTE_RUNNERS[route_enum](
+        decision.tool_query or decision.query, decision.session_id)
     return _format_response(decision.query, route_enum, raw, decision.session_id)
 
 
@@ -545,8 +593,14 @@ def _dispatch(decision: RouteDecision) -> OrchestratorResponse:
 
 def run(query: str, session_id: str = DEFAULT_SESSION_ID) -> OrchestratorResponse:
     """Route the query, run the agent, and return a user-friendly response."""
-    query    = (query or "").strip()
-    decision = decide_route(query, session_id)
+    query = (query or "").strip()
+    # Program-context continuity: resolve "this program"/"it" against the active
+    # program and persist an explicitly-named one. Route + tools see the
+    # (possibly augmented) tool_query so ROUTING itself resolves the program;
+    # the user-facing query stays original.
+    tool_query, _active = _resolve_and_augment(query, session_id)
+    decision = decide_route(tool_query, session_id)
+    decision = replace(decision, query=query, tool_query=tool_query)
     return _dispatch(decision)
 
 

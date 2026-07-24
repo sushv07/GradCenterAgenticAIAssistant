@@ -28,6 +28,25 @@ from typing import TypedDict
 
 
 # ---------------------------------------------------------------------------
+# Active program — the single canonical program context for the session
+# ---------------------------------------------------------------------------
+
+class ActiveProgram(TypedDict, total=False):
+    """The one program the conversation is currently 'about'.
+
+    Set whenever a program is confidently identified (explicit mention, single
+    recommendation, clarification selection, or a confident route result) and
+    read to resolve later contextual references ("this program", "it", …). A
+    single canonical field — routes must NOT introduce their own program-state
+    fields.
+    """
+    program_id:      str   # stable taxonomy id, e.g. "drph-public-health" ("" if unknown)
+    canonical_name:  str   # taxonomy canonical_name, e.g. "Public Health"
+    tool_name:       str   # the name the route tools understand, e.g. "Public Health (DR.P.H.)"
+    source:          str   # "explicit_mention" | "recommendation" | "clarification_selection" | "route_result"
+
+
+# ---------------------------------------------------------------------------
 # Required fields — must be set when creating a new JourneyState
 # ---------------------------------------------------------------------------
 
@@ -54,3 +73,4 @@ class JourneyState(_JourneyStateRequired, total=False):
     modality_pref:        str        # "online" | "in_person" | "hybrid"
     last_question_asked:  str        # last clarification question sent to the student
     stated_uncertainty:   bool       # True when student explicitly signalled unsureness ("not sure", "exploring")
+    active_program:       ActiveProgram  # single canonical program context for pronoun/generic follow-ups
