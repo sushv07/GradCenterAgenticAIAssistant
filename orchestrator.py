@@ -305,6 +305,162 @@ def _resolve_and_augment(query: str, session_id: str) -> tuple[str, Optional[dic
 
 
 # ---------------------------------------------------------------------------
+# Application route — applicant-type gate + international guidance
+# ---------------------------------------------------------------------------
+# Generic across all programs: driven by the shared active_program + the one
+# canonical applicant_type field. When a program is resolved but the applicant
+# type is unknown, a typed PendingClarification is stored and the reply resumes
+# via the shared clarification framework (state/clarification.py) — no parallel
+# resume path, no per-program branch.
+
+_APPLICATION_NEXT_ACTIONS = [
+    "Who is the advisor for my program?",
+    "What are the eligibility requirements?",
+    "When is the application deadline?",
+]
+_APPLICATION_SOURCE_BASE = "https://www.csulb.edu/admissions/doctoral-programs-application-process"
+
+
+def _load_state(session_id: str):
+    from agents.journey_agent import init_journey_state
+    from state.context_manager import get_context
+    return get_context(session_id, init_journey_state).journey_state
+
+
+def _application_workflow_response(session_id: str, tool_query: str, query: str,
+                                   applicant_type: str) -> dict:
+    """The program-specific application workflow response, with international
+    guidance prepended (as a supplement, never a replacement) when the applicant
+    is international. Program-specific selection/fallback is unchanged."""
+    from tools.application_steps_tool import get_application_steps
+
+    _tt0 = time.perf_counter()
+    result = get_application_steps(tool_query)
+    _emit_tool_result("application_steps_tool", result,
+                      round((time.perf_counter() - _tt0) * 1000, 1))
+
+    sources    = result.get("sources", [])
+    source_url = sources[0] if sources else _APPLICATION_SOURCE_BASE
+    results    = result.get("results", [])
+    disclaimer = result.get("disclaimer", "")
+
+    if results:
+        raw = results[0].get("text", "").strip()
+        summary = (raw[:280].rsplit(" ", 1)[0] + "…") if len(raw) > 280 else raw
+    elif result.get("fallback_data"):
+        summary = "Here is the application steps information I found for CSULB doctoral programs."
+    else:
+        summary = ("I couldn't find specific application steps for that query. "
+                   "Please check the official CSULB page.")
+
+    extra: dict = {"tool_result": result, "applicant_type": applicant_type}
+    if applicant_type == "international":
+        from config.international import INTERNATIONAL_INFO
+        extra["international_info"] = INTERNATIONAL_INFO  # supplement, shown BEFORE the workflow
+
+    return build_response(
+        query=query, route="application", session_id=session_id,
+        summary=summary,
+        primary_action=disclaimer or f"Verify this information at the official CSULB page: {source_url}",
+        source={"file": "", "url": source_url},
+        next_actions=_APPLICATION_NEXT_ACTIONS,
+        extra=extra,
+    )
+
+
+def _build_application_response(session_id: str, tool_query: str, query: str) -> dict:
+    """Application route entry: ask applicant type first (once) when a program is
+    resolved but the type is unknown; otherwise render the workflow."""
+    from state.clarification import set_pending
+    from state.context_manager import save_context
+
+    js = _load_state(session_id)
+    active = js.get("active_program")
+    applicant_type = js.get("applicant_type", "")
+
+    # Gate — only when a specific program is resolved AND the type is unknown.
+    if active and not applicant_type:
+        question = ("Before I show the application steps, are you applying as a "
+                    "domestic or international student?")
+        set_pending(js, "applicant_type", route="application",
+                    question=question, original_query=query)
+        save_context(session_id, js)
+        # Return the clarification metadata INSIDE tool_result so the response
+        # is a valid TopicResponseModel (route="application" requires
+        # tool_result) — FastAPI response validation stays intact.
+        return build_response(
+            query=query, route="application", session_id=session_id,
+            summary=question,
+            primary_action="Choose Domestic student or International student to continue.",
+            source={"file": "", "url": "https://www.csulb.edu/graduate-center"},
+            next_actions=[],
+            extra={"tool_result": {
+                "needs_applicant_type":  True,
+                "applicant_type_choices": ["domestic", "international"],
+            }},
+        )
+
+    return _application_workflow_response(session_id, tool_query, query, applicant_type)
+
+
+def resume_applicant_type_clarification(query: str, session_id: str, pending) -> Optional[dict]:
+    """Resumer (registered for kind="applicant_type"): consume the domestic/
+    international reply, persist it, and resume the pending application request
+    for the active program. Returns None if the reply isn't an applicant type
+    (the pending clarification is abandoned and the message routes normally)."""
+    from state.clarification import clear_pending, parse_applicant_type
+    from state.context_manager import save_context
+    from state.program_context import augment_query_with_active_program
+
+    at = parse_applicant_type(query)
+    js = _load_state(session_id)
+    if at is None:
+        clear_pending(js)
+        save_context(session_id, js)
+        return None
+
+    js["applicant_type"] = at
+    clear_pending(js)
+    save_context(session_id, js)
+
+    original = (pending or {}).get("original_query") or "what are the application steps"
+    tool_query = augment_query_with_active_program(original, js.get("active_program"))
+    return _application_workflow_response(session_id, tool_query, original, at)
+
+
+def _applicant_type_ack(query: str, session_id: str, applicant_type: str) -> dict:
+    """Brief acknowledgment when the user only states their applicant type.
+
+    Shaped as a valid AnswerResponseModel (route="answer" + answer/confidence +
+    source) so it passes FastAPI response validation like any other answer."""
+    text = f"Got it — I'll tailor application guidance for {applicant_type} applicants."
+    return build_response(
+        query=query, route="answer", session_id=session_id,
+        summary=text,
+        primary_action="Ask for your program's application steps and I'll include the right guidance.",
+        source={"file": "", "url": "https://www.csulb.edu/graduate-center"},
+        next_actions=[],
+        extra={"answer": text, "confidence": "high", "applicant_type": applicant_type},
+    )
+
+
+# Register the applicant-type resumer with the shared clarification framework
+# (state/clarification.py). backend.entrypoint dispatches replies to pending
+# clarifications through that single registry — no parallel resume path.
+from state.clarification import register_resumer as _register_resumer  # noqa: E402
+_register_resumer("applicant_type", resume_applicant_type_clarification)
+
+
+def _set_applicant_type(session_id: str, applicant_type: str) -> None:
+    """Persist an explicitly-stated applicant type (Examples D/E)."""
+    from state.context_manager import save_context
+    js = _load_state(session_id)
+    if js.get("applicant_type") != applicant_type:
+        js["applicant_type"] = applicant_type
+        save_context(session_id, js)
+
+
+# ---------------------------------------------------------------------------
 # Topic-tool response builder
 # ---------------------------------------------------------------------------
 
@@ -564,7 +720,11 @@ def _dispatch(decision: RouteDecision) -> OrchestratorResponse:
             ],
         )
 
-    if decision.route in ("deadlines", "eligibility", "application"):
+    if decision.route == "application":
+        return _build_application_response(
+            decision.session_id, decision.tool_query or decision.query, decision.query)
+
+    if decision.route in ("deadlines", "eligibility"):
         return _build_topic_response(
             decision.route, decision.query, decision.session_id,
             decision.tool_query or decision.query)
@@ -599,8 +759,22 @@ def run(query: str, session_id: str = DEFAULT_SESSION_ID) -> OrchestratorRespons
     # (possibly augmented) tool_query so ROUTING itself resolves the program;
     # the user-facing query stays original.
     tool_query, _active = _resolve_and_augment(query, session_id)
+
+    # Applicant type: an explicit statement ("I'm an international student")
+    # updates the one canonical field; a bare statement is acknowledged, while
+    # a statement carrying an actionable request falls through to normal routing
+    # (which will read the now-known type on the application route).
+    from state.clarification import is_bare_applicant_statement, parse_applicant_type
+    _at = parse_applicant_type(query)
+    if _at:
+        _set_applicant_type(session_id, _at)
+
     decision = decide_route(tool_query, session_id)
     decision = replace(decision, query=query, tool_query=tool_query)
+
+    if _at and is_bare_applicant_statement(query) and decision.route in ("answer", "guidance"):
+        return _applicant_type_ack(query, session_id, _at)
+
     return _dispatch(decision)
 
 

@@ -47,6 +47,25 @@ class ActiveProgram(TypedDict, total=False):
 
 
 # ---------------------------------------------------------------------------
+# Pending clarification — a resumable question the assistant is waiting on
+# ---------------------------------------------------------------------------
+
+class PendingClarification(TypedDict, total=False):
+    """A clarification the assistant asked and is waiting for a reply to.
+
+    Generic and reusable: `kind` selects the resumer that consumes the user's
+    next reply (see state/clarification.py's registry); the other fields carry
+    the context needed to resume the original request. A new clarification type
+    is added by registering a resumer for a new `kind` and setting this one
+    field — never a per-type boolean or a parallel resume path.
+    """
+    kind:           str   # e.g. "applicant_type"
+    route:          str   # the route to resume after the reply, e.g. "application"
+    question:       str   # the question shown to the user
+    original_query: str   # the request that triggered the clarification
+
+
+# ---------------------------------------------------------------------------
 # Required fields — must be set when creating a new JourneyState
 # ---------------------------------------------------------------------------
 
@@ -74,3 +93,5 @@ class JourneyState(_JourneyStateRequired, total=False):
     last_question_asked:  str        # last clarification question sent to the student
     stated_uncertainty:   bool       # True when student explicitly signalled unsureness ("not sure", "exploring")
     active_program:       ActiveProgram  # single canonical program context for pronoun/generic follow-ups
+    applicant_type:       str            # "domestic" | "international" | "" — one canonical field
+    pending_clarification: PendingClarification  # a resumable clarification awaiting the user's reply

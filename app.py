@@ -1462,6 +1462,68 @@ def _render_application_steps(workflow_steps: list[dict], program_name: str = ""
                 st.markdown(f"[🔗 Official page]({source_url})")
 
 
+_APPLICANT_CHOICE_LABELS = {
+    "domestic":      "🎓 Domestic student",
+    "international":  "🌐 International student",
+}
+
+
+def _render_applicant_type_prompt(response: dict, tool_result: dict) -> None:
+    """Ask domestic/international before showing an application workflow.
+    Choices come from tool_result["applicant_type_choices"]; each submits the
+    answer, resuming the pending request."""
+    st.markdown(f"**{response.get('summary', '')}**")
+    choices = tool_result.get("applicant_type_choices") or ["domestic", "international"]
+    cols = st.columns(len(choices))
+    sid = st.session_state["session_id"]
+    for col, choice in zip(cols, choices):
+        with col:
+            label = _APPLICANT_CHOICE_LABELS.get(choice, choice.title())
+            if st.button(label, key=f"{sid}_appl_{choice}", use_container_width=True):
+                _submit_query(choice)
+
+
+def _render_international_info(info: dict) -> None:
+    """Clean, scannable card of CSULB international-applicant guidance
+    (centralized config/international.py) — intro, categorized email contacts,
+    office info, and official links. No raw dump, no nested evidence expander."""
+    if not info:
+        return
+    page = info.get("international_page", {})
+    with st.container(border=True):
+        st.markdown(f"### 🌐 {info.get('title', 'International applicant information')}")
+        if info.get("intro"):
+            st.markdown(info["intro"])
+        if page.get("url"):
+            st.markdown(f"**International Education:** [{page.get('label', page['url'])}]({page['url']})")
+
+        emails = info.get("emails", [])
+        if emails:
+            st.markdown("**Contacts**")
+            for e in emails:
+                st.markdown(f"- {e['label']}: [{e['email']}](mailto:{e['email']})")
+
+        hours = info.get("office_hours", [])
+        if hours:
+            st.markdown("**Office hours**")
+            for h in hours:
+                st.markdown(f"- {h}")
+
+        meta = []
+        if info.get("phone"):
+            meta.append(f"**Phone:** {info['phone']}")
+        if info.get("location"):
+            meta.append(f"**Location:** {info['location']}")
+        if meta:
+            st.markdown(" &nbsp;·&nbsp; ".join(meta), unsafe_allow_html=True)
+
+        links = info.get("links", [])
+        if links:
+            st.markdown("**Official links**")
+            for lk in links:
+                st.markdown(f"- [{lk['label']}]({lk['url']})")
+
+
 def _render_topic_panel(response: dict) -> None:
     """
     Render deadline, eligibility, or application-steps tool results.
@@ -1471,9 +1533,20 @@ def _render_topic_panel(response: dict) -> None:
 
     tool_result   = response.get("tool_result", {})
     route         = response.get("route", "")
+
+    # Applicant-type clarification (application route): ask before the workflow.
+    # Read from tool_result (valid TopicResponseModel), not a top-level field.
+    if tool_result.get("needs_applicant_type"):
+        _render_applicant_type_prompt(response, tool_result)
+        return
+
     results       = tool_result.get("results", [])
     fallback_data = tool_result.get("fallback_data")
     disclaimer    = tool_result.get("disclaimer", "")
+
+    # International-applicant guidance supplements (never replaces) the workflow.
+    if route == "application" and response.get("international_info"):
+        _render_international_info(response["international_info"])
 
     # ── Deadline route: structured card rendering ────────────────────────────
     if route == "deadlines":

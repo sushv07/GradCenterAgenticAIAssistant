@@ -22,7 +22,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import orchestrator
 from agents.journey_agent import handle_discovery
-from state.context_manager import clear_context, get_context
+from state.context_manager import clear_context, get_context, save_context
 from agents.journey_agent import init_journey_state
 
 # Deterministic single-recommend discovery inputs (verified by existing
@@ -80,6 +80,12 @@ class TestContinuity(unittest.TestCase):
     # ── B. recommendation → contextual application ───────────────────────────
     def test_B_recommendation_to_contextual_application(self):
         handle_discovery(DRPH_DISCOVERY, "B")
+        # The application route now asks applicant type before running the
+        # workflow; set it so this test still exercises the program-context
+        # augmentation reaching the tool.
+        js = get_context("B", init_journey_state).journey_state
+        js["applicant_type"] = "domestic"
+        save_context("B", js)
         with _spy_application() as spy:
             orchestrator.run("how do I apply to it", session_id="B")
         self.assertIn("Public Health", _query_of(spy))

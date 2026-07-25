@@ -66,6 +66,39 @@ def _is_discovery_active(session_id: str, deps: Optional[AppDependencies] = None
     return context.journey_state.get("phase") == "clarifying"
 
 
+def _resume_pending_clarification(
+    query: str, session_id: str, deps: AppDependencies,
+) -> Optional[OrchestratorResponse]:
+    """The single resume seam. If the session is awaiting a reply to a pending
+    clarification, dispatch the reply to its resumer and return the resumed
+    response; otherwise return None so the caller routes the message normally.
+
+    Two clarification mechanisms live under this one seam:
+      1. The generic typed PendingClarification (state/clarification.py) — a
+         resumer registry keyed by `kind` (e.g. applicant_type). New
+         clarification types reuse this with no parallel path.
+      2. The existing discovery continuation (phase == "clarifying") — kept as
+         its own branch here rather than refactored into the typed object.
+    """
+    import state.clarification as clarification
+
+    context = deps.context_manager.get_context(session_id, default_factory=init_journey_state)
+    js = context.journey_state
+
+    pending = clarification.get_pending(js)
+    if pending:
+        resumed = clarification.resume(query, session_id, pending)
+        if resumed is not None:
+            return resumed
+        # resumer declined (reply wasn't the expected kind) → route normally
+
+    if js.get("phase") == "clarifying":
+        response, _ = handle_discovery(query, session_id)
+        return response
+
+    return None
+
+
 def _build_error_response(query: str, session_id: str, exc: Exception) -> dict:
     """
     Phase 6A — the controlled fallback returned when routing/retrieval/
@@ -176,9 +209,8 @@ def handle_user_query(
          session_id=session_id, query=_q_trunc, query_len=len(query))
 
     try:
-        if _is_discovery_active(session_id, deps):
-            response, _ = handle_discovery(query, session_id)
-        else:
+        response = _resume_pending_clarification(query, session_id, deps)
+        if response is None:
             response = orchestrator.run(query, session_id=session_id)
     except Exception as exc:  # noqa: BLE001 — last line of defense, by design
         response = _build_error_response(query, session_id, exc)
