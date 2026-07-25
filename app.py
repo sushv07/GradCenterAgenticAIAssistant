@@ -1421,7 +1421,10 @@ def _render_application_steps(workflow_steps: list[dict], program_name: str = ""
         note       = ws.get("note", "")
         points     = ws.get("summary_points", [])
         source_url = ws.get("source_url", "")
-        rel_links  = ws.get("related_links", [])
+        note       = ws.get("note", "")
+        # Structured resource links {label, url, kind, section}; fall back to the
+        # legacy related_links shape ({text, url}) if a step predates the change.
+        links      = ws.get("links") or ws.get("related_links", [])
 
         with st.expander(f"Step {step_num} — {title}", expanded=(step_num == 1)):
             # ── Goal (matches _render_guidance_panel style) ───────────────────
@@ -1432,27 +1435,31 @@ def _render_application_steps(workflow_steps: list[dict], program_name: str = ""
             if points:
                 for pt in points:
                     st.markdown(f"- {pt}")
-            else:
-                st.markdown("_Visit the official page for full details._")
 
             # ── Warning note (matches watch_out in generic steps) ─────────────
             if note:
                 st.warning(f"⚠️ {note}")
 
-            # ── Related links ─────────────────────────────────────────────────
-            if rel_links:
-                st.markdown("**Related links:**")
-                for lk in rel_links:
+            # ── Structured resources (label + kind) ───────────────────────────
+            if links:
+                st.markdown("**Resources:**")
+                for lk in links:
                     url_val = lk.get("url", "")
-                    txt_val = lk.get("text", url_val)
+                    label   = lk.get("label") or lk.get("text") or url_val
+                    kind    = (lk.get("kind", "") or "").replace("_", " ")
                     if url_val.startswith("mailto:"):
-                        st.markdown(f"- 📧 [{txt_val}]({url_val})")
+                        st.markdown(f"- 📧 [{label}]({url_val})")
+                    elif kind:
+                        st.markdown(f"- [{label}]({url_val}) &nbsp;·&nbsp; _{kind}_",
+                                    unsafe_allow_html=True)
                     else:
-                        st.markdown(f"- [{txt_val}]({url_val})")
+                        st.markdown(f"- [{label}]({url_val})")
+            elif not points:
+                st.markdown("_Visit the official page for full details._")
 
             # ── Official source ───────────────────────────────────────────────
             if source_url:
-                st.markdown(f"[🔗 Resource]({source_url})")
+                st.markdown(f"[🔗 Official page]({source_url})")
 
 
 def _render_topic_panel(response: dict) -> None:

@@ -64,6 +64,7 @@ from pathlib import Path
 from typing import Optional
 
 from rag import retrieve
+from tools.application_links import structured_links
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -477,6 +478,7 @@ def get_application_steps(
                 [r.get("url", "") for r in generic_context],
                 [_PROCESS_URL],
             )
+            _workflow, _structured = _kind_workflow_and_links(specific_results)
             return {
                 "found":                True,
                 "tool":                 "application_steps_tool",
@@ -495,7 +497,8 @@ def get_application_steps(
                 "program_specific":     True,
                 "content_category":     top_category,
                 "workflow_priority":    top_priority,
-                "workflow_steps":       _extract_workflow_steps(specific_results),
+                "workflow_steps":       _workflow,
+                "structured_links":     _structured,
             }
 
         # Program page found but only overview / generic content — use as context
@@ -540,6 +543,7 @@ def get_application_steps(
     top_priority = _top_workflow_priority(main_results)
 
     if main_results:
+        _workflow, _structured = _kind_workflow_and_links(main_results)
         return {
             "found":                True,
             "tool":                 "application_steps_tool",
@@ -558,7 +562,8 @@ def get_application_steps(
             "program_specific":     False,
             "content_category":     top_category,
             "workflow_priority":    top_priority,
-            "workflow_steps":       _extract_workflow_steps(main_results),
+            "workflow_steps":       _workflow,
+            "structured_links":     _structured,
         }
 
     # ── Fallback: admissions.json ─────────────────────────────────────────────
@@ -583,6 +588,7 @@ def get_application_steps(
         "content_category":     "",
         "workflow_priority":    6,
         "workflow_steps":       [],
+        "structured_links":     [],
     }
 
 
@@ -1015,6 +1021,132 @@ def _extract_page_links(full_text: str, page_metas: list[dict] | None = None) ->
     return links
 
 
+# ---------------------------------------------------------------------------
+# Kind-driven application workflow (Option A — structured links; no ingestion
+# change, no store rebuild). Each link's `section` is INFERRED FROM its KIND
+# (see tools/application_links.py), NOT the true nearest heading on the source
+# page — real heading-section fidelity is a documented future ingestion
+# enhancement.
+# ---------------------------------------------------------------------------
+
+_SUPPORTING_BULLET_RE = re.compile(
+    r"transcript|employment\s+verification|verification\s+of\s+employment|"
+    r"letters?\s+of\s+recommendation|\breferences?\b|statement\s+of\s+purpose|"
+    r"supporting\s+document", re.IGNORECASE)
+_ASSESSMENT_BULLET_RE = re.compile(
+    r"interview|writing\s+assessment|writing\s+sample|written\s+assessment",
+    re.IGNORECASE)
+# Anchor/document/URL leakage that must never appear inside a requirement bullet.
+_BULLET_LINK_NOISE_RE = re.compile(
+    r"\.pdf\b|https?://|qualtrics|\bapply\s+now\b|^\s*document\b|^\s*apply\s+here\b",
+    re.IGNORECASE)
+
+
+def _links_json_from_metas(metas: list[dict] | None) -> list[dict]:
+    """Return the raw [{text,url}] anchors ingestion stored in a page's chunk
+    metadata (links_json)."""
+    out: list[dict] = []
+    seen: set[str] = set()
+    for m in metas or []:
+        raw = m.get("links_json", "")
+        if not raw:
+            continue
+        try:
+            entries = json.loads(raw)
+        except (ValueError, TypeError):
+            continue
+        for e in entries:
+            u = (e or {}).get("url", "")
+            if u and u not in seen:
+                seen.add(u)
+                out.append({"text": (e or {}).get("text", ""), "url": u})
+        if out:
+            break  # first chunk with links_json covers the whole page
+    return out
+
+
+def _clean_requirement_bullets(bullets: list[str]) -> list[str]:
+    """Drop bullets that are anchor/document/link leakage from the flattened
+    page text, keeping genuine admission requirements."""
+    return [b for b in bullets if not _BULLET_LINK_NOISE_RE.search(b)]
+
+
+def build_application_workflow(bullets: list[str], links: list[dict],
+                               program_url: str = "") -> list[dict]:
+    """Assemble the generic kind-driven application workflow (Steps 1–6).
+
+    Pure and program-agnostic: steps are driven by structured link KINDS and
+    bullet content, never by a specific program. Only steps with supporting
+    content (bullets or links) are included, then renumbered. Every link keeps
+    its original official URL.
+    """
+    by_kind: dict[str, list[dict]] = {}
+    for link in links:
+        by_kind.setdefault(link["kind"], []).append(link)
+
+    requirements, supporting, assessment = [], [], []
+    for b in bullets:
+        if _ASSESSMENT_BULLET_RE.search(b):
+            assessment.append(b)
+        elif _SUPPORTING_BULLET_RE.search(b):
+            supporting.append(b)
+        else:
+            requirements.append(b)
+
+    plan = [
+        ("Review admission requirements",
+         "Confirm you meet every admission requirement before applying.",
+         requirements, ["information_sheet", "program_page"]),
+        ("Complete the department application",
+         "Submit the program's own (department) application.",
+         [], ["department_application"]),
+        ("Complete the university application",
+         "Submit the CSULB / Cal State Apply university application.",
+         [], ["university_application", "application_guide"]),
+        ("Submit supporting materials",
+         "Provide transcripts, verification, and any required supporting documents.",
+         supporting, ["transcript_information", "employment_verification"]),
+        ("Complete interview or assessment requirements",
+         "Complete any required interview or writing assessment.",
+         assessment, []),
+        ("Monitor application status",
+         "Track your application and admission decision.",
+         [], ["applicant_portal"]),
+    ]
+
+    steps: list[dict] = []
+    for title, goal, points, kinds in plan:
+        step_links = [l for k in kinds for l in by_kind.get(k, [])]
+        if points or step_links:
+            steps.append({
+                "title":          title,
+                "goal":           goal,
+                "summary_points": points,
+                "links":          step_links,
+            })
+    for i, s in enumerate(steps, 1):
+        s["step"] = i
+        s["source_url"] = program_url
+    return steps
+
+
+def _kind_workflow_and_links(results: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Build the kind-driven workflow + the program's structured links from the
+    page-based extraction. Returns (workflow_steps, structured_links)."""
+    page_steps = _extract_workflow_steps(results)
+    raw_links: list[dict] = []
+    bullets: list[str] = []
+    program_url = ""
+    for s in page_steps:
+        raw_links.extend(s.get("raw_links", []))
+        bullets.extend(s.get("summary_points", []))
+        if not program_url:
+            program_url = s.get("source_url", "")
+    links = structured_links(raw_links)
+    workflow = build_application_workflow(_clean_requirement_bullets(bullets), links, program_url)
+    return workflow, links
+
+
 def _extract_workflow_steps(results: list[dict]) -> list[dict]:
     """
     Convert RAG results into concise, deterministic workflow steps.
@@ -1140,6 +1272,7 @@ def _extract_workflow_steps(results: list[dict]) -> list[dict]:
             "source_url":       url,
             "content_category": category,
             "portal_links":     portal_links,
+            "raw_links":        _links_json_from_metas(all_metas),
             "raw_evidence":     full_text[:1800],
         })
 
@@ -1183,6 +1316,7 @@ def _extract_workflow_steps(results: list[dict]) -> list[dict]:
             "source_url":       rs["source_url"],
             "content_category": rs["content_category"],
             "related_links":    related,
+            "raw_links":        rs.get("raw_links", []),
             "raw_evidence":     rs["raw_evidence"],
         })
 
@@ -1208,6 +1342,7 @@ def _empty_response(query: str) -> dict:
         "content_category":     "",
         "workflow_priority":    6,
         "workflow_steps":       [],
+        "structured_links":     [],
     }
 
 
