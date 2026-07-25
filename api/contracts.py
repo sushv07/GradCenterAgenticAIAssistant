@@ -182,6 +182,28 @@ class DiscoveryResponseModel(_BaseResponseModel):
     program_matches:         Optional[list[ProgramMatch]] = None
 
 
+class CompositeSectionModel(BaseModel):
+    """One section of a composite response — an existing per-route response,
+    validated as one of the concrete route models, tagged with its intent.
+    extra="allow" (inherited via the section models) keeps any route-specific
+    top-level extras (e.g. international_info on an application section)."""
+    model_config = ConfigDict(extra="allow")
+    intent:   str
+    response: Union[
+        DiscoveryResponseModel,
+        AdvisorResponseModel,
+        TopicResponseModel,
+        AnswerResponseModel,
+    ]
+
+
+class CompositeResponseModel(_BaseResponseModel):
+    """route="composite" — the Multi-Agent Coordinator's synthesized response.
+    Additive union member; no existing route returns this shape. `sections`
+    carries the per-intent workflow responses in execution order."""
+    sections: list[CompositeSectionModel]
+
+
 class ErrorResponseModel(_BaseResponseModel):
     """
     Phase 6A — the controlled fallback shape backend.entrypoint.
@@ -210,6 +232,7 @@ QueryResponse = Union[
     AdvisorResponseModel,
     NextStepsResponseModel,
     DiscoveryResponseModel,
+    CompositeResponseModel,
     ErrorResponseModel,
 ]
 

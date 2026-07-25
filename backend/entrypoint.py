@@ -99,6 +99,25 @@ def _resume_pending_clarification(
     return None
 
 
+def _maybe_run_coordinator(query: str, session_id: str) -> Optional[OrchestratorResponse]:
+    """The single, flag-gated integration point for the Multi-Agent Coordinator
+    (Version 2). Returns the coordinator's composite response ONLY when the flag
+    is on AND the request is composite; otherwise None so the caller falls
+    through to the existing orchestration, unchanged.
+
+    The coordinator import is local (not module-level) so that: (1) with the flag
+    off, the coordination package is never imported and adds zero startup cost or
+    risk to the production path; and (2) the import edge stays strictly one-way —
+    entrypoint → coordinator — with the coordinator never importing back from
+    here, so no circular import is possible.
+    """
+    from config.settings import ENABLE_MULTI_AGENT_COORDINATOR
+    if not ENABLE_MULTI_AGENT_COORDINATOR:
+        return None
+    from coordination import coordinator
+    return coordinator.maybe_run(query, session_id)
+
+
 def _build_error_response(query: str, session_id: str, exc: Exception) -> dict:
     """
     Phase 6A — the controlled fallback returned when routing/retrieval/
@@ -210,6 +229,8 @@ def handle_user_query(
 
     try:
         response = _resume_pending_clarification(query, session_id, deps)
+        if response is None:
+            response = _maybe_run_coordinator(query, session_id)
         if response is None:
             response = orchestrator.run(query, session_id=session_id)
     except Exception as exc:  # noqa: BLE001 — last line of defense, by design

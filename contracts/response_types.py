@@ -210,6 +210,23 @@ class DiscoveryResponse(_DiscoveryBase, total=False):
 
 
 # ---------------------------------------------------------------------------
+# Composite response — returned ONLY by the Multi-Agent Coordinator (Version 2,
+# route="composite"). Additive: no existing route emits this shape. Each section
+# wraps one existing per-route response whole (DiscoveryResponse / AdvisorResponse
+# / TopicResponse), so the coordinator aggregates without reshaping any workflow
+# output, and the frontend renders each section with its normal per-route panel.
+# ---------------------------------------------------------------------------
+
+class CompositeSection(TypedDict):
+    intent:   str   # "discovery" | "advisor" | "application" — the step's intent
+    response: dict  # the untouched existing workflow response for that step
+
+
+class CompositeResponse(BaseResponse):
+    sections: list[CompositeSection]
+
+
+# ---------------------------------------------------------------------------
 # Welcome response — returned when query is empty.
 # route=None and query/session_id are absent on this shape only.
 # ---------------------------------------------------------------------------
@@ -222,7 +239,9 @@ class WelcomeResponse(TypedDict):
 
 
 # ---------------------------------------------------------------------------
-# Union — the complete return type of orchestrator.run()
+# Union — the complete return type of orchestrator.run(), plus CompositeResponse
+# which is produced by the coordinator layer (coordination/) rather than
+# orchestrator.run() itself.
 # ---------------------------------------------------------------------------
 
 OrchestratorResponse = (
@@ -233,4 +252,5 @@ OrchestratorResponse = (
     | AdvisorResponse
     | NextStepsResponse
     | DiscoveryResponse
+    | CompositeResponse
 )

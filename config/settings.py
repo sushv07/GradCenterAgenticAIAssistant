@@ -54,9 +54,23 @@ Why plain constants, not Pydantic/YAML:
 """
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 _PROJECT_ROOT = Path(__file__).parent.parent
+
+
+def _env_flag(name: str, default: bool) -> bool:
+    """Read a boolean feature flag from the environment.
+
+    Absent → the given default. Present → truthy iff one of the common
+    affirmative spellings; anything else (including "0"/"false"/"") is False.
+    Kept tiny and dependency-free to match this module's plain-constant style.
+    """
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
 # ---------------------------------------------------------------------------
@@ -126,3 +140,15 @@ ADVISOR_STRONG_MATCH_THRESHOLD = 90
 
 RETRY_MAX_ATTEMPTS       = 3     # 1 initial attempt + 2 retries
 RETRY_BASE_DELAY_SECONDS = 0.5   # exponential backoff: 0.5s, 1.0s, ...
+
+
+# ---------------------------------------------------------------------------
+# Multi-Agent Coordinator (Version 2 — additive, optional orchestration layer)
+# ---------------------------------------------------------------------------
+# The coordinator (coordination/) is an OPTIONAL layer that activates only when
+# BOTH this flag is on AND an incoming request is composite (multiple intents in
+# one message). Default False → production behavior is byte-for-byte identical
+# to the existing single-intent orchestration; the coordinator is never reached.
+# Overridable per-deployment via the ENABLE_MULTI_AGENT_COORDINATOR env var
+# without a code change. See coordination/coordinator.py.
+ENABLE_MULTI_AGENT_COORDINATOR = _env_flag("ENABLE_MULTI_AGENT_COORDINATOR", False)

@@ -1776,7 +1776,15 @@ def _render_topic_panel(response: dict) -> None:
         st.info(disclaimer)
 
 
-def _render_advisor_panel(response: dict) -> None:
+def _render_advisor_panel(response: dict, key_prefix: str = "") -> None:
+    """Render an advisor response.
+
+    key_prefix makes every widget key created here unique across the whole
+    Streamlit session, so the panel can be rendered more than once in the same
+    run (e.g. once inside a composite response and again as a standalone advisor
+    response) without a StreamlitDuplicateElementKey collision. Default "" keeps
+    the original standalone key shape unchanged.
+    """
     import sys as _sys, subprocess as _sp
 
     advisor_data = response.get("advisor_data", {})
@@ -1838,7 +1846,7 @@ def _render_advisor_panel(response: dict) -> None:
             with col_btn:
                 if outlook_url and st.button(
                     "📧 Open in Outlook",
-                    key=f"adv_outlook_{hash(outlook_url)}",
+                    key=f"{key_prefix}adv_outlook_{hash(outlook_url)}",
                     type="primary",
                     use_container_width=True,
                 ):
@@ -2022,7 +2030,37 @@ def _render_discovery_panel(response: dict) -> None:
 # Orchestrator response renderer
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _render_response(response: dict) -> None:
+_COMPOSITE_SECTION_TITLES = {
+    "discovery":   "🎓 Recommended program",
+    "advisor":     "👤 Program advisor",
+    "application": "📝 How to apply",
+}
+
+
+def _render_composite_panel(response: dict, key_prefix: str = "") -> None:
+    """Render a Multi-Agent Coordinator composite response by delegating each
+    section to the SAME per-route panel the frontend already uses — no new
+    rendering logic, so a section looks identical to its standalone route.
+
+    key_prefix is forwarded (with a per-section suffix) to any keyed sub-panel so
+    a composite advisor section cannot collide with a later standalone advisor
+    render in the same session."""
+    for section in response.get("sections", []):
+        intent   = section.get("intent", "")
+        sub      = section.get("response", {}) or {}
+        st.markdown(f"### {_COMPOSITE_SECTION_TITLES.get(intent, intent.title())}")
+        if sub.get("summary"):
+            st.markdown(f'<div class="summary-box">{sub["summary"]}</div>', unsafe_allow_html=True)
+        if intent == "discovery":
+            _render_discovery_panel(sub)
+        elif intent == "advisor":
+            _render_advisor_panel(sub, key_prefix=f"{key_prefix}composite_{intent}_")
+        elif intent == "application":
+            _render_topic_panel(sub)
+        st.divider()
+
+
+def _render_response(response: dict, key_prefix: str = "") -> None:
     route   = response.get("route", "")
     summary = response.get("summary", "")
     action  = response.get("primary_action", "")
@@ -2041,7 +2079,7 @@ def _render_response(response: dict) -> None:
                 unsafe_allow_html=True,
             )
 
-    if   route == "advisor":   _render_advisor_panel(response)
+    if   route == "advisor":   _render_advisor_panel(response, key_prefix=key_prefix)
     elif route in ("deadlines", "eligibility", "application"):
         _render_topic_panel(response)
     elif route == "guidance":
@@ -2051,6 +2089,8 @@ def _render_response(response: dict) -> None:
         st.markdown("### Answer"); _render_answer_panel(response)
     elif route == "discovery":
         _render_discovery_panel(response)
+    elif route == "composite":
+        _render_composite_panel(response, key_prefix=key_prefix)
 
     if source:
         st.caption(f"Source: [{source}]({source})")
@@ -2400,11 +2440,14 @@ def main() -> None:
     if not st.session_state["messages"]:
         _render_sample_questions()
 
-    for msg in st.session_state["messages"]:
+    for _msg_idx, msg in enumerate(st.session_state["messages"]):
         with st.chat_message(msg["role"],
                              avatar="👤" if msg["role"] == "user" else "🎓"):
             if msg["role"] == "assistant" and "response" in msg:
-                _render_response(msg["response"])
+                # Per-message prefix guarantees widget keys are unique across the
+                # whole session even when the same advisor is rendered in several
+                # messages (composite and/or standalone).
+                _render_response(msg["response"], key_prefix=f"msg{_msg_idx}_")
             else:
                 st.markdown(msg["content"])
 
