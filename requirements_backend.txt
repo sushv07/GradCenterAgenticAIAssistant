@@ -35,3 +35,15 @@ openai>=1.0.0
 # ── FastAPI service layer (Phase 5C — api/app.py) ────────────────────────────
 fastapi>=0.110.0
 uvicorn>=0.29.0
+
+# ── Observability (Phase 1 — telemetry/ package, /metrics endpoint) ──────────
+# Pure-Python, no native deps. Exposes Prometheus metrics; scraped by the
+# observability Docker Compose profile.
+prometheus-client>=0.20.0
+
+# ── Observability (Phase 2 — OpenTelemetry tracing) ──────────────────────────
+# Backend-only: telemetry/tracing.py degrades to a no-op if these are absent,
+# so the lightweight Streamlit frontend (requirements.txt) does NOT need them.
+# OTLP/HTTP exporter (not gRPC) to avoid the grpcio native build on Python 3.13.
+opentelemetry-sdk>=1.27.0
+opentelemetry-exporter-otlp-proto-http>=1.27.0

@@ -1,0 +1,21 @@
+# Prometheus scrape configuration (Phase 1).
+# Scrapes the GradCenter app's /metrics endpoint over the Docker Compose network.
+# The app service is reachable as `app:8000` (see docker-compose.yml).
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # The GradCenter FastAPI application.
+  - job_name: gradcenter-app
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["app:8000"]
+        labels:
+          service: gradcenter-ai
+
+  # Prometheus scraping itself — cheap, and useful for confirming the scrape
+  # pipeline is healthy independent of the app.
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

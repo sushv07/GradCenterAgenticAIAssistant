@@ -20,6 +20,8 @@ normal single-workflow clarification rather than a broken composite.
 """
 from __future__ import annotations
 
+from telemetry.tracing import span
+
 from agents import advisor_agent, application_agent, program_discovery_agent
 from coordination.contracts import ExecutionPlan, ExecutionResult, Intent, StepResult
 
@@ -36,24 +38,28 @@ def execute(plan: ExecutionPlan, session_id: str) -> ExecutionResult:
     result = ExecutionResult()
 
     for step in plan.steps:
-        if step.intent is Intent.DISCOVERY:
-            response = program_discovery_agent.run(step.prompt, session_id)
-            if not program_discovery_agent.recommended(response):
-                # No single program resolved — dependent steps can't proceed.
-                result.clarification = response
-                return result
-            result.steps.append(StepResult(Intent.DISCOVERY, response))
+        # One span per agent step, named by intent (discovery/advisor/
+        # application). The agent's own downstream work (route.decide,
+        # rag.retrieve, llm.generate) nests under this span automatically.
+        with span(step.intent.value, attributes={"agent.name": step.intent.value}):
+            if step.intent is Intent.DISCOVERY:
+                response = program_discovery_agent.run(step.prompt, session_id)
+                if not program_discovery_agent.recommended(response):
+                    # No single program resolved — dependent steps can't proceed.
+                    result.clarification = response
+                    return result
+                result.steps.append(StepResult(Intent.DISCOVERY, response))
 
-        elif step.intent is Intent.ADVISOR:
-            response = advisor_agent.run(step.prompt, session_id)
-            result.steps.append(StepResult(Intent.ADVISOR, response))
+            elif step.intent is Intent.ADVISOR:
+                response = advisor_agent.run(step.prompt, session_id)
+                result.steps.append(StepResult(Intent.ADVISOR, response))
 
-        elif step.intent is Intent.APPLICATION:
-            response = application_agent.run(
-                step.prompt, session_id, applicant_type=plan.applicant_type)
-            if _application_hit_gate(response):
-                result.clarification = response
-                return result
-            result.steps.append(StepResult(Intent.APPLICATION, response))
+            elif step.intent is Intent.APPLICATION:
+                response = application_agent.run(
+                    step.prompt, session_id, applicant_type=plan.applicant_type)
+                if _application_hit_gate(response):
+                    result.clarification = response
+                    return result
+                result.steps.append(StepResult(Intent.APPLICATION, response))
 
     return result

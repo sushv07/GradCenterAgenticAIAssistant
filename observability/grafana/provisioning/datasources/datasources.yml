@@ -1,0 +1,27 @@
+# Grafana datasource provisioning (Phase 1 + Phase 2).
+# Fixed uids let dashboards reference datasources deterministically, so
+# everything loads correctly on a fresh Grafana with zero manual wiring.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+
+  # Tempo (Phase 2) — trace store. Grafana queries traces here (search + by
+  # trace_id). The Explore view's Tempo query type "Search" browses recent
+  # traces; "TraceQL" and trace-id lookup both work against this endpoint.
+  - name: Tempo
+    uid: tempo
+    type: tempo
+    access: proxy
+    url: http://tempo:3200
+    editable: false
+    jsonData:
+      # Show the service/node graph and search UI without extra setup.
+      nodeGraph:
+        enabled: true

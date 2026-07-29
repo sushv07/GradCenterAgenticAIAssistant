@@ -93,6 +93,30 @@ def get_session_id() -> str:
 
 
 # ---------------------------------------------------------------------------
+# Log enrichers (Phase 2) — pluggable envelope augmentation
+# ---------------------------------------------------------------------------
+# A log enricher is a zero-arg callable returning a dict of extra envelope
+# fields to merge into every event. This keeps gradcenter_logging free of any
+# knowledge of the systems that supply those fields — the OpenTelemetry trace
+# correlation enricher (telemetry/tracing.py) registers itself here to add
+# trace_id/span_id when a span is active, without this module importing
+# OpenTelemetry at all. Enrichers are best-effort: one that raises is ignored,
+# and enriched keys never overwrite explicit envelope fields or call-site
+# fields (see emit()). With no enricher registered, emit() behaves exactly as
+# before this hook existed.
+from typing import Callable
+
+_LOG_ENRICHERS: list[Callable[[], dict]] = []
+
+
+def register_log_enricher(enricher: Callable[[], dict]) -> None:
+    """Register a callable that contributes extra fields to every log event.
+    Idempotent per callable so re-initialisation cannot double-register."""
+    if enricher not in _LOG_ENRICHERS:
+        _LOG_ENRICHERS.append(enricher)
+
+
+# ---------------------------------------------------------------------------
 # Logger configuration
 # ---------------------------------------------------------------------------
 
@@ -155,6 +179,18 @@ def emit(event: str, level: str = "INFO", **fields) -> None:
         "request_id": _REQUEST_ID.get(),
         "logger":     _LOGGER_NAME,
     }
+
+    # Merge enricher-supplied fields (e.g. trace_id/span_id from the active
+    # OpenTelemetry span). setdefault so enrichers never clobber the envelope;
+    # empty values are skipped so logs stay identical when no trace is active.
+    for _enrich in _LOG_ENRICHERS:
+        try:
+            for _k, _v in _enrich().items():
+                if _v:
+                    record.setdefault(_k, _v)
+        except Exception:  # noqa: BLE001 — enrichment must never break logging
+            pass
+
     record.update(fields)
 
     # default=str handles frozensets, Paths, or any other non-serialisable type

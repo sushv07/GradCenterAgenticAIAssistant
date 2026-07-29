@@ -46,6 +46,7 @@ from typing import Optional
 
 from rag.store import get_or_build_store
 from gradcenter_logging import emit
+from telemetry.tracing import set_attributes, span, traced
 from config.settings import (
     RETRIEVAL_MIN_RELEVANCE as MIN_RELEVANCE,
     RETRIEVAL_DEFAULT_TOP_K as _DEFAULT_TOP_K,
@@ -75,6 +76,7 @@ PAGE_TYPES = frozenset({
 # Core retrieval
 # ---------------------------------------------------------------------------
 
+@traced("rag.retrieve")
 def retrieve(
     query:        str,
     k:            int   = _DEFAULT_TOP_K,
@@ -178,27 +180,34 @@ def retrieve(
         _opt["program_name"] = program_name
 
     _t0 = time.perf_counter()
-    try:
-        if where_filter is not None:
-            raw_results = store.similarity_search_with_relevance_scores(
-                query, k=fetch_k, filter=where_filter
+    # vectordb.query — the ChromaDB round-trip (embedding + vector search),
+    # isolated so its cost is visible separately from the surrounding
+    # filtering/formatting done in this function.
+    with span("vectordb.query", attributes={
+        "db.system": "chroma", "db.k_requested": fetch_k,
+        "db.filtered": where_filter is not None,
+    }):
+        try:
+            if where_filter is not None:
+                raw_results = store.similarity_search_with_relevance_scores(
+                    query, k=fetch_k, filter=where_filter
+                )
+            else:
+                raw_results = store.similarity_search_with_relevance_scores(
+                    query, k=fetch_k
+                )
+        except Exception as exc:
+            _elapsed = round((time.perf_counter() - _t0) * 1000, 1)
+            emit("retrieval.result", level="ERROR",
+                 num_returned=0, top_score=0.0, elapsed_ms=_elapsed,
+                 min_score_used=min_score,
+                 error=str(exc)[:200], error_type=type(exc).__name__, **_opt)
+            emit_retrieval_failed(
+                "search_exception", error=str(exc), error_type=type(exc).__name__,
+                elapsed_ms=_elapsed,
             )
-        else:
-            raw_results = store.similarity_search_with_relevance_scores(
-                query, k=fetch_k
-            )
-    except Exception as exc:
-        _elapsed = round((time.perf_counter() - _t0) * 1000, 1)
-        emit("retrieval.result", level="ERROR",
-             num_returned=0, top_score=0.0, elapsed_ms=_elapsed,
-             min_score_used=min_score,
-             error=str(exc)[:200], error_type=type(exc).__name__, **_opt)
-        emit_retrieval_failed(
-            "search_exception", error=str(exc), error_type=type(exc).__name__,
-            elapsed_ms=_elapsed,
-        )
-        print(f"[retriever] Query failed: {exc}")
-        return []
+            print(f"[retriever] Query failed: {exc}")
+            return []
 
     _elapsed = round((time.perf_counter() - _t0) * 1000, 1)
     emit_retrieval_vector_search(len(raw_results), _elapsed, page_type)
@@ -246,6 +255,16 @@ def retrieve(
         page_types=[r["page_type"] for r in results],
         elapsed_ms=round((time.perf_counter() - _t_pipeline_start) * 1000, 1),
     )
+
+    # Annotate the rag.retrieve span with RAG-quality signals (bounded, no chunk
+    # text). retrieval.empty is the leading indicator of ungrounded answers.
+    set_attributes(**{
+        "retrieval.k":         k,
+        "retrieval.min_score": min_score,
+        "retrieval.hits":      len(results),
+        "retrieval.top_score": _top_score,
+        "retrieval.empty":     not results,
+    })
 
     return results
 

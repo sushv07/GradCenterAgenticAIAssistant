@@ -22,6 +22,7 @@ from dataclasses import replace
 from typing import Any, Optional
 
 from gradcenter_logging import emit
+from telemetry.tracing import set_attributes, span
 
 from retrieval.query_handler import handle_query
 from agents.answer_agent import answer
@@ -769,8 +770,11 @@ def run(query: str, session_id: str = DEFAULT_SESSION_ID) -> OrchestratorRespons
     if _at:
         _set_applicant_type(session_id, _at)
 
-    decision = decide_route(tool_query, session_id)
-    decision = replace(decision, query=query, tool_query=tool_query)
+    with span("route.decide"):
+        decision = decide_route(tool_query, session_id)
+        decision = replace(decision, query=query, tool_query=tool_query)
+        set_attributes(**{"route.selected": decision.route,
+                          "route.reason": getattr(decision, "reason", None)})
 
     if _at and is_bare_applicant_statement(query) and decision.route in ("answer", "guidance"):
         return _applicant_type_ack(query, session_id, _at)

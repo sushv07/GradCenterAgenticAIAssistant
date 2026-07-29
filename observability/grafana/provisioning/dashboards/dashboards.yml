@@ -1,0 +1,16 @@
+# Grafana dashboard provisioning (Phase 1).
+# Loads every dashboard JSON under /var/lib/grafana/dashboards (mounted from
+# observability/grafana/dashboards) so dashboards are version-controlled with
+# the code and appear automatically on a fresh Grafana.
+apiVersion: 1
+
+providers:
+  - name: gradcenter-dashboards
+    orgId: 1
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: true

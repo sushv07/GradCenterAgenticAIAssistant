@@ -1,0 +1,34 @@
+# OpenTelemetry Collector configuration (Phase 2).
+# The app exports spans here via OTLP/HTTP; the Collector batches them and
+# forwards them to Tempo. Keeping this pipeline in the Collector (not in
+# application code) is deliberate: sampling, batching, redaction, and backend
+# routing are operational concerns that must be changeable without redeploying
+# the app.
+receivers:
+  otlp:
+    protocols:
+      http:
+        endpoint: 0.0.0.0:4318
+      grpc:
+        endpoint: 0.0.0.0:4317
+
+processors:
+  # Batches spans to reduce export overhead. Small timeout keeps traces fresh
+  # in a low-throughput local/demo environment.
+  batch:
+    timeout: 2s
+    send_batch_size: 512
+
+exporters:
+  # Forward to Tempo's OTLP ingest endpoint (gRPC, in-cluster, no TLS).
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlp/tempo]

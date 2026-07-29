@@ -55,6 +55,8 @@ from context.trace_context import TraceContext, create_trace_context, record_rou
 from config.settings import DEFAULT_SESSION_ID
 from backend.dependencies import AppDependencies, get_dependencies
 from responses.builder import build_response
+from telemetry import metrics
+from telemetry.tracing import set_attributes, traced
 from gradcenter_logging import emit, set_session_id, set_request_id, new_request_id, get_request_id
 
 
@@ -144,6 +146,7 @@ def _build_error_response(query: str, session_id: str, exc: Exception) -> dict:
     )
 
 
+@traced("pipeline.request")
 def handle_user_query(
     query: str,
     session_id: str = DEFAULT_SESSION_ID,
@@ -243,5 +246,21 @@ def handle_user_query(
     emit("request.completed", level="WARNING" if _had_error else "INFO",
          session_id=session_id, route=trace.route or "",
          elapsed_ms=_elapsed, had_error=_had_error)
+
+    # Pipeline (domain) metrics — recorded here, the single seam every caller
+    # passes through, using the route/elapsed/error values already computed for
+    # the request.completed log event above. Same data, second signal: the log
+    # line is the per-request record; the metric is the aggregate. record_pipeline
+    # only touches in-process Prometheus counters and never raises.
+    metrics.record_pipeline(trace.route or "", _had_error, _elapsed / 1000.0)
+
+    # Annotate the root pipeline.request span (opened by @traced) with the
+    # values now known. Safe no-op when tracing is disabled.
+    set_attributes(**{
+        "session.id":     session_id,
+        "route":          trace.route or "unknown",
+        "query.len":      len(query),
+        "pipeline.error": _had_error,
+    })
 
     return response

@@ -10,6 +10,15 @@ services:
     env_file:
       - path: .env
         required: false
+    environment:
+      # Observability (Phase 2): export traces to the Collector. These take
+      # effect only when the observability profile is up (which starts the
+      # Collector); with a plain `docker compose up` the exporter simply drops
+      # spans harmlessly (BatchSpanProcessor never blocks or fails a request).
+      OTEL_TRACES_ENABLED: "true"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4318"
+      OTEL_SERVICE_NAME: "gradcenter-ai"
+      OTEL_ENV: "docker"
     volumes:
       # chroma_db — REQUIRED.  Contains the built Chroma vector store.
       # Without it /ready returns 503 and retrieval queries fail gracefully.
@@ -28,3 +37,81 @@ services:
       timeout: 10s
       start_period: 60s
       retries: 3
+
+  # ── Observability stack (Phase 1) ──────────────────────────────────────────
+  # Gated behind the `observability` profile so a plain `docker compose up`
+  # still starts ONLY the app, exactly as before. Bring the stack up with:
+  #     docker compose --profile observability up
+  # Prometheus scrapes the app's /metrics; Grafana visualises it. Tempo and the
+  # OpenTelemetry Collector are added in Phase 2 alongside these.
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: gradcenter-prometheus
+    profiles: ["observability"]
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    restart: unless-stopped
+    depends_on:
+      - app
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: gradcenter-grafana
+    profiles: ["observability"]
+    ports:
+      - "3000:3000"
+    environment:
+      # Local-only demo instance — anonymous admin access is intentional so the
+      # dashboards open with no login. Do NOT copy this to a public deployment.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+      - tempo
+
+  # OpenTelemetry Collector — receives OTLP spans from the app, batches, and
+  # forwards to Tempo. Config-driven (observability/otel-collector/collector.yaml);
+  # no pipeline logic lives in application code.
+  otel-collector:
+    image: otel/opentelemetry-collector:0.109.0
+    container_name: gradcenter-otel-collector
+    profiles: ["observability"]
+    command: ["--config=/etc/otelcol/collector.yaml"]
+    volumes:
+      - ./observability/otel-collector/collector.yaml:/etc/otelcol/collector.yaml:ro
+    ports:
+      - "4318:4318"   # OTLP/HTTP (app → collector)
+      - "4317:4317"   # OTLP/gRPC
+    restart: unless-stopped
+    depends_on:
+      - tempo
+
+  # Grafana Tempo — trace store. Receives spans from the Collector over OTLP.
+  tempo:
+    image: grafana/tempo:2.6.1
+    container_name: gradcenter-tempo
+    profiles: ["observability"]
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./observability/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+    ports:
+      - "3200:3200"   # Tempo query API (Grafana datasource)
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
+  tempo-data:

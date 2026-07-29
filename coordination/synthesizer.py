@@ -18,6 +18,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from telemetry.tracing import span
+
 from coordination.contracts import ExecutionResult, Intent, StepResult
 from responses.builder import build_response
 
@@ -67,18 +69,19 @@ def synthesize(query: str, session_id: str, result: ExecutionResult,
     """Build the composite response from executed steps. Callers guarantee
     result is not halted (the coordinator returns a halted result's
     clarification directly instead of synthesizing)."""
-    sections = [{"intent": s.intent.value, "response": s.response} for s in result.steps]
+    with span("synthesizer.compose", attributes={"sections.count": len(result.steps)}):
+        sections = [{"intent": s.intent.value, "response": s.response} for s in result.steps]
 
-    return build_response(
-        query=query,
-        route="composite",
-        session_id=session_id,
-        summary=_compose_summary(result, applicant_type),
-        primary_action="Review each section below; verify details on the official CSULB pages.",
-        source={"file": "", "url": _GRAD_CENTER_URL},
-        next_actions=[
-            "Ask for the application deadline for this program",
-            "Draft an email to the advisor",
-        ],
-        extra={"sections": sections},
-    )
+        return build_response(
+            query=query,
+            route="composite",
+            session_id=session_id,
+            summary=_compose_summary(result, applicant_type),
+            primary_action="Review each section below; verify details on the official CSULB pages.",
+            source={"file": "", "url": _GRAD_CENTER_URL},
+            next_actions=[
+                "Ask for the application deadline for this program",
+                "Draft an email to the advisor",
+            ],
+            extra={"sections": sections},
+        )

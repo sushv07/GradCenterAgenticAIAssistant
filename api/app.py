@@ -47,15 +47,38 @@ Run locally:
 from __future__ import annotations
 
 from fastapi import Depends, FastAPI, Response
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from backend.entrypoint import handle_user_query
 from backend.dependencies import AppDependencies, get_dependencies
 from config.settings import DEFAULT_SESSION_ID
 from api.contracts import QueryRequest, QueryResponse, HealthResponse, ReadinessResponse
 from api.health import build_health_response, build_readiness_response
+from telemetry.middleware import MetricsMiddleware
+from telemetry.tracing import init_tracing
 from gradcenter_logging import new_request_id, set_request_id
 
+# Observability (Phase 2): initialise OpenTelemetry tracing once at service
+# startup. No-op unless OTEL_TRACES_ENABLED is set, and any setup failure is
+# swallowed inside init_tracing() — the service starts and serves regardless.
+# This registers the trace_id/span_id log-correlation enricher when active.
+init_tracing()
+
 app = FastAPI(title="CSULB Grad Center Assistant API")
+
+# Observability (Phase 1): record HTTP-transport RED metrics for every request.
+# Additive middleware — it times and counts requests but never alters a response
+# or suppresses an exception. See telemetry/middleware.py.
+app.add_middleware(MetricsMiddleware)
+
+
+@app.get("/metrics", include_in_schema=False)
+def metrics() -> Response:
+    """Prometheus scrape endpoint — serialises the default registry in the
+    text exposition format. Excluded from the OpenAPI schema (operational, not
+    part of the product API) and excluded from its own metrics (the middleware
+    skips /metrics so scrapes don't inflate the counters they read)."""
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 # ---------------------------------------------------------------------------

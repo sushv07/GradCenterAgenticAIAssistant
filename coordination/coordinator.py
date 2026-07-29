@@ -23,6 +23,8 @@ from typing import Optional
 
 from state.clarification import parse_applicant_type
 
+from telemetry.tracing import set_attributes, span
+
 from coordination import executor, planner
 from coordination.detector import detect_intents, is_composite
 from coordination.synthesizer import synthesize
@@ -40,18 +42,22 @@ def run(query: str, session_id: str) -> dict:
     query = (query or "").strip()
     intents = detect_intents(query)
 
-    # Applicant type is extracted once here and propagated through the existing
-    # JourneyState interface by the application step (see agents/application_agent
-    # .py) — not carried as out-of-band coordinator state.
-    applicant_type: Optional[str] = parse_applicant_type(query)
+    with span("coordinator.run", attributes={"composite": True,
+                                             "intents.count": len(intents)}):
+        # Applicant type is extracted once here and propagated through the
+        # existing JourneyState interface by the application step (see
+        # agents/application_agent.py) — not carried as out-of-band coordinator
+        # state.
+        applicant_type: Optional[str] = parse_applicant_type(query)
 
-    plan = planner.build_plan(query, intents, applicant_type=applicant_type)
-    result = executor.execute(plan, session_id)
+        plan = planner.build_plan(query, intents, applicant_type=applicant_type)
+        result = executor.execute(plan, session_id)
 
-    if result.halted:
-        return result.clarification
+        set_attributes(**{"plan.halted": result.halted})
+        if result.halted:
+            return result.clarification
 
-    return synthesize(query, session_id, result, applicant_type=applicant_type)
+        return synthesize(query, session_id, result, applicant_type=applicant_type)
 
 
 def maybe_run(query: str, session_id: str) -> Optional[dict]:

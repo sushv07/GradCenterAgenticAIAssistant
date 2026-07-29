@@ -21,6 +21,8 @@ from __future__ import annotations
 
 from typing import Optional
 
+from telemetry.tracing import span
+
 from coordination.contracts import ExecutionPlan, Intent, INTENT_ORDER, PlanStep
 
 # Canonical, continuity-recognized prompts for the dependent steps. Verified to
@@ -37,17 +39,18 @@ def build_plan(
 ) -> ExecutionPlan:
     """Assemble the ordered plan. Steps are emitted in INTENT_ORDER so discovery
     always precedes the steps that depend on it."""
-    depends_on_discovery = (Intent.DISCOVERY,) if Intent.DISCOVERY in intents else ()
+    with span("planner"):
+        depends_on_discovery = (Intent.DISCOVERY,) if Intent.DISCOVERY in intents else ()
 
-    prompts: dict[Intent, tuple[str, tuple[Intent, ...]]] = {
-        Intent.DISCOVERY:   (query, ()),
-        Intent.ADVISOR:     (_ADVISOR_PROMPT, depends_on_discovery),
-        Intent.APPLICATION: (_APPLICATION_PROMPT, depends_on_discovery),
-    }
+        prompts: dict[Intent, tuple[str, tuple[Intent, ...]]] = {
+            Intent.DISCOVERY:   (query, ()),
+            Intent.ADVISOR:     (_ADVISOR_PROMPT, depends_on_discovery),
+            Intent.APPLICATION: (_APPLICATION_PROMPT, depends_on_discovery),
+        }
 
-    steps = tuple(
-        PlanStep(intent=intent, prompt=prompts[intent][0], depends_on=prompts[intent][1])
-        for intent in INTENT_ORDER
-        if intent in intents
-    )
-    return ExecutionPlan(original_query=query, steps=steps, applicant_type=applicant_type)
+        steps = tuple(
+            PlanStep(intent=intent, prompt=prompts[intent][0], depends_on=prompts[intent][1])
+            for intent in INTENT_ORDER
+            if intent in intents
+        )
+        return ExecutionPlan(original_query=query, steps=steps, applicant_type=applicant_type)

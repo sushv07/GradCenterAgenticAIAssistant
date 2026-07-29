@@ -16,3 +16,10 @@ rapidfuzz>=3.0.0
 
 # ── Streamlit UI ──────────────────────────────────────────────────────────────
 streamlit>=1.35.0
+
+# ── Observability (Phase 1) ──────────────────────────────────────────────────
+# app.py → backend.entrypoint → telemetry.metrics imports prometheus_client at
+# module load, so the frontend deploy needs it too. Pure-Python and tiny (~50 KB);
+# it does not pull in the heavy backend stack, so the lightweight-frontend intent
+# above is preserved. Metrics are recorded harmlessly even with no scraper attached.
+prometheus-client>=0.20.0
