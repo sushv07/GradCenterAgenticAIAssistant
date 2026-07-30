@@ -1,0 +1,189 @@
+{
+  "uid": "gradcenter-ai-pipeline",
+  "title": "GradCenter — AI Pipeline",
+  "tags": ["gradcenter", "phase3", "ai"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-6h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    { "id": 100, "type": "row", "title": "Routing", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+    {
+      "id": 1, "type": "piechart", "title": "Route distribution",
+      "description": "Share of requests per resolved route (from pipeline_requests_total — no duplicate metric).",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 1 },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value"] }, "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (route) (increase(pipeline_requests_total[$__range]))", "legendFormat": "{{route}}" } ]
+    },
+    {
+      "id": 2, "type": "timeseries", "title": "Route rate",
+      "description": "Requests/sec per route over time — spot a routing-mix shift (e.g. everything collapsing to answer).",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 15, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (route) (rate(pipeline_requests_total[$__rate_interval]))", "legendFormat": "{{route}}" } ]
+    },
+    {
+      "id": 3, "type": "timeseries", "title": "Routing decision latency (p50/p95)",
+      "description": "How long decide_route() takes. Should be sub-millisecond; a spike means a routing regression.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 1 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.50, sum by (le) (rate(ai_routing_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "p50" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_routing_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "p95" }
+      ]
+    },
+
+    { "id": 200, "type": "row", "title": "Retrieval (RAG)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 } },
+    {
+      "id": 4, "type": "timeseries", "title": "Retrieval latency (p50/p95/p99)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.50, sum by (le) (rate(ai_retrieval_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "p50" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_retrieval_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "p95" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.99, sum by (le) (rate(ai_retrieval_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "p99" }
+      ]
+    },
+    {
+      "id": 5, "type": "timeseries", "title": "Retrieval outcomes (hit / empty / error)",
+      "description": "empty = nothing cleared the score threshold → fallback territory and the leading indicator of ungrounded answers.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 20, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (outcome) (rate(ai_retrieval_requests_total[$__rate_interval]))", "legendFormat": "{{outcome}}" } ]
+    },
+    {
+      "id": 6, "type": "stat", "title": "No-result (empty) rate",
+      "description": "Share of retrievals returning nothing above threshold.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 10 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 0.2 }, { "color": "red", "value": 0.4 } ] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(ai_retrieval_requests_total{outcome=\"empty\"}[$__rate_interval])) / clamp_min(sum(rate(ai_retrieval_requests_total[$__rate_interval])), 0.0001)", "legendFormat": "empty rate" } ]
+    },
+    {
+      "id": 7, "type": "timeseries", "title": "Retrieval quality — avg top score & avg relevance",
+      "description": "Histogram averages: top score (best hit) and mean relevance across returned docs. Falling scores predict degraded answers.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 18 },
+      "fieldConfig": { "defaults": { "unit": "none", "min": 0, "max": 1 }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(ai_retrieval_top_score_sum[$__rate_interval])) / clamp_min(sum(rate(ai_retrieval_top_score_count[$__rate_interval])), 0.0001)", "legendFormat": "avg top score" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(ai_retrieval_score_sum[$__rate_interval])) / clamp_min(sum(rate(ai_retrieval_score_count[$__rate_interval])), 0.0001)", "legendFormat": "avg relevance" }
+      ]
+    },
+    {
+      "id": 8, "type": "timeseries", "title": "Docs returned (avg) & source distribution",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 18 },
+      "fieldConfig": { "defaults": { "unit": "none" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(ai_retrieval_documents_sum[$__rate_interval])) / clamp_min(sum(rate(ai_retrieval_documents_count[$__rate_interval])), 0.0001)", "legendFormat": "avg docs returned" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (page_type) (rate(ai_retrieval_source_total[$__rate_interval]))", "legendFormat": "source: {{page_type}}" }
+      ]
+    },
+
+    { "id": 300, "type": "row", "title": "Recommendation engine", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 } },
+    {
+      "id": 9, "type": "timeseries", "title": "Recommendation behavior",
+      "description": "recommend / multi_recommend / partial_match_with_caveat / clarify / redirect. Clarify share = clarification frequency.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 27 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 20, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (behavior) (rate(ai_recommendation_behavior_total[$__rate_interval]))", "legendFormat": "{{behavior}}" } ]
+    },
+    {
+      "id": 10, "type": "piechart", "title": "Recommendation confidence",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 27 },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value"] }, "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (confidence) (increase(ai_recommendation_confidence_total[$__range]))", "legendFormat": "{{confidence}}" } ]
+    },
+    {
+      "id": 11, "type": "timeseries", "title": "Explanation generation outcome",
+      "description": "generated / no_evidence / failed / disabled. 'disabled' shows would-be demand while LLM_EXPLANATION_ENABLED is off.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 27 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 20, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (outcome) (rate(ai_recommendation_explanation_total[$__rate_interval]))", "legendFormat": "{{outcome}}" } ]
+    },
+
+    { "id": 400, "type": "row", "title": "Answer generation", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 35 } },
+    {
+      "id": 12, "type": "timeseries", "title": "Answer types",
+      "description": "direct (deterministic) vs llm_synthesized vs unknown (insufficient evidence / fallback).",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 36 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 20, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (answer_type) (rate(ai_answer_total[$__rate_interval]))", "legendFormat": "{{answer_type}}" } ]
+    },
+    {
+      "id": 13, "type": "stat", "title": "Insufficient-evidence (unknown) rate",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 36 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "min": 0, "max": 1, "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 0.25 }, { "color": "red", "value": 0.5 } ] } }, "overrides": [] },
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum(rate(ai_answer_total{answer_type=\"unknown\"}[$__rate_interval])) / clamp_min(sum(rate(ai_answer_total[$__rate_interval])), 0.0001)", "legendFormat": "unknown rate" } ]
+    },
+    {
+      "id": 14, "type": "timeseries", "title": "Answer confidence mix",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 36 },
+      "fieldConfig": { "defaults": { "unit": "reqps", "custom": { "drawStyle": "line", "fillOpacity": 20, "stacking": { "mode": "normal" } } }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (confidence) (rate(ai_answer_total[$__rate_interval]))", "legendFormat": "{{confidence}}" } ]
+    },
+
+    { "id": 500, "type": "row", "title": "LLM (framework — active only when synthesis/explanation enabled)", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 44 } },
+    {
+      "id": 15, "type": "timeseries", "title": "LLM success vs error rate",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 45 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (operation, outcome) (rate(ai_llm_requests_total[$__rate_interval]))", "legendFormat": "{{operation}} {{outcome}}" } ]
+    },
+    {
+      "id": 16, "type": "timeseries", "title": "LLM latency p95 (by operation)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 45 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "targets": [ { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le, operation) (rate(ai_llm_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "p95 {{operation}}" } ]
+    },
+    {
+      "id": 17, "type": "timeseries", "title": "LLM errors & retries",
+      "description": "error_type breakdown (Timeout = *Timeout*), retry attempts and exhaustions.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 45 },
+      "fieldConfig": { "defaults": { "unit": "reqps" }, "overrides": [] },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (operation, error_type) (rate(ai_llm_errors_total[$__rate_interval]))", "legendFormat": "err {{operation}}/{{error_type}}" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (operation) (rate(ai_retry_attempts_total[$__rate_interval]))", "legendFormat": "retry {{operation}}" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "sum by (operation) (rate(ai_retry_exhausted_total[$__rate_interval]))", "legendFormat": "exhausted {{operation}}" }
+      ]
+    },
+
+    { "id": 600, "type": "row", "title": "End-to-end AI pipeline latency", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 53 } },
+    {
+      "id": 18, "type": "timeseries", "title": "Stage latency p95 (routing / retrieval / recommendation / answer / llm)",
+      "description": "Where does a request spend its time? Compare stage p95s to attribute end-to-end latency.",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 54 },
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["lastNotNull", "max"] } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_routing_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "routing" },
+        { "refId": "B", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_retrieval_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "retrieval" },
+        { "refId": "C", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_recommendation_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "recommendation" },
+        { "refId": "D", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_answer_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "answer" },
+        { "refId": "E", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(ai_llm_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "llm" },
+        { "refId": "F", "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "histogram_quantile(0.95, sum by (le) (rate(pipeline_request_duration_seconds_bucket[$__rate_interval])))", "legendFormat": "pipeline (total)" }
+      ]
+    }
+  ]
+}

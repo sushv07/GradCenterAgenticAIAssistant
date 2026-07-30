@@ -1,0 +1,71 @@
+# Prometheus alert rules (Phase 3) — AI-pipeline health.
+# These are demo-scoped: they fire in Prometheus' Alerts UI (and Grafana) but no
+# Alertmanager/paging is provisioned (a deliberate Phase-1 non-goal). Thresholds
+# are starting points — tune against real traffic. `rate(...[5m])` windows and
+# `for:` durations keep them from flapping on single requests.
+groups:
+  - name: gradcenter-ai
+    rules:
+      # ── Retrieval ────────────────────────────────────────────────────────
+      - alert: HighRetrievalFailureRate
+        expr: |
+          sum(rate(ai_retrieval_requests_total{outcome="error"}[5m]))
+            / clamp_min(sum(rate(ai_retrieval_requests_total[5m])), 0.0001) > 0.05
+        for: 10m
+        labels: { severity: warning, area: retrieval }
+        annotations:
+          summary: "Retrieval error rate > 5% (10m)"
+          description: "The Chroma retriever is erroring on >5% of calls — check the vector store / store availability."
+
+      - alert: ElevatedEmptyRetrievalRate
+        expr: |
+          sum(rate(ai_retrieval_requests_total{outcome="empty"}[10m]))
+            / clamp_min(sum(rate(ai_retrieval_requests_total[10m])), 0.0001) > 0.40
+        for: 15m
+        labels: { severity: warning, area: retrieval }
+        annotations:
+          summary: "Empty-retrieval rate > 40% (10m)"
+          description: "Many retrievals return nothing above threshold — a leading indicator of ungrounded answers or KB drift. Cross-check kb_drift / kb_health."
+
+      # ── Recommendation ───────────────────────────────────────────────────
+      - alert: ElevatedClarificationRate
+        expr: |
+          sum(rate(ai_recommendation_behavior_total{behavior="clarify"}[10m]))
+            / clamp_min(sum(rate(ai_recommendation_behavior_total[10m])), 0.0001) > 0.60
+        for: 15m
+        labels: { severity: info, area: recommendation }
+        annotations:
+          summary: "Discovery clarification rate > 60% (10m)"
+          description: "Most discovery turns end in clarify — users may not be reaching recommendations; review signal extraction / gap logic."
+
+      # ── Answer ───────────────────────────────────────────────────────────
+      - alert: ExcessiveInsufficientEvidence
+        expr: |
+          sum(rate(ai_answer_total{answer_type="unknown"}[10m]))
+            / clamp_min(sum(rate(ai_answer_total[10m])), 0.0001) > 0.30
+        for: 15m
+        labels: { severity: warning, area: answer }
+        annotations:
+          summary: "Answer 'unknown' (insufficient evidence) rate > 30% (10m)"
+          description: "The answer route is frequently returning no grounded answer — likely retrieval quality or KB coverage."
+
+      # ── LLM (only meaningful when synthesis/explanation is enabled) ───────
+      - alert: LLMErrorSpike
+        expr: |
+          sum(rate(ai_llm_requests_total{outcome="error"}[5m]))
+            / clamp_min(sum(rate(ai_llm_requests_total[5m])), 0.0001) > 0.20
+        for: 10m
+        labels: { severity: warning, area: llm }
+        annotations:
+          summary: "LLM error rate > 20% (5m)"
+          description: "Ollama calls are failing frequently — check the model server (ai_llm_errors_total by error_type shows Timeout vs Connection)."
+
+      # ── Latency ──────────────────────────────────────────────────────────
+      - alert: AbnormalPipelineLatencyP95
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(pipeline_request_duration_seconds_bucket[5m]))) > 10
+        for: 10m
+        labels: { severity: warning, area: latency }
+        annotations:
+          summary: "Pipeline p95 latency > 10s (5m)"
+          description: "End-to-end p95 is abnormally high. Use the AI Pipeline 'stage latency' panel to attribute it (usually the LLM span)."

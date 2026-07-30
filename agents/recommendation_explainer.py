@@ -67,6 +67,8 @@ from typing import Optional
 import requests
 
 from gradcenter_logging import emit
+from telemetry import metrics
+from telemetry.tracing import span
 from utils.retry import retry_call
 from contracts.response_types import ProgramMatch
 from agents.recommendation_engine import _load_taxonomy
@@ -161,6 +163,11 @@ def attach_explanations(program_matches: list[ProgramMatch]) -> None:
     "explanation" key, exactly as if this function had never been called.
     """
     if not _ENABLED or not program_matches:
+        # Framework metric even when disabled: record the explanation DEMAND so
+        # the "would-be" generation rate is visible with the flag off.
+        if program_matches and not _ENABLED:
+            for _ in program_matches:
+                metrics.record_explanation("disabled")
         return
 
     taxonomy_by_id = {p.get("program_id", ""): p for p in _load_taxonomy()}
@@ -180,6 +187,7 @@ def _generate_explanation(match: ProgramMatch, program: Optional[dict]) -> Optio
     when there's no evidence to explain — never raises."""
     evidence = _parse_score_basis(match.get("score_basis") or [])
     if not _has_any_evidence(evidence):
+        metrics.record_explanation("no_evidence")
         return None
 
     program_id = match.get("program_id", "")
@@ -189,6 +197,9 @@ def _generate_explanation(match: ProgramMatch, program: Optional[dict]) -> Optio
     try:
         content = _call_ollama(match, program, evidence)
     except Exception as exc:
+        metrics.record_llm(_MODEL, "explanation", False,
+                           time.monotonic() - t0, type(exc).__name__)
+        metrics.record_explanation("failed")
         emit("llm.explanation.error", level="ERROR",
              model=_MODEL, program_id=program_id, error=str(exc))
         return None
@@ -197,10 +208,15 @@ def _generate_explanation(match: ProgramMatch, program: Optional[dict]) -> Optio
     elapsed_ms = round((time.monotonic() - t0) * 1000, 1)
 
     if result is None:
+        metrics.record_llm(_MODEL, "explanation", False,
+                           time.monotonic() - t0, "ValidationError")
+        metrics.record_explanation("failed")
         emit("llm.explanation.error", level="WARNING",
              model=_MODEL, program_id=program_id, error="response validation failed")
         return None
 
+    metrics.record_llm(_MODEL, "explanation", True, time.monotonic() - t0)
+    metrics.record_explanation("generated")
     emit("llm.explanation.result",
          model=_MODEL, program_id=program_id, elapsed_ms=elapsed_ms)
     return result
@@ -244,8 +260,19 @@ def _call_ollama(match: ProgramMatch, program: Optional[dict], evidence: dict) -
         resp.raise_for_status()
         return resp
 
-    resp = retry_call(_post, operation="llm_explanation.ollama_post")
-    return resp.json().get("message", {}).get("content", "")
+    # llm.generate — the discovery-explainer's Ollama call, the second LLM path
+    # in the system (alongside llm_synthesizer). Same span name and convention so
+    # both LLM invocations appear identically in traces. Reached only when a real
+    # POST is about to happen (attach_explanations is gated on the feature flag
+    # and this runs per evidence-bearing match), so the span is never created for
+    # a no-op. Nesting under the active discovery/coordinator span is automatic.
+    # On failure the span records the exception and re-raises unchanged, so the
+    # caller's existing llm.explanation.error NDJSON event is emitted exactly as
+    # before.
+    with span("llm.generate", attributes={"llm.model": _MODEL,
+                                          "program.id": match.get("program_id", "")}):
+        resp = retry_call(_post, operation="llm_explanation.ollama_post")
+        return resp.json().get("message", {}).get("content", "")
 
 
 def _validate(content: str) -> Optional[str]:

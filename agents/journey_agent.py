@@ -22,6 +22,7 @@ Invariants enforced here:
 """
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -33,6 +34,8 @@ from agents.recommendation_engine import (
     select_recommendation,
 )
 from gradcenter_logging import emit
+from telemetry import metrics
+from telemetry.tracing import set_attributes
 from state.context_manager import get_context, save_context
 from responses.builder import build_response
 from agents.recommendation_explainer import attach_explanations
@@ -892,7 +895,16 @@ def handle_discovery(
         return response, updated
 
     # Step 6 — Phase D recommendation scoring
+    _t_rec = time.perf_counter()
     result = select_recommendation(updated, gaps, _load_taxonomy())
+    # AI observability (Phase 3): recommendation metrics + root-span enrichment.
+    _rec_conf = (result.program_matches[0].get("confidence", "none")
+                 if result.program_matches else "none")
+    metrics.record_recommendation(
+        result.behavior, len(result.program_matches or []),
+        _rec_conf, time.perf_counter() - _t_rec)
+    set_attributes(**{"recommendation.behavior": result.behavior,
+                      "recommendation.candidates": len(result.program_matches or [])})
     updated["phase"] = "recommending" if result.behavior != "clarify" else "clarifying"
     if result.program_matches:
         updated["recommended_programs"] = [m["program_id"] for m in result.program_matches]

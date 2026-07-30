@@ -55,6 +55,7 @@ from typing import Callable, Optional, Type, TypeVar
 import requests
 
 from gradcenter_logging import emit
+from telemetry import metrics
 from config.settings import RETRY_MAX_ATTEMPTS, RETRY_BASE_DELAY_SECONDS
 
 T = TypeVar("T")
@@ -110,12 +111,14 @@ def retry_call(
             return result
         except retryable_exceptions as exc:
             last_exc = exc
+            metrics.record_retry_attempt(operation)   # Phase 3 AI observability
             emit("retry.attempt", level="WARNING",
                  operation=operation, attempt=attempt, max_attempts=max_attempts,
                  error=str(exc)[:200], error_type=type(exc).__name__)
             if attempt < max_attempts:
                 time.sleep(base_delay * (2 ** (attempt - 1)))
 
+    metrics.record_retry_exhausted(operation)          # Phase 3 AI observability
     emit("retry.exhausted", level="ERROR",
          operation=operation, max_attempts=max_attempts,
          error=str(last_exc)[:200],

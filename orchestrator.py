@@ -22,6 +22,7 @@ from dataclasses import replace
 from typing import Any, Optional
 
 from gradcenter_logging import emit
+from telemetry import metrics
 from telemetry.tracing import set_attributes, span
 
 from retrieval.query_handler import handle_query
@@ -77,6 +78,19 @@ def _run_answer(query: str, session_id: str) -> dict:
     if result.get("source_file") and result.get("source_url"):
         _kw_fields["source_url"] = result["source_url"]
     emit("keyword.result", level=_level, **_kw_fields)
+
+    # AI observability (Phase 3): answer metrics + enrich the root pipeline span
+    # with why-this-answer attributes (current span here is pipeline.request,
+    # route.decide having already closed). No behavior change.
+    _atype = result.get("answer_type", "unknown")
+    _conf  = result.get("confidence", "low")
+    metrics.record_answer(_atype, _conf, _elapsed / 1000.0)
+    set_attributes(**{
+        "answer_type":       _atype,
+        "confidence":        _conf,
+        "source_file":       result.get("source_file", ""),
+        "answer.synthesized": _atype == "llm_synthesized",
+    })
     return result
 
 
@@ -771,7 +785,9 @@ def run(query: str, session_id: str = DEFAULT_SESSION_ID) -> OrchestratorRespons
         _set_applicant_type(session_id, _at)
 
     with span("route.decide"):
+        _t_route = time.perf_counter()
         decision = decide_route(tool_query, session_id)
+        metrics.observe_routing(time.perf_counter() - _t_route)
         decision = replace(decision, query=query, tool_query=tool_query)
         set_attributes(**{"route.selected": decision.route,
                           "route.reason": getattr(decision, "reason", None)})

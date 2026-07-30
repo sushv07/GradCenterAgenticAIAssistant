@@ -56,6 +56,7 @@ from typing import Optional
 import requests
 
 from gradcenter_logging import emit
+from telemetry import metrics
 from telemetry.tracing import set_attributes, span
 from utils.retry import retry_call
 from prompts.loader import load_prompt
@@ -126,10 +127,13 @@ def synthesize_answer(
     # llm.generate — the local Ollama inference call. This is the dominant-
     # latency span in most requests; isolating it is the single most useful
     # part of the trace for diagnosing slow responses.
-    with span("llm.generate", attributes={"llm.model": _MODEL}):
+    with span("llm.generate", attributes={"llm.model": _MODEL,
+                                          "prompt.version": _ACTIVE_PROMPT_NAME}):
         try:
             content = _call_ollama(query, context)
         except Exception as exc:
+            metrics.record_llm(_MODEL, "synthesis", False,
+                               time.monotonic() - t0, type(exc).__name__)
             emit("llm.synthesis.error", level="ERROR",
                  model=_MODEL, error=str(exc))
             return None
@@ -139,10 +143,13 @@ def synthesize_answer(
     elapsed_ms = round((time.monotonic() - t0) * 1000, 1)
 
     if result is None:
+        metrics.record_llm(_MODEL, "synthesis", False,
+                           time.monotonic() - t0, "ValidationError")
         emit("llm.synthesis.error", level="WARNING",
              model=_MODEL, error="response validation failed")
         return None
 
+    metrics.record_llm(_MODEL, "synthesis", True, time.monotonic() - t0)
     emit("llm.synthesis.result",
          model=_MODEL,
          confidence=result["confidence"],

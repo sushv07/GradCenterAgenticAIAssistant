@@ -45,16 +45,21 @@ def _parent_name(span, by_id):
     return by_id[p.span_id].name if (p and p.span_id in by_id) else "ROOT"
 
 
+# One exporter shared by every test class. init_tracing() is idempotent (it
+# wires a provider once per process), so a per-class exporter would leave all but
+# the first class reading an exporter that was never attached to the provider.
+# A single module-level instance is the one actually wired; each test clears it.
+_SHARED_EXPORTER = InMemorySpanExporter()
+
+
 class _TracingCase(unittest.TestCase):
-    """Base: install an in-memory exporter once for the process. init_tracing is
-    idempotent, so the first test to run wins; all share the same exporter,
-    which we clear per-test."""
-    exporter: InMemorySpanExporter
+    """Base: install the shared in-memory exporter (once for the process) and
+    clear it per-test so each test reads only its own spans."""
+    exporter = _SHARED_EXPORTER
 
     @classmethod
     def setUpClass(cls):
-        cls.exporter = InMemorySpanExporter()
-        tracing.init_tracing(span_exporter=cls.exporter, force=True)
+        tracing.init_tracing(span_exporter=_SHARED_EXPORTER, force=True)
 
     def setUp(self):
         self.exporter.clear()
@@ -143,6 +148,81 @@ class TestLogCorrelation(_TracingCase):
         self.assertEqual(len(sample["trace_id"]), 32)      # W3C hex
         self.assertEqual(len(sample["span_id"]), 16)
         self.assertIn("request_id", sample)                # existing id preserved
+
+
+class TestExplainerLlmSpan(_TracingCase):
+    """The discovery-explainer's Ollama call (agents/recommendation_explainer)
+    must produce the same llm.generate span as the answer-path synthesizer, and
+    must not change the existing llm.explanation.* NDJSON events. The real
+    _call_ollama runs (so its span is exercised); only the network boundary
+    (retry_call) is mocked."""
+
+    def _match(self):
+        # score_basis carries evidence, so _generate_explanation reaches the LLM.
+        return {"program_id": "dnp-nursing", "confidence": "high",
+                "score_basis": ["degree_type", "interest_1:nursing"]}
+
+    def _capture_events(self, fn):
+        from gradcenter_logging import _logger
+        buf = io.StringIO()
+        handler = logging.StreamHandler(buf)
+        _logger.addHandler(handler)
+        try:
+            fn()
+        finally:
+            _logger.removeHandler(handler)
+        return {json.loads(l)["event"] for l in buf.getvalue().splitlines()
+                if l.strip().startswith("{")}
+
+    def test_success_emits_span_and_keeps_events(self):
+        import agents.recommendation_explainer as expl
+
+        class _Resp:
+            def json(self):
+                return {"message": {"content": '{"explanation": "Strong nursing fit."}'}}
+
+        matches = [self._match()]
+
+        def _run():
+            with mock.patch.object(expl, "_ENABLED", True), \
+                 mock.patch.object(expl, "retry_call", return_value=_Resp()):
+                expl.attach_explanations(matches)
+
+        events = self._capture_events(_run)
+        names = {s.name for s in self.exporter.get_finished_spans()}
+        self.assertIn("llm.generate", names)                       # span produced
+        self.assertEqual(matches[0].get("explanation"), "Strong nursing fit.")
+        self.assertIn("llm.explanation.result", events)            # NDJSON unchanged
+
+    def test_failure_records_span_and_keeps_error_event(self):
+        import agents.recommendation_explainer as expl
+
+        matches = [self._match()]
+
+        def _run():
+            with mock.patch.object(expl, "_ENABLED", True), \
+                 mock.patch.object(expl, "retry_call",
+                                   side_effect=RuntimeError("ollama down")):
+                expl.attach_explanations(matches)   # must not raise (fallback preserved)
+
+        events = self._capture_events(_run)
+        gen = [s for s in self.exporter.get_finished_spans() if s.name == "llm.generate"]
+        self.assertTrue(gen, "llm.generate span must exist even on failure")
+        self.assertEqual(gen[0].status.status_code.name, "ERROR")  # exception recorded
+        self.assertNotIn("explanation", matches[0])                # fallback: no explanation
+        self.assertIn("llm.explanation.error", events)             # NDJSON unchanged
+
+    def test_no_span_when_flag_disabled(self):
+        # Span is created only when a real LLM call is attempted: with the flag
+        # off, attach_explanations early-returns and no llm.generate appears.
+        import agents.recommendation_explainer as expl
+        matches = [self._match()]
+        with mock.patch.object(expl, "_ENABLED", False), \
+             mock.patch.object(expl, "retry_call",
+                               side_effect=AssertionError("must not be called")):
+            expl.attach_explanations(matches)
+        names = {s.name for s in self.exporter.get_finished_spans()}
+        self.assertNotIn("llm.generate", names)
 
 
 class TestGracefulNoop(unittest.TestCase):

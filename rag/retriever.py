@@ -46,6 +46,7 @@ from typing import Optional
 
 from rag.store import get_or_build_store
 from gradcenter_logging import emit
+from telemetry import metrics
 from telemetry.tracing import set_attributes, span, traced
 from config.settings import (
     RETRIEVAL_MIN_RELEVANCE as MIN_RELEVANCE,
@@ -147,6 +148,8 @@ def retrieve(
             "store_unavailable",
             elapsed_ms=round((time.perf_counter() - _t_pipeline_start) * 1000, 1),
         )
+        metrics.record_retrieval("error", (time.perf_counter() - _t_pipeline_start),
+                                 0, 0.0, page_type=page_type)
         return []
 
     # Build ChromaDB metadata filter.
@@ -207,6 +210,8 @@ def retrieve(
                 elapsed_ms=_elapsed,
             )
             print(f"[retriever] Query failed: {exc}")
+            metrics.record_retrieval("error", (time.perf_counter() - _t0),
+                                     0, 0.0, page_type=page_type)
             return []
 
     _elapsed = round((time.perf_counter() - _t0) * 1000, 1)
@@ -265,6 +270,17 @@ def retrieve(
         "retrieval.top_score": _top_score,
         "retrieval.empty":     not results,
     })
+
+    # AI observability (Phase 3): retrieval metrics. outcome=hit when at least
+    # one doc cleared the threshold, else empty (fallback territory).
+    metrics.record_retrieval(
+        outcome="hit" if results else "empty",
+        duration_seconds=(time.perf_counter() - _t_pipeline_start),
+        n_docs=len(results),
+        top_score=_top_score,
+        scores=[r["score"] for r in results],
+        page_type=page_type,
+    )
 
     return results
 
