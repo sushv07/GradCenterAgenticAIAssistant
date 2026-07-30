@@ -44,7 +44,87 @@ def _run_guidance(query: str, session_id: str) -> dict:
     return guide_from_file(query)
 
 
+def _build_faq_context(chunks: list[dict], max_chars: int) -> tuple[dict, str]:
+    """Deterministic structured evidence for grounded FAQ synthesis.
+
+    Splits retrieved chunks into FAQ entries and supporting-page passages,
+    de-duplicates by source_url to avoid redundant evidence, and respects a
+    character budget (chunks arrive score-sorted, so truncation keeps the most
+    relevant). Returns (context_dict, top_source_url). Every passage carries its
+    source_url so the synthesizer's existing URL-citation validation can key off
+    it. The prompt is source-agnostic, so this structure needs no prompt change."""
+    faqs: list[dict] = []
+    supporting: list[dict] = []
+    seen: set[str] = set()
+    budget = max_chars
+    top_url = ""
+
+    for c in chunks:
+        text = (c.get("text") or "").strip()
+        src  = c.get("source_url") or c.get("url") or ""
+        if not text or src in seen:
+            continue
+        if budget - len(text) < 0 and (faqs or supporting):
+            break  # keep at least one passage; stop once the budget is spent
+        budget -= len(text)
+        seen.add(src)
+        if c.get("is_supporting_page"):
+            supporting.append({"title": c.get("title", ""), "text": text, "source_url": src})
+        else:
+            faqs.append({"question": c.get("faq_question", "") or c.get("title", ""),
+                         "category": c.get("category", ""), "answer": text, "source_url": src})
+            if not top_url:
+                top_url = src
+
+    if not top_url and supporting:
+        top_url = supporting[0]["source_url"]
+    return {"faqs": faqs, "supporting_evidence": supporting}, top_url
+
+
+def _faq_synthesized_result(query: str, session_id: str) -> Optional[dict]:
+    """Phase 4.3 — grounded FAQ synthesis. Retrieves FAQ + supporting evidence
+    and synthesizes a grounded answer via the EXISTING synthesizer (reusing its
+    prompt, URL/citation validation, and deterministic-None fallback). Returns a
+    result dict for the answer route, or None to fall back to the existing
+    keyword path. No new synthesizer, no prompt change."""
+    from config.settings import (
+        FAQ_SYNTHESIS_ENABLED, FAQ_TOP_K, FAQ_MIN_SCORE, FAQ_CONTEXT_MAX_CHARS,
+    )
+    if not FAQ_SYNTHESIS_ENABLED:
+        return None
+
+    from rag.retriever import retrieve
+    chunks = retrieve(query, k=FAQ_TOP_K, min_score=FAQ_MIN_SCORE,
+                      page_type=["faq", "faq_supporting"])
+    if not chunks:
+        return None  # case 4: no sufficient evidence → existing fallback
+
+    context, top_url = _build_faq_context(chunks, FAQ_CONTEXT_MAX_CHARS)
+    if not context["faqs"] and not context["supporting_evidence"]:
+        return None
+
+    from agents.llm_synthesizer import synthesize_answer
+    llm = synthesize_answer(query, context, source_file="", source_url=top_url or None)
+    if llm is None:
+        return None  # LLM disabled / failed / fabricated-citation → existing fallback
+
+    return {
+        "answer":      llm["answer"],
+        "confidence":  llm["confidence"],
+        "answer_type": "faq_synthesized",
+        "source_file": "",
+        "source_url":  top_url,
+    }
+
+
 def _run_answer(query: str, session_id: str) -> dict:
+    # Phase 4.3 — attempt grounded FAQ synthesis first (flag-gated). On success,
+    # use it; otherwise fall through to the existing keyword answer path
+    # unchanged (cases 2/3 synthesize from whatever evidence was retrieved;
+    # case 4 / disabled / LLM-failure → deterministic existing behavior).
+    _faq = _faq_synthesized_result(query, session_id)
+    if _faq is not None:
+        return _faq
     retrieved = handle_query(query)
     _t0 = time.perf_counter()
     result = answer(query, retrieved)

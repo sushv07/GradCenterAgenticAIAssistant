@@ -69,8 +69,28 @@ from obs.retrieval_events import (
 
 # Valid page_type values — mirrors PAGE_SOURCES + PROGRAM_SOURCES in ingestion.py.
 PAGE_TYPES = frozenset({
-    "faq", "deadlines", "eligibility", "application_process", "program_application"
+    "faq", "faq_supporting", "deadlines", "eligibility",
+    "application_process", "program_application"
 })
+
+
+def _normalize_page_types(page_type: "str | list[str] | None") -> tuple[list[str], str]:
+    """Validate a page_type filter (single, several, or none) into a list of
+    known types plus a bounded label for logs/metrics. Unknown types are dropped
+    with a warning (preserving the pre-Phase-4.3 "ignore unknown filter"
+    behavior). Label is a stable string like "faq", "faq+faq_supporting", or
+    "unfiltered" — never a raw list, so metric cardinality stays bounded."""
+    if page_type is None:
+        return [], "unfiltered"
+    candidates = [page_type] if isinstance(page_type, str) else list(page_type)
+    valid: list[str] = []
+    for pt in candidates:
+        if pt in PAGE_TYPES:
+            if pt not in valid:
+                valid.append(pt)
+        else:
+            print(f"[retriever] Unknown page_type '{pt}' — ignoring filter")
+    return valid, "+".join(valid) if valid else "unfiltered"
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +102,7 @@ def retrieve(
     query:        str,
     k:            int   = _DEFAULT_TOP_K,
     min_score:    float = MIN_RELEVANCE,
-    page_type:    Optional[str] = None,
+    page_type:    "str | list[str] | None" = None,
     program_name: Optional[str] = None,
 ) -> list[dict]:
     """
@@ -134,12 +154,18 @@ def retrieve(
     if not query or not query.strip():
         return []
 
+    # Normalize page_type to a validated list + a bounded label. Accepts a single
+    # type (str), several types (list → ChromaDB "$in"), or None (unfiltered).
+    # Phase 4.3 needs {faq, faq_supporting} together; the label keeps the existing
+    # emit/metric fields a low-cardinality string.
+    _pt_list, _pt_label = _normalize_page_types(page_type)
+
     _t_pipeline_start = time.perf_counter()  # Phase 8B — total pipeline timer
                                               # for retrieval.completed/.failed;
                                               # observability only, never read
                                               # by any retrieval decision.
 
-    emit_retrieval_started(query, k, min_score, page_type, program_name)
+    emit_retrieval_started(query, k, min_score, _pt_label, program_name)
 
     store = get_or_build_store()
     if store is None:
@@ -149,20 +175,20 @@ def retrieve(
             elapsed_ms=round((time.perf_counter() - _t_pipeline_start) * 1000, 1),
         )
         metrics.record_retrieval("error", (time.perf_counter() - _t_pipeline_start),
-                                 0, 0.0, page_type=page_type)
+                                 0, 0.0, page_type=_pt_label)
         return []
 
     # Build ChromaDB metadata filter.
-    # Single-field: {"field": {"$eq": value}}
-    # Compound:     {"$and": [{"field1": {"$eq": v1}}, {"field2": {"$eq": v2}}]}
+    # Single value:  {"field": {"$eq": value}}
+    # Several values: {"field": {"$in": [v1, v2]}}
+    # Compound:      {"$and": [clause1, clause2]}
     where_filter: Optional[dict] = None
     filter_clauses: list[dict] = []
 
-    if page_type:
-        if page_type not in PAGE_TYPES:
-            print(f"[retriever] Unknown page_type '{page_type}' — ignoring filter")
-        else:
-            filter_clauses.append({"page_type": {"$eq": page_type}})
+    if len(_pt_list) == 1:
+        filter_clauses.append({"page_type": {"$eq": _pt_list[0]}})
+    elif len(_pt_list) > 1:
+        filter_clauses.append({"page_type": {"$in": _pt_list}})
 
     if program_name:
         filter_clauses.append({"program_name": {"$eq": program_name}})
@@ -177,8 +203,8 @@ def retrieve(
 
     # Build optional fields once — used in both the success and exception emit paths
     _opt: dict = {"k_requested": fetch_k}
-    if page_type and page_type in PAGE_TYPES:
-        _opt["page_type"] = page_type
+    if _pt_label != "unfiltered":
+        _opt["page_type"] = _pt_label
     if program_name:
         _opt["program_name"] = program_name
 
@@ -211,11 +237,11 @@ def retrieve(
             )
             print(f"[retriever] Query failed: {exc}")
             metrics.record_retrieval("error", (time.perf_counter() - _t0),
-                                     0, 0.0, page_type=page_type)
+                                     0, 0.0, page_type=_pt_label)
             return []
 
     _elapsed = round((time.perf_counter() - _t0) * 1000, 1)
-    emit_retrieval_vector_search(len(raw_results), _elapsed, page_type)
+    emit_retrieval_vector_search(len(raw_results), _elapsed, _pt_label)
 
     # Filter, format, and cap at k results
     results: list[dict] = []
@@ -235,6 +261,13 @@ def retrieve(
             "workflow_priority":  doc.metadata.get("workflow_priority", 6),
             "score":              round(float(score), 4),
             "chunk_id":           doc.metadata.get("chunk_id", ""),
+            # Phase 4.1/4.3 — FAQ hierarchy fields surfaced for grounded FAQ
+            # synthesis (additive; empty for non-FAQ chunks; consumers ignore).
+            "source_url":         doc.metadata.get("source_url", doc.metadata.get("url", "")),
+            "category":           doc.metadata.get("category", ""),
+            "faq_question":       doc.metadata.get("faq_question", ""),
+            "parent_faq_url":     doc.metadata.get("parent_faq_url", ""),
+            "is_supporting_page": bool(doc.metadata.get("is_supporting_page", False)),
         })
 
     emit_retrieval_filtering(len(raw_results), len(results), min_score)
@@ -279,7 +312,7 @@ def retrieve(
         n_docs=len(results),
         top_score=_top_score,
         scores=[r["score"] for r in results],
-        page_type=page_type,
+        page_type=_pt_label,
     )
 
     return results
