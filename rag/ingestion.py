@@ -877,6 +877,42 @@ def ingest_pages(
                     f"{len(specialist_pages)} atomic FAQ(s), {total_chars:,} chars total"
                 )
                 pages.extend(specialist_pages)
+
+                # Phase 4.2 — depth-1 supporting-page ingestion. Flag-gated;
+                # reuses the SAME production fetch_page()/parse_page() pipeline.
+                # Discovery (allowlist/dedupe/parent-linkage) is pure; here we
+                # only fetch+parse+tag the selected same-domain pages.
+                from config.settings import (
+                    FAQ_CRAWL_SUPPORTING, FAQ_CRAWL_DEPTH, FAQ_DOMAIN_ALLOWLIST,
+                )
+                if FAQ_CRAWL_SUPPORTING and FAQ_CRAWL_DEPTH >= 1:
+                    from rag.faq_ingest import discover_supporting_links
+                    known_urls = {s["url"] for s in sources}
+                    sup_sources = discover_supporting_links(
+                        specialist_pages,
+                        allowlist_domain=FAQ_DOMAIN_ALLOWLIST,
+                        known_source_urls=known_urls,
+                    )
+                    sup_count = 0
+                    for ss in sup_sources:
+                        s_html = fetch_page(ss["url"])
+                        if s_html is None:
+                            continue  # fetch failure → skip (logged by fetch_page)
+                        s_page = parse_page(s_html, ss["url"], "faq_supporting", ss["title"])
+                        if s_page is None:
+                            continue  # too short / unusable → skip
+                        # Supporting-page metadata (reaches Chroma via page_to_document).
+                        s_page["is_supporting_page"]  = True
+                        s_page["parent_faq_url"]      = ss["parent_faq_url"]
+                        s_page["parent_faq_question"] = ss["parent_faq_question"]
+                        s_page["source_url"]          = ss["url"]
+                        pages.append(s_page)
+                        sup_count += 1
+                    if sup_sources:
+                        print(
+                            f"[ingestion] ✓ [faq_supporting] {sup_count}/"
+                            f"{len(sup_sources)} supporting page(s) ingested (depth 1)"
+                        )
                 continue
             else:
                 print(

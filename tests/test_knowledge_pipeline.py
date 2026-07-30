@@ -89,10 +89,10 @@ class TestPageLoaderParity(unittest.TestCase):
             sorted(["title", "url", "page_type", "program_name", "content_category",
                     "discovered_from", "parent_program_url", "workflow_priority",
                     "links_json",
-                    # Phase 4.1 — additive FAQ hierarchy fields (empty/False for
-                    # non-FAQ pages; legacy keys above are unchanged).
+                    # Phase 4.1/4.2 — additive FAQ hierarchy fields (empty/False
+                    # for non-FAQ pages; legacy keys above are unchanged).
                     "source_url", "category", "faq_question", "parent_faq_url",
-                    "is_supporting_page"]))
+                    "parent_faq_question", "is_supporting_page"]))
 
 
 class TestPipelineBuild(unittest.TestCase):

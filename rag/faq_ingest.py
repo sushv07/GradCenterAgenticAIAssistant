@@ -37,10 +37,18 @@ from __future__ import annotations
 
 import hashlib
 import re
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup
 from bs4.element import Tag
+
+# Extensions that are not HTML articles — skipped during supporting-page
+# discovery so the generic parser is never handed a binary blob.
+_NON_HTML_SUFFIXES = (
+    ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".csv",
+    ".zip", ".rar", ".gz", ".jpg", ".jpeg", ".png", ".gif", ".svg",
+    ".mp4", ".mov", ".mp3", ".ics",
+)
 
 # The question accordion selector proven against the live portal (the same one
 # retrieval/faq_rag_module.py uses). Category headings are the section headings
@@ -186,3 +194,81 @@ def parse_faq_page(html: str, source_url: str, title: str) -> list[dict]:
         })
 
     return entries
+
+
+# ---------------------------------------------------------------------------
+# Supporting-page discovery (Phase 4.2) — PURE, no network.
+# ---------------------------------------------------------------------------
+
+def _canonical_url(url: str) -> str:
+    """Canonical form for dedup + identity: http(s) only, fragment dropped,
+    trailing slash normalized. Returns "" for non-http(s) or empty input."""
+    p = urlsplit((url or "").strip())
+    if p.scheme not in ("http", "https") or not p.netloc:
+        return ""
+    path = p.path.rstrip("/") or "/"
+    return urlunsplit((p.scheme, p.netloc, path, p.query, ""))  # fragment removed
+
+
+def _host(url: str) -> str:
+    return urlsplit(url).netloc.lower().split(":")[0]
+
+
+def _in_allowlist(url: str, allowlist_domain: str) -> bool:
+    """Same-domain check: host equals the allowlisted domain or is a subdomain
+    of it. External domains are rejected."""
+    host = _host(url)
+    dom = (allowlist_domain or "").strip().lower()
+    return bool(dom) and (host == dom or host.endswith("." + dom))
+
+
+def _is_non_html(url: str) -> bool:
+    return urlsplit(url).path.lower().endswith(_NON_HTML_SUFFIXES)
+
+
+def discover_supporting_links(
+    faq_pages: list[dict],
+    *,
+    allowlist_domain: str,
+    known_source_urls: frozenset[str] | set[str] = frozenset(),
+) -> list[dict]:
+    """From already-parsed atomic FAQ pages, select the directly-linked
+    supporting pages to ingest (depth-1). PURE and deterministic — no fetching.
+
+    Rules (see Phase 4.2 crawl rules):
+      * reuse the links Phase 4.1 already extracted (no new crawling),
+      * same-domain only (allowlist), skip external domains,
+      * skip obvious non-HTML resources (PDFs, images, …),
+      * skip URLs that are already primary ingestion sources — they share the
+        real URL, so ingesting them again as faq_supporting would collide on
+        document_id (md5(url)) and overwrite; skipping avoids duplicates,
+      * de-duplicate by canonical URL — a page linked from several FAQs is
+        ingested ONCE; the FIRST referencing FAQ (document order) is recorded as
+        its parent (deterministic parent linkage),
+      * cycles are impossible by construction: depth is 1 (we never follow links
+        of supporting pages) and each canonical URL is emitted at most once.
+
+    Returns supporting SOURCE dicts (not fetched):
+        {"url", "title", "parent_faq_url", "parent_faq_question"}
+    ready for rag.ingestion to run through fetch_page()/parse_page().
+    """
+    known = {_canonical_url(u) for u in known_source_urls}
+    known.discard("")
+    seen: set[str] = set()
+    out: list[dict] = []
+
+    for faq in faq_pages:
+        for link in faq.get("links", []):
+            url = _canonical_url(link.get("url", ""))
+            if not url or url in seen or url in known:
+                continue
+            if not _in_allowlist(url, allowlist_domain) or _is_non_html(url):
+                continue
+            seen.add(url)
+            out.append({
+                "url":                 url,
+                "title":               (link.get("text") or "").strip(),
+                "parent_faq_url":      faq.get("url", ""),
+                "parent_faq_question": faq.get("faq_question", ""),
+            })
+    return out
