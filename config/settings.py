@@ -73,6 +73,38 @@ def _env_flag(name: str, default: bool) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _env_int(name: str, default: int) -> int:
+    """Read an int config value from the environment; falls back to default on
+    absence or an unparseable value (never raises at import time)."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return int(raw.strip())
+    except ValueError:
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    """Read a float config value from the environment; falls back to default on
+    absence or an unparseable value."""
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    try:
+        return float(raw.strip())
+    except ValueError:
+        return default
+
+
+def _env_str(name: str, default: str) -> str:
+    """Read a string config value from the environment; blank/absent → default."""
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    return raw.strip()
+
+
 # ---------------------------------------------------------------------------
 # Retrieval / RAG configuration
 # ---------------------------------------------------------------------------
@@ -152,3 +184,39 @@ RETRY_BASE_DELAY_SECONDS = 0.5   # exponential backoff: 0.5s, 1.0s, ...
 # Overridable per-deployment via the ENABLE_MULTI_AGENT_COORDINATOR env var
 # without a code change. See coordination/coordinator.py.
 ENABLE_MULTI_AGENT_COORDINATOR = _env_flag("ENABLE_MULTI_AGENT_COORDINATOR", False)
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — Grounded FAQ Conversational Synthesis (additive, flag-gated)
+# ---------------------------------------------------------------------------
+# All flags default to OFF / current behavior, so with none set the assistant
+# behaves byte-for-byte as it does today: no FAQ synthesis, no supporting-page
+# crawl. These constants are declared here in Phase 4.0 and are intentionally
+# NOT yet read by any runtime path — later Phase 4 steps wire them in. Env vars
+# allow per-deployment tuning without a code change. See docs/AI_OBSERVABILITY.md
+# and the Phase 4 plan.
+
+# Master gate for the answer-workflow FAQ synthesis path (Phase 4.3). Off → the
+# answer route behaves exactly as today (keyword retrieve + optional synthesis).
+FAQ_SYNTHESIS_ENABLED = _env_flag("FAQ_SYNTHESIS_ENABLED", False)
+
+# Gate for depth-1 supporting-page ingestion (Phase 4.2). Off → only atomic FAQ
+# entries are ingested; no linked pages are crawled.
+FAQ_CRAWL_SUPPORTING = _env_flag("FAQ_CRAWL_SUPPORTING", False)
+
+# Retrieval breadth for FAQ synthesis — a little wider than the topic tools so a
+# grounded answer can combine several FAQs / a FAQ plus its supporting page.
+FAQ_TOP_K = _env_int("FAQ_TOP_K", 6)
+
+# Minimum cosine relevance for FAQ retrieval. Matches the global retriever
+# default (RETRIEVAL_MIN_RELEVANCE = 0.30) so FAQ behaves consistently.
+FAQ_MIN_SCORE = _env_float("FAQ_MIN_SCORE", 0.30)
+
+# Upper bound on the characters of retrieved evidence packed into the synthesis
+# prompt — caps prompt size / latency for multi-source answers.
+FAQ_CONTEXT_MAX_CHARS = _env_int("FAQ_CONTEXT_MAX_CHARS", 6000)
+
+# Supporting-page crawl guardrails (Phase 4.2). Depth is a hard cap of 1 by
+# design; the allowlist confines crawling to the university domain.
+FAQ_CRAWL_DEPTH = _env_int("FAQ_CRAWL_DEPTH", 1)
+FAQ_DOMAIN_ALLOWLIST = _env_str("FAQ_DOMAIN_ALLOWLIST", "csulb.edu")

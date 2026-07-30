@@ -36,6 +36,15 @@ def page_to_document(page: dict[str, Any]) -> KnowledgeDocument:
         "parent_program_url": page.get("parent_program_url", ""),
         "workflow_priority":  page.get("workflow_priority", 6),
         "links_json":         links_json,
+        # Phase 4.1 — FAQ hierarchy fields. Present on every chunk (empty/False
+        # for non-FAQ pages), so existing metadata is unchanged and additive.
+        # These reach Chroma because the chunker copies document.metadata
+        # verbatim onto each chunk (rag/pipeline_adapters/recursive_chunker.py).
+        "source_url":         page.get("source_url", url),
+        "category":           page.get("category", ""),
+        "faq_question":       page.get("faq_question", ""),
+        "parent_faq_url":     page.get("parent_faq_url", ""),
+        "is_supporting_page": bool(page.get("is_supporting_page", False)),
     }
     return KnowledgeDocument(
         text=page.get("text", ""),

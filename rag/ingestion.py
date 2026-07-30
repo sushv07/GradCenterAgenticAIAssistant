@@ -857,6 +857,33 @@ def ingest_pages(
 
         # ── Parse ────────────────────────────────────────────────────────────
         _t_parse = time.perf_counter()
+        if page_type == "faq":
+            # Phase 4.1 specialist: one dict per FAQ entry (atomic), each with a
+            # unique fragment URL so document_ids/chunk_ids don't collide. Falls
+            # back to generic parse_page() if it finds no accordion FAQ entries,
+            # so ingestion never breaks on an unexpected page shape.
+            from rag.faq_ingest import parse_faq_page
+            specialist_pages = parse_faq_page(html, url, title)
+            if specialist_pages:
+                _parse_elapsed = round((time.perf_counter() - _t_parse) * 1000, 1)
+                total_chars = sum(p["char_count"] for p in specialist_pages)
+                emit_ingestion_page_parsed(
+                    url=url, page_type=page_type, program_name=prog_name,
+                    char_count=total_chars, parse_elapsed_ms=_parse_elapsed,
+                    entry_count=len(specialist_pages),
+                )
+                print(
+                    f"[ingestion] ✓ [{page_type}] specialist: "
+                    f"{len(specialist_pages)} atomic FAQ(s), {total_chars:,} chars total"
+                )
+                pages.extend(specialist_pages)
+                continue
+            else:
+                print(
+                    f"[ingestion] [{page_type}] specialist returned empty — "
+                    "falling back to generic parse_page()"
+                )
+
         if page_type == "deadlines":
             # Specialist extractor: one dict per program to prevent cross-program
             # chunk merging.  Falls back to generic parse_page() if it returns [].
