@@ -421,8 +421,6 @@ If the Render backend is cold-starting or temporarily unreachable:
 | **Observability** | Structured Logging | Request tracing and debugging | Improves debugging, analysis, and system transparency |
 ```
 
----
-
 ### 🎯 Design Principles
 
 This system follows a **bounded agentic RAG** architecture built around three core principles:
@@ -433,7 +431,6 @@ This system follows a **bounded agentic RAG** architecture built around three co
 
 The overall design prioritizes **reliability**, **explainability**, and **grounded responses** over unrestricted model autonomy.
 
-----
 
 ## 🏗️ Architecture
 
