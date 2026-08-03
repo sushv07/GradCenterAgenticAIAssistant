@@ -404,5 +404,70 @@ If the Render backend is cold-starting or temporarily unreachable:
 
 ## Architecture
 
-See `ARCHITECTURE_ANALYSIS.md` for a detailed phase-by-phase breakdown
-of every design decision, module, and implementation note.
+## 🏗️ System Architecture
+
+```mermaid
+flowchart TD
+
+    User[Student Query]
+
+    UI[Streamlit UI / FastAPI]
+
+    Entry[Backend Entry Point]
+
+    State[Conversation State]
+
+    Orchestrator[Deterministic Orchestrator]
+
+    Router[Intent Router]
+
+    Vector[Vector Retrieval]
+
+    Structured[Structured Retrieval]
+
+    Entity[Entity Matching]
+
+    Evidence[Evidence Assembly]
+
+    Decision{Enough Evidence?}
+
+    Clarify[Clarification]
+
+    LLM[Optional LLM Synthesis]
+
+    Validate[Grounding & Citation Validation]
+
+    Response[Grounded Response]
+
+    Logs[Logging, Metrics & Tracing]
+
+    Evals[Evaluation & Knowledge Base Monitoring]
+
+    User --> UI
+    UI --> Entry
+    Entry --> State
+    State --> Orchestrator
+    Orchestrator --> Router
+
+    Router --> Vector
+    Router --> Structured
+    Router --> Entity
+
+    Vector --> Evidence
+    Structured --> Evidence
+    Entity --> Evidence
+
+    Evidence --> Decision
+
+    Decision -->|No| Clarify
+    Decision -->|Yes, Deterministic| Response
+    Decision -->|Yes, LLM Needed| LLM
+
+    LLM --> Validate
+    Validate -->|Pass| Response
+    Validate -->|Fail| Response
+
+    Entry -.-> Logs
+    Orchestrator -.-> Logs
+    Response -.-> Evals
+```
