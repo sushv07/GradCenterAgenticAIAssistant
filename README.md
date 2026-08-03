@@ -435,7 +435,7 @@ flowchart TD
 
     Response[Final Response]
 
-    Monitor[Monitoring & Evaluation]
+    Monitor[Observability & Evals]
 
     User --> UI
     UI --> State
