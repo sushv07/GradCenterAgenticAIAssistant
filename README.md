@@ -407,67 +407,116 @@ If the Render backend is cold-starting or temporarily unreachable:
 ## 🏗️ System Architecture
 
 ```mermaid
-flowchart TD
+flowchart TB
+    subgraph CLIENT["Client Layer"]
+        UI["Streamlit UI<br/>app.py<br/>per-route panels"]
+        API["FastAPI<br/>api/app.py<br/>POST /query, /health, /ready, /metrics"]
+    end
 
-    User[Student Query]
+    subgraph ENTRY["Single Backend Seam"]
+        EP["handle_user_query<br/>backend/entrypoint.py<br/>request_id, TraceContext, sole try/except"]
+    end
 
-    UI[Streamlit UI / FastAPI]
+    subgraph STATE["Conversation State"]
+        CTX["Context Manager<br/>state/context_manager.py<br/>in-memory dict, process-scoped"]
+        PC["Program Context<br/>state/program_context.py<br/>coreference to tool_query"]
+        CLAR["Clarification Registry<br/>state/clarification.py<br/>kind to resumer"]
+    end
 
-    Entry[Backend Entry Point]
+    subgraph ORCH["Deterministic Orchestration"]
+        RUN["orchestrator.run"]
+        ROUTER["decide_route<br/>routing/router.py<br/>10-branch priority chain"]
+        DISP["_dispatch"]
+    end
 
-    State[Conversation State]
+    subgraph COORD["Coordinator - flag-gated, default OFF"]
+        CO["detect, plan, execute, synthesize<br/>coordination/"]
+    end
 
-    Orchestrator[Deterministic Orchestrator]
+    subgraph AGENTS["Agents and Tools"]
+        JA["Journey Agent<br/>signals, gaps, clarify"]
+        RE["Recommendation Engine<br/>weighted scoring<br/>rule-based confidence"]
+        AA["Answer Agent<br/>7 typed extractors"]
+        GA["Guidance Agent<br/>step builder"]
+        TOOLS["Topic Tools<br/>deadlines, eligibility<br/>application_steps, email"]
+    end
 
-    Router[Intent Router]
+    subgraph RETR["Retrieval"]
+        VR["Vector Retriever<br/>rag/retriever.py<br/>k*2 over-fetch, threshold 0.30"]
+        KR["Keyword Retriever<br/>retrieval/query_handler.py"]
+        FZ["Fuzzy Entity Match<br/>advisor_retrieval.py<br/>RapidFuzz partial_ratio"]
+    end
 
-    Vector[Vector Retrieval]
+    subgraph KB["Knowledge Sources"]
+        CH[("ChromaDB<br/>546 chunks, cosine")]
+        EMB["all-MiniLM-L6-v2<br/>384-dim, CPU, normalized"]
+        DATA[("Structured JSON<br/>8 data files, taxonomy<br/>advisors_extracted")]
+        ING["Ingestion<br/>fetch, parse, classify, chunk"]
+    end
 
-    Structured[Structured Retrieval]
+    subgraph LLMX["LLM Layer - optional, flag-gated"]
+        SYNTH["llm_synthesizer<br/>Ollama qwen2.5:7b, temp 0"]
+        PROMPT["Prompt Registry<br/>versioned .md assets"]
+        VAL["Post-Validation<br/>schema plus citation fidelity"]
+    end
 
-    Entity[Entity Matching]
+    subgraph RESP["Response Layer"]
+        RB["build_response"]
+        TD["TypedDict contracts"]
+        PYD["Pydantic API mirror"]
+    end
 
-    Evidence[Evidence Assembly]
+    UI --> EP
+    API --> EP
+    EP --> CLAR
+    CLAR --> CTX
+    EP -.->|flag on and composite| CO
+    EP --> RUN
+    CO --> RB
 
-    Decision{Enough Evidence?}
+    RUN --> PC
+    PC --> CTX
+    RUN --> ROUTER
+    ROUTER --> FZ
+    ROUTER --> DISP
 
-    Clarify[Clarification]
+    DISP --> JA
+    DISP --> AA
+    DISP --> GA
+    DISP --> TOOLS
+    JA --> RE
+    JA --> CTX
 
-    LLM[Optional LLM Synthesis]
+    AA --> KR
+    TOOLS --> VR
+    AA -.->|FAQ synthesis| VR
+    VR --> CH
+    CH --> EMB
+    KR --> DATA
+    FZ --> DATA
+    RE --> DATA
+    ING --> CH
 
-    Validate[Grounding & Citation Validation]
+    AA --> SYNTH
+    RE -.->|explanations| SYNTH
+    SYNTH --> PROMPT
+    SYNTH --> VAL
+    VAL -->|reject, fall back| RB
+    VAL -->|accept| RB
 
-    Response[Grounded Response]
+    JA --> RB
+    AA --> RB
+    GA --> RB
+    TOOLS --> RB
+    RB --> TD
+    TD --> PYD
+    PYD --> API
+    RB --> UI
 
-    Logs[Logging, Metrics & Tracing]
-
-    Evals[Evaluation & Knowledge Base Monitoring]
-
-    User --> UI
-    UI --> Entry
-    Entry --> State
-    State --> Orchestrator
-    Orchestrator --> Router
-
-    Router --> Vector
-    Router --> Structured
-    Router --> Entity
-
-    Vector --> Evidence
-    Structured --> Evidence
-    Entity --> Evidence
-
-    Evidence --> Decision
-
-    Decision -->|No| Clarify
-    Decision -->|Yes, Deterministic| Response
-    Decision -->|Yes, LLM Needed| LLM
-
-    LLM --> Validate
-    Validate -->|Pass| Response
-    Validate -->|Fail| Response
-
-    Entry -.-> Logs
-    Orchestrator -.-> Logs
-    Response -.-> Evals
+    classDef det fill:#1a4d2e,stroke:#4ade80,color:#ffffff
+    classDef prob fill:#4d1a1a,stroke:#f87171,color:#ffffff
+    classDef data fill:#1a3a4d,stroke:#60a5fa,color:#ffffff
+    class RUN,ROUTER,DISP,RE,JA,FZ,CO det
+    class SYNTH,VAL,PROMPT prob
+    class CH,DATA,EMB,ING data
 ```
