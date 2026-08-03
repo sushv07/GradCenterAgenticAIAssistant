@@ -401,6 +401,39 @@ If the Render backend is cold-starting or temporarily unreachable:
 - The backend status auto-recovers on the next page rerun once Render responds.
 
 ---
+## 🛠️ Technology Stack
+
+| Layer | Technology | Purpose | Why It Was Chosen |
+|--------|------------|---------|-------------------|
+| **Frontend** | Streamlit | Interactive conversational UI | Rapid prototyping for AI applications with a clean chat interface |
+| **API Layer** | FastAPI | REST API endpoints | High-performance asynchronous API framework with automatic OpenAPI documentation |
+| **Language** | Python | Core application logic | Rich AI ecosystem and excellent support for orchestration and data processing |
+| **Orchestration** | Deterministic Python Orchestrator | Controls routing, workflows, retrieval, and clarification | Prioritizes reliability, explainability, and predictable behavior over unrestricted model autonomy |
+| **Conversation State** | In-memory Session State | Maintains multi-turn conversation context | Lightweight solution suitable for a single-instance deployment |
+| **Vector Retrieval** | ChromaDB | Semantic similarity search | Simple local vector database with fast retrieval and zero infrastructure overhead |
+| **Embeddings** | all-MiniLM-L6-v2 | Dense vector embeddings | Lightweight, fast, and effective for semantic search with low latency |
+| **Structured Retrieval** | JSON Knowledge Base | Workflow and FAQ retrieval | Deterministic lookups for structured university information |
+| **Entity Matching** | RapidFuzz | Program and advisor name resolution | Fast fuzzy matching with deterministic behavior for named entities |
+| **LLM** | Ollama + Qwen2.5-7B | Grounded response synthesis | Local inference, privacy, and complete control over model deployment |
+| **Validation** | Rule-based Validation | Verifies LLM-generated responses | Ensures generated responses remain grounded in retrieved evidence |
+| **Testing** | Pytest | Unit and integration testing | Industry-standard Python testing framework |
+| **Evaluation** | Golden Evaluation Suites | Measures routing and response quality | Enables repeatable evaluation of retrieval and orchestration quality |
+| **Observability** | Structured Logging | Request tracing and debugging | Improves debugging, analysis, and system transparency |
+```
+
+---
+
+### 🎯 Design Principles
+
+This system follows a **bounded agentic RAG** architecture built around three core principles:
+
+- **Deterministic orchestration** controls routing, workflow selection, retrieval strategy, and clarification instead of delegating these decisions to the LLM.
+- **Multiple retrieval mechanisms**—vector retrieval, structured retrieval, and entity matching—allow the system to choose the most appropriate source of evidence for each request.
+- **Selective LLM synthesis** is used only when needed to produce grounded, natural-language responses, with validation performed before every LLM-generated response is returned.
+
+The overall design prioritizes **reliability**, **explainability**, and **grounded responses** over unrestricted model autonomy.
+
+----
 
 ## 🏗️ Architecture
 
