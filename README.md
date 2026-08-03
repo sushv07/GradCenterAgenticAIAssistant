@@ -402,7 +402,7 @@ If the Render backend is cold-starting or temporarily unreachable:
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```mermaid
 flowchart TD
@@ -415,7 +415,7 @@ flowchart TD
 
     Orchestrator[Deterministic Orchestrator]
 
-    Router[Intent Router]
+    Router[Route Selection]
 
     Vector[Vector Retrieval]
 
@@ -423,15 +423,15 @@ flowchart TD
 
     Entity[Entity Matching]
 
-    Evidence[Evidence Assembly]
+    Evidence[Evidence Evaluation]
 
-    Decision{Enough Evidence?}
+    Decision{Evidence Sufficient?}
 
     Clarify[Ask Clarifying Question]
 
     LLM[Optional LLM Synthesis]
 
-    Validate[Grounding Validation]
+    Validate[Grounding & Validation]
 
     Response[Grounded Response]
 
@@ -459,5 +459,9 @@ flowchart TD
     LLM --> Validate
     Validate --> Response
 
-    Response --> Logs  
+    Response --> Logs
 ```
+
+### Architecture Philosophy
+
+The assistant follows a **bounded agentic RAG** architecture. A deterministic orchestrator—not the LLM—controls routing, workflow selection, retrieval strategy, and clarification. Depending on the user's intent, the system selects between **vector retrieval**, **structured retrieval**, and **entity matching**, evaluates whether the retrieved evidence is sufficient, and either responds deterministically, asks a clarifying question, or invokes the LLM for grounded synthesis. Every generated response is validated before being returned, prioritizing **reliability** and **explainability** over unrestricted model autonomy.
