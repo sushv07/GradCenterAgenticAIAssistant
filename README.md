@@ -464,6 +464,5 @@ flowchart TD
     LLM --> Validate
     Validate --> Response
 
-    Response --> Logs
-    
+    Response --> Logs  
 ```
