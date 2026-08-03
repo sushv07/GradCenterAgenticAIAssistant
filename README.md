@@ -433,9 +433,9 @@ flowchart TD
 
     Validate[Grounding & Validation]
 
-    Response[Grounded Response]
+    Response[Final Response]
 
-    Logs[Observability & Evaluation]
+    Monitor[Monitoring & Evaluation]
 
     User --> UI
     UI --> State
@@ -453,15 +453,17 @@ flowchart TD
     Evidence --> Decision
 
     Decision -->|No| Clarify
-    Decision -->|Yes, Deterministic| Response
-    Decision -->|Yes, Synthesis Needed| LLM
+    Clarify --> Response
 
+    Decision -->|Yes, Deterministic| Response
+
+    Decision -->|Yes, Synthesis Needed| LLM
     LLM --> Validate
     Validate --> Response
 
-    Response --> Logs
+    Response --> Monitor
 ```
 
 ### Architecture Philosophy
 
-The assistant follows a **bounded agentic RAG** architecture. A deterministic orchestrator—not the LLM—controls routing, workflow selection, retrieval strategy, and clarification. Depending on the user's intent, the system selects between **vector retrieval**, **structured retrieval**, and **entity matching**, evaluates whether the retrieved evidence is sufficient, and either responds deterministically, asks a clarifying question, or invokes the LLM for grounded synthesis. Every generated response is validated before being returned, prioritizing **reliability** and **explainability** over unrestricted model autonomy.
+The assistant follows a **bounded agentic RAG** architecture. A deterministic orchestrator—not the LLM—controls routing, workflow selection, retrieval strategy, and clarification. Depending on the user's intent, the system chooses between **vector retrieval**, **structured retrieval**, and **entity matching**, evaluates whether the retrieved evidence is sufficient, and either responds deterministically, asks a clarifying question, or invokes the LLM for grounded synthesis. Every **LLM-generated response** is validated before being returned, prioritizing **reliability** and **explainability** over unrestricted model autonomy.
