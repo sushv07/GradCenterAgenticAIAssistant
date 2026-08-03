@@ -1,11 +1,116 @@
 # CSULB Graduate Center AI Assistant
 
-An agentic AI assistant for CSULB Graduate Center prospective students.
-Covers application steps, deadlines, program recommendations, advisor
-contact, eligibility, and FAQ — backed by a local RAG knowledge base
-(Chroma + sentence-transformers) and an optional local LLM (Ollama).
+An **agentic AI assistant** for the CSULB Graduate Center that helps prospective students navigate application steps, deadlines, eligibility, advisor contacts, program recommendations, and FAQs.
+
+The assistant follows a **bounded agentic RAG** architecture with deterministic orchestration, multi-source retrieval (vector, structured, and entity matching), conversation-aware routing, and optional grounded LLM synthesis.
 
 ---
+
+## ✨ Features
+
+- Bounded Agentic RAG architecture
+- Deterministic orchestration
+- Conversation-aware routing
+- Multi-source retrieval
+- Vector search (ChromaDB)
+- Structured workflow retrieval
+- Advisor & program entity matching
+- Clarification-first workflow
+- Optional grounded LLM synthesis
+- Response validation
+- Golden evaluation suites
+- Structured observability
+
+---
+
+```
+## 🏗️ Architecture
+
+```mermaid
+flowchart TD
+
+    User[Student Query]
+
+    UI[Streamlit UI / FastAPI]
+
+    State[Conversation State]
+
+    Orchestrator[Deterministic Orchestrator]
+
+    Router[Route Selection]
+
+    Vector[Vector Retrieval]
+
+    Structured[Structured Retrieval]
+
+    Entity[Entity Matching]
+
+    Evidence[Evidence Evaluation]
+
+    Decision{Evidence Sufficient?}
+
+    Clarify[Ask Clarifying Question]
+
+    LLM[Optional LLM Synthesis]
+
+    Validate[Grounding & Validation]
+
+    Response[Final Response]
+
+    Monitor[Observability & Evals]
+
+    User --> UI
+    UI --> State
+    State --> Orchestrator
+    Orchestrator --> Router
+
+    Router --> Vector
+    Router --> Structured
+    Router --> Entity
+
+    Vector --> Evidence
+    Structured --> Evidence
+    Entity --> Evidence
+
+    Evidence --> Decision
+
+    Decision -->|No| Clarify
+    Clarify --> Response
+
+    Decision -->|Yes, Deterministic| Response
+
+    Decision -->|Yes, Synthesis Needed| LLM
+    LLM --> Validate
+    Validate --> Response
+
+    Response --> Monitor
+```
+
+### Architecture Philosophy
+
+The assistant follows a bounded agentic RAG architecture. A deterministic orchestrator—not the LLM—controls routing, workflow selection, retrieval strategy, and clarification. Depending on the user’s intent and conversation state, the system chooses between vector retrieval, structured retrieval, and entity matching, evaluates whether the retrieved evidence is sufficient, and either responds deterministically, asks a clarifying question, or invokes the LLM for grounded synthesis. Every LLM-generated response is validated before being returned, prioritizing reliability and explainability over unrestricted model autonomy.
+
+---
+## 🛠️ Technology Stack
+
+| Layer | Technology | Purpose | Why It Was Chosen |
+|--------|------------|---------|-------------------|
+| **Frontend** | Streamlit | Interactive conversational UI | Rapid prototyping for AI applications with a clean chat interface |
+| **API Layer** | FastAPI | REST API endpoints | High-performance asynchronous API framework with automatic OpenAPI documentation |
+| **Language** | Python | Core application logic | Rich AI ecosystem and excellent support for orchestration and data processing |
+| **Orchestration** | Deterministic Python Orchestrator | Controls routing, workflows, retrieval, and clarification | Prioritizes reliability, explainability, and predictable behavior over unrestricted model autonomy |
+| **Conversation State** | In-memory Session State | Maintains multi-turn conversation context | Lightweight solution suitable for a single-instance deployment |
+| **Vector Retrieval** | ChromaDB | Semantic similarity search | Simple local vector database with fast retrieval and zero infrastructure overhead |
+| **Embeddings** | all-MiniLM-L6-v2 | Dense vector embeddings | Lightweight, fast, and effective for semantic search with low latency |
+| **Structured Retrieval** | JSON Knowledge Base | Workflow and FAQ retrieval | Deterministic lookups for structured university information |
+| **Entity Matching** | RapidFuzz | Program and advisor name resolution | Fast fuzzy matching with deterministic behavior for named entities |
+| **LLM** | Ollama + Qwen2.5-7B | Grounded response synthesis | Local inference, privacy, and complete control over model deployment |
+| **Validation** | Rule-based Validation | Verifies LLM-generated responses | Ensures generated responses remain grounded in retrieved evidence |
+| **Testing** | Pytest | Unit and integration testing | Industry-standard Python testing framework |
+| **Evaluation** | Golden Evaluation Suites | Measures routing and response quality | Enables repeatable evaluation of retrieval and orchestration quality |
+| **Observability** | Structured Logging | Request tracing and debugging | Improves debugging, analysis, and system transparency |
+```
+
 
 ## Local Development
 
@@ -400,26 +505,7 @@ If the Render backend is cold-starting or temporarily unreachable:
 - Submitting a question shows a friendly `⚠️ Cannot connect to the backend.` error inline.
 - The backend status auto-recovers on the next page rerun once Render responds.
 
----
-## 🛠️ Technology Stack
 
-| Layer | Technology | Purpose | Why It Was Chosen |
-|--------|------------|---------|-------------------|
-| **Frontend** | Streamlit | Interactive conversational UI | Rapid prototyping for AI applications with a clean chat interface |
-| **API Layer** | FastAPI | REST API endpoints | High-performance asynchronous API framework with automatic OpenAPI documentation |
-| **Language** | Python | Core application logic | Rich AI ecosystem and excellent support for orchestration and data processing |
-| **Orchestration** | Deterministic Python Orchestrator | Controls routing, workflows, retrieval, and clarification | Prioritizes reliability, explainability, and predictable behavior over unrestricted model autonomy |
-| **Conversation State** | In-memory Session State | Maintains multi-turn conversation context | Lightweight solution suitable for a single-instance deployment |
-| **Vector Retrieval** | ChromaDB | Semantic similarity search | Simple local vector database with fast retrieval and zero infrastructure overhead |
-| **Embeddings** | all-MiniLM-L6-v2 | Dense vector embeddings | Lightweight, fast, and effective for semantic search with low latency |
-| **Structured Retrieval** | JSON Knowledge Base | Workflow and FAQ retrieval | Deterministic lookups for structured university information |
-| **Entity Matching** | RapidFuzz | Program and advisor name resolution | Fast fuzzy matching with deterministic behavior for named entities |
-| **LLM** | Ollama + Qwen2.5-7B | Grounded response synthesis | Local inference, privacy, and complete control over model deployment |
-| **Validation** | Rule-based Validation | Verifies LLM-generated responses | Ensures generated responses remain grounded in retrieved evidence |
-| **Testing** | Pytest | Unit and integration testing | Industry-standard Python testing framework |
-| **Evaluation** | Golden Evaluation Suites | Measures routing and response quality | Enables repeatable evaluation of retrieval and orchestration quality |
-| **Observability** | Structured Logging | Request tracing and debugging | Improves debugging, analysis, and system transparency |
-```
 ```
 ### 🎯 Design Principles
 
@@ -432,69 +518,3 @@ This system follows a **bounded agentic RAG** architecture built around three co
 The overall design prioritizes **reliability**, **explainability**, and **grounded responses** over unrestricted model autonomy.
 
 ```
-```
-## 🏗️ Architecture
-
-```mermaid
-flowchart TD
-
-    User[Student Query]
-
-    UI[Streamlit UI / FastAPI]
-
-    State[Conversation State]
-
-    Orchestrator[Deterministic Orchestrator]
-
-    Router[Route Selection]
-
-    Vector[Vector Retrieval]
-
-    Structured[Structured Retrieval]
-
-    Entity[Entity Matching]
-
-    Evidence[Evidence Evaluation]
-
-    Decision{Evidence Sufficient?}
-
-    Clarify[Ask Clarifying Question]
-
-    LLM[Optional LLM Synthesis]
-
-    Validate[Grounding & Validation]
-
-    Response[Final Response]
-
-    Monitor[Observability & Evals]
-
-    User --> UI
-    UI --> State
-    State --> Orchestrator
-    Orchestrator --> Router
-
-    Router --> Vector
-    Router --> Structured
-    Router --> Entity
-
-    Vector --> Evidence
-    Structured --> Evidence
-    Entity --> Evidence
-
-    Evidence --> Decision
-
-    Decision -->|No| Clarify
-    Clarify --> Response
-
-    Decision -->|Yes, Deterministic| Response
-
-    Decision -->|Yes, Synthesis Needed| LLM
-    LLM --> Validate
-    Validate --> Response
-
-    Response --> Monitor
-```
-
-### Architecture Philosophy
-
-The assistant follows a bounded agentic RAG architecture. A deterministic orchestrator—not the LLM—controls routing, workflow selection, retrieval strategy, and clarification. Depending on the user’s intent and conversation state, the system chooses between vector retrieval, structured retrieval, and entity matching, evaluates whether the retrieved evidence is sufficient, and either responds deterministically, asks a clarifying question, or invokes the LLM for grounded synthesis. Every LLM-generated response is validated before being returned, prioritizing reliability and explainability over unrestricted model autonomy.
