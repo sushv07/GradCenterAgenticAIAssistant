@@ -407,9 +407,6 @@ If the Render backend is cold-starting or temporarily unreachable:
 ## 🏗️ System Architecture
 
 ```mermaid
-## 🏗️ System Architecture
-
-```mermaid
 flowchart TD
 
     User[Student Query]
