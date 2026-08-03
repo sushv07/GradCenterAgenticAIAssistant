@@ -23,7 +23,6 @@ The assistant follows a **bounded agentic RAG** architecture with deterministic 
 
 ---
 
-```
 ## 🏗️ Architecture
 
 ```mermaid
